@@ -1,0 +1,1849 @@
+{
+  "Scene": "visibility-zones",
+  "BackgroundColor": [
+    0.07,
+    0.08,
+    0.11,
+    1
+  ],
+  "Dimension": "ThreeD",
+  "Entities": [
+    {
+      "Id": 1,
+      "Name": "Camera",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            1.7,
+            10
+          ],
+          "Rotation": [
+            -0.15,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "ProjectionType": "Perspective",
+          "OrthographicSize": 10,
+          "OrthographicNear": -1,
+          "OrthographicFar": 1,
+          "PerspectiveFOV": 0.7853982,
+          "PerspectiveNear": 0.1,
+          "PerspectiveFar": 250,
+          "AspectRatio": 1.7777778,
+          "Primary": true,
+          "FixedAspectRatio": false,
+          "Name": "CameraComponent"
+        },
+        {
+          "IsActive": true,
+          "Name": "AudioListenerComponent"
+        }
+      ]
+    },
+    {
+      "Id": 6,
+      "Name": "Ambient",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "Strength": 0.3,
+          "Name": "AmbientLightComponent"
+        }
+      ]
+    },
+    {
+      "Id": 5,
+      "Name": "Sun",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            8,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Direction": [
+            -0.3,
+            -1,
+            -0.2
+          ],
+          "Color": [
+            1,
+            0.97,
+            0.9,
+            1
+          ],
+          "Intensity": 1.15,
+          "Name": "DirectionalLightComponent"
+        }
+      ]
+    },
+    {
+      "Id": 4,
+      "Name": "Ground_Outside",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            -0.12,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            40,
+            0.2,
+            20
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.28,
+            0.3,
+            0.33,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 100,
+      "Name": "Zone_Hall",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Min": [
+            -13.5,
+            -0.5,
+            -2.2
+          ],
+          "Max": [
+            13.5,
+            3.2,
+            2.2
+          ],
+          "Name": "VisibilityZoneComponent"
+        }
+      ]
+    },
+    {
+      "Id": 200,
+      "Name": "Hall_Floor",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0.02,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            28,
+            0.08,
+            4.2
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.4,
+            0.41,
+            0.44,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": 100,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 201,
+      "Name": "Hall_Wall_N",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            1.35,
+            2.35
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            28,
+            2.7,
+            0.2
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.5,
+            0.52,
+            0.55,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 202,
+      "Name": "Hall_Wall_S",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            1.35,
+            -2.35
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            28,
+            2.7,
+            0.2
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.5,
+            0.52,
+            0.55,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 10,
+      "Name": "Zone_Room_West",
+      "Components": [
+        {
+          "Translation": [
+            -12,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Min": [
+            -3,
+            -0.2,
+            -3
+          ],
+          "Max": [
+            3.8,
+            3,
+            3
+          ],
+          "Name": "VisibilityZoneComponent"
+        }
+      ]
+    },
+    {
+      "Id": 203,
+      "Name": "Room_West_Floor",
+      "Components": [
+        {
+          "Translation": [
+            -12,
+            0.04,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            6,
+            0.08,
+            6
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.36,
+            0.38,
+            0.42,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": 10,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 204,
+      "Name": "Room_West_Wall_N",
+      "Components": [
+        {
+          "Translation": [
+            -12,
+            1.35,
+            3
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            6,
+            2.7,
+            0.22
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.48,
+            0.5,
+            0.53,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 205,
+      "Name": "Room_West_Wall_S",
+      "Components": [
+        {
+          "Translation": [
+            -12,
+            1.35,
+            -3
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            6,
+            2.7,
+            0.22
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.48,
+            0.5,
+            0.53,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 206,
+      "Name": "Room_West_Wall_E_L",
+      "Components": [
+        {
+          "Translation": [
+            -9,
+            1.35,
+            -2.05
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.22,
+            2.7,
+            1.9
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.48,
+            0.5,
+            0.53,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 207,
+      "Name": "Room_West_Wall_E_R",
+      "Components": [
+        {
+          "Translation": [
+            -9,
+            1.35,
+            2.05
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.22,
+            2.7,
+            1.9
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.48,
+            0.5,
+            0.53,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 208,
+      "Name": "Room_West_Wall_W",
+      "Components": [
+        {
+          "Translation": [
+            -15,
+            1.35,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.22,
+            2.7,
+            6
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.42,
+            0.44,
+            0.47,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 209,
+      "Name": "Room_West_Cube_A",
+      "Components": [
+        {
+          "Translation": [
+            -13.2,
+            0.55,
+            -0.8
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.9,
+            0.9,
+            0.9
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.92,
+            0.45,
+            0.2,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": 10,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 210,
+      "Name": "Room_West_Cube_B",
+      "Components": [
+        {
+          "Translation": [
+            -11.1,
+            0.45,
+            0.7
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.7,
+            0.7,
+            0.7
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.25,
+            0.55,
+            0.95,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": 10,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 211,
+      "Name": "Room_West_Cube_C",
+      "Components": [
+        {
+          "Translation": [
+            -12.2,
+            0.35,
+            1.1
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.55,
+            0.55,
+            0.55
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.85,
+            0.35,
+            0.75,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": 10,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 11,
+      "Name": "Zone_Room_Center",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Min": [
+            -3,
+            -0.2,
+            -3
+          ],
+          "Max": [
+            3.8,
+            3,
+            3
+          ],
+          "Name": "VisibilityZoneComponent"
+        }
+      ]
+    },
+    {
+      "Id": 212,
+      "Name": "Room_Center_Floor",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0.04,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            6,
+            0.08,
+            6
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.36,
+            0.38,
+            0.42,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": 11,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 213,
+      "Name": "Room_Center_Wall_N",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            1.35,
+            3
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            6,
+            2.7,
+            0.22
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.48,
+            0.5,
+            0.53,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 214,
+      "Name": "Room_Center_Wall_S",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            1.35,
+            -3
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            6,
+            2.7,
+            0.22
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.48,
+            0.5,
+            0.53,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 215,
+      "Name": "Room_Center_Wall_E_L",
+      "Components": [
+        {
+          "Translation": [
+            3,
+            1.35,
+            -2.05
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.22,
+            2.7,
+            1.9
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.48,
+            0.5,
+            0.53,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 216,
+      "Name": "Room_Center_Wall_E_R",
+      "Components": [
+        {
+          "Translation": [
+            3,
+            1.35,
+            2.05
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.22,
+            2.7,
+            1.9
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.48,
+            0.5,
+            0.53,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 217,
+      "Name": "Room_Center_Wall_W_L",
+      "Components": [
+        {
+          "Translation": [
+            -3,
+            1.35,
+            -2.05
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.22,
+            2.7,
+            1.9
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.48,
+            0.5,
+            0.53,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 218,
+      "Name": "Room_Center_Wall_W_R",
+      "Components": [
+        {
+          "Translation": [
+            -3,
+            1.35,
+            2.05
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.22,
+            2.7,
+            1.9
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.48,
+            0.5,
+            0.53,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 219,
+      "Name": "Room_Center_Cube_A",
+      "Components": [
+        {
+          "Translation": [
+            -1.2,
+            0.55,
+            -0.8
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.9,
+            0.9,
+            0.9
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.3,
+            0.85,
+            0.45,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": 11,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 220,
+      "Name": "Room_Center_Cube_B",
+      "Components": [
+        {
+          "Translation": [
+            0.9,
+            0.45,
+            0.7
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.7,
+            0.7,
+            0.7
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.95,
+            0.8,
+            0.2,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": 11,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 221,
+      "Name": "Room_Center_Cube_C",
+      "Components": [
+        {
+          "Translation": [
+            -0.2,
+            0.35,
+            1.1
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.55,
+            0.55,
+            0.55
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.55,
+            0.4,
+            0.9,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": 11,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 12,
+      "Name": "Zone_Room_East",
+      "Components": [
+        {
+          "Translation": [
+            12,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Min": [
+            -3,
+            -0.2,
+            -3
+          ],
+          "Max": [
+            3.8,
+            3,
+            3
+          ],
+          "Name": "VisibilityZoneComponent"
+        }
+      ]
+    },
+    {
+      "Id": 222,
+      "Name": "Room_East_Floor",
+      "Components": [
+        {
+          "Translation": [
+            12,
+            0.04,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            6,
+            0.08,
+            6
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.36,
+            0.38,
+            0.42,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": 12,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 223,
+      "Name": "Room_East_Wall_N",
+      "Components": [
+        {
+          "Translation": [
+            12,
+            1.35,
+            3
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            6,
+            2.7,
+            0.22
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.48,
+            0.5,
+            0.53,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 224,
+      "Name": "Room_East_Wall_S",
+      "Components": [
+        {
+          "Translation": [
+            12,
+            1.35,
+            -3
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            6,
+            2.7,
+            0.22
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.48,
+            0.5,
+            0.53,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 225,
+      "Name": "Room_East_Wall_W_L",
+      "Components": [
+        {
+          "Translation": [
+            9,
+            1.35,
+            -2.05
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.22,
+            2.7,
+            1.9
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.48,
+            0.5,
+            0.53,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 226,
+      "Name": "Room_East_Wall_W_R",
+      "Components": [
+        {
+          "Translation": [
+            9,
+            1.35,
+            2.05
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.22,
+            2.7,
+            1.9
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.48,
+            0.5,
+            0.53,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 227,
+      "Name": "Room_East_Wall_E",
+      "Components": [
+        {
+          "Translation": [
+            15,
+            1.35,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.22,
+            2.7,
+            6
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.42,
+            0.44,
+            0.47,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 228,
+      "Name": "Room_East_Cube_A",
+      "Components": [
+        {
+          "Translation": [
+            10.8,
+            0.55,
+            -0.8
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.9,
+            0.9,
+            0.9
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.2,
+            0.7,
+            0.95,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": 12,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 229,
+      "Name": "Room_East_Cube_B",
+      "Components": [
+        {
+          "Translation": [
+            12.9,
+            0.45,
+            0.7
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.7,
+            0.7,
+            0.7
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.95,
+            0.35,
+            0.35,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": 12,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 230,
+      "Name": "Room_East_Cube_C",
+      "Components": [
+        {
+          "Translation": [
+            11.8,
+            0.35,
+            1.1
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.55,
+            0.55,
+            0.55
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.7,
+            0.65,
+            0.25,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "VisibilityZoneEntityId": 12,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    }
+  ]
+}

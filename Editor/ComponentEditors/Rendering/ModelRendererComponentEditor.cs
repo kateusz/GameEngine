@@ -50,17 +50,12 @@ public class ModelRendererComponentEditor(
             }, modelLoadService,
             MultiField.UniformPath(entity, e => e.GetComponent<ModelRendererComponent>().ModelPath));
 
-        var hasModel = MultiField.Targets is null
-            ? !string.IsNullOrWhiteSpace(component.ModelPath)
-            : MultiField.For(entity).All(e =>
-                !string.IsNullOrWhiteSpace(e.GetComponent<ModelRendererComponent>().ModelPath));
+        DrawMaterialFields(entity);
+        DrawVisibilityZonePicker(entity);
+    }
 
-        if (!hasModel)
-        {
-            DrawVisibilityZonePicker(entity);
-            return;
-        }
-
+    private void DrawMaterialFields(Entity entity)
+    {
         propertyRenderer.DrawPropertyField("Color", entity,
             e => e.GetComponent<ModelRendererComponent>().Color,
             (e, v) => e.GetComponent<ModelRendererComponent>().Color = v,
@@ -76,7 +71,7 @@ public class ModelRendererComponentEditor(
             e => e.GetComponent<ModelRendererComponent>().TilingFactor,
             (e, v) => e.GetComponent<ModelRendererComponent>().TilingFactor = v,
             MultiField.SameFloat);
-        
+
         propertyRenderer.DrawPropertyField("Metallic", entity,
             e => e.GetComponent<ModelRendererComponent>().Metallic,
             (e, v) => e.GetComponent<ModelRendererComponent>().Metallic = v,
@@ -91,8 +86,6 @@ public class ModelRendererComponentEditor(
             e => e.GetComponent<ModelRendererComponent>().Ao,
             (e, v) => e.GetComponent<ModelRendererComponent>().Ao = v,
             MultiField.SameFloat);
-
-        DrawVisibilityZonePicker(entity);
     }
 
     private void DrawVisibilityZonePicker(Entity entity)
