@@ -69,6 +69,12 @@ internal sealed class Graphics3D(
             _cubeShader.SetInt(PointShadowMapUniforms[i], PointShadowSlot + i);
         _cubeShader.Unbind();
 
+        _depthShader.Bind();
+        _depthShader.SetInt("u_DiffuseMap", 0);
+        _depthShader.Unbind();
+        _pointDepthShader.Bind();
+        _pointDepthShader.SetInt("u_DiffuseMap", 0);
+        _pointDepthShader.Unbind();
         _modelShader.Bind();
         _modelShader.SetInt("u_DiffuseMap", 0);
         _modelShader.SetInt("u_MetallicRoughnessMap", 1);
@@ -236,13 +242,16 @@ internal sealed class Graphics3D(
                 return;
             }
 
+            ApplySurface(_depthShader, mesh);
             UploadAndDraw(mesh, instances, _depthShader);
+            rendererApi.SetFaceCulling(true);
             return;
         }
 
         rendererApi.SetDepthTest(true);
         var first = instances[0];
         _modelShader.Bind();
+        ApplySurface(_modelShader, mesh);
         _modelShader.SetFloat4("u_Color", first.Tint);
         _modelShader.SetFloat("u_Metallic", first.Metallic);
         _modelShader.SetFloat("u_Roughness", first.Roughness);
@@ -260,6 +269,7 @@ internal sealed class Graphics3D(
 
         UploadAndDraw(mesh, instances, _modelShader);
         _modelShader.Unbind();
+        rendererApi.SetFaceCulling(true);
     }
 
     private void UploadAndDraw(Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances, IShader shader)
@@ -343,16 +353,28 @@ internal sealed class Graphics3D(
         shader.Unbind();
     }
 
+    private void ApplySurface(IShader shader, Mesh mesh)
+    {
+        var cutout = mesh.AlphaCutout && mesh.HasDiffuseMap;
+        shader.SetInt("u_AlphaTest", cutout ? 1 : 0);
+        shader.SetFloat("u_AlphaCutoff", mesh.AlphaCutoff);
+        rendererApi.SetFaceCulling(!mesh.DoubleSided);
+        if (cutout)
+            mesh.DiffuseTexture!.Bind(0);
+    }
+
     private void DrawShadow(Mesh mesh, Matrix4x4 transform)
     {
         var shader = _pointShadowPass ? _pointDepthShader : _depthShader;
         rendererApi.SetDepthTest(true);
+        ApplySurface(shader, mesh);
         if (!_pointShadowPass)
             shader.SetInt("u_Instanced", 0);
         shader.SetMat4("u_Model", transform);
         mesh.Bind();
         rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
         RecordDraw(mesh, instanceCount: 1, isCube: mesh == _cubeMesh);
+        rendererApi.SetFaceCulling(true);
     }
 
     private void RecordDraw(Mesh mesh, int instanceCount, bool isCube)

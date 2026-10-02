@@ -25,6 +25,32 @@ public class PbrImportTests
         mesh.BaseColorFactor.X.ShouldBe(1f, 0.001f);
         mesh.BaseColorFactor.Y.ShouldBe(0.5f, 0.001f);
         mesh.BaseColorFactor.Z.ShouldBe(0.1f, 0.001f);
+        mesh.AlphaCutout.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ImportSource_GltfBlend_IsDoubleSidedCutout()
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "TestAssets", "AlphaLeaf.gltf");
+        if (!File.Exists(path))
+            path = Path.GetFullPath(Path.Combine("tests", "Engine.Tests", "TestAssets", "AlphaLeaf.gltf"));
+
+        using var importer = new AssimpModelImporter();
+        var model = importer.ImportSource(path);
+        model.ShouldNotBeNull();
+        var mesh = model!.Submeshes[0];
+        mesh.AlphaCutout.ShouldBeTrue();
+        mesh.DoubleSided.ShouldBeTrue();
+        mesh.AlphaCutoff.ShouldBe(0.5f, 0.001f);
+    }
+
+    [Fact]
+    public void UsesAlphaCutout_MaskAndBlend()
+    {
+        AssimpModelImporter.UsesAlphaCutout("MASK").ShouldBeTrue();
+        AssimpModelImporter.UsesAlphaCutout("BLEND").ShouldBeTrue();
+        AssimpModelImporter.UsesAlphaCutout("OPAQUE").ShouldBeFalse();
+        AssimpModelImporter.UsesAlphaCutout(null).ShouldBeFalse();
     }
 
     [Fact]
