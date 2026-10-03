@@ -3,28 +3,35 @@ using System.Numerics;
 using Engine.Core;
 using Engine.Core.Window;
 using Engine.Events.Input;
-using Engine.Project;
 using Engine.Renderer;
+using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
 using Engine.Scene;
+using Engine.Scene.Serializer;
 using ImGuiNET;
-using SceneComponents;
-using SceneComponents.Camera;
-using SceneComponents.Physics;
-using SceneComponents.Rendering;
 
 namespace Benchmark;
 
-public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, ITextureFactory textureFactory)
+public class BenchmarkLayer(
+    IGraphics2D graphics2D,
+    IGraphics3D graphics3D,
+    SceneFactory sceneFactory,
+    ITextureFactory textureFactory,
+    IModelFactory modelFactory,
+    ISceneSerializer scenes)
     : ILayer
 {
+    private readonly Benchmark2DRunner _twoD = new(graphics2D, sceneFactory, textureFactory);
+    private readonly Benchmark3DRunner _threeD = new(sceneFactory, graphics2D, graphics3D, textureFactory, modelFactory, scenes);
+    private readonly BenchmarkGridRunner _lighting = new("Lighting", sceneFactory, graphics2D, graphics3D, textureFactory, modelFactory);
+    private readonly BenchmarkGridRunner _shadows = new("Shadows", sceneFactory, graphics2D, graphics3D, textureFactory, modelFactory);
+    private readonly ActiveRun _active = new();
     private readonly List<BenchmarkResult> _results = [];
     private readonly Stopwatch _frameTimer = new();
     private readonly Queue<float> _frameTimes = new();
     private const int MaxFrameSamples = 120;
 
-    // CPU and Memory monitoring
     private readonly Queue<float> _cpuUsageSamples = new();
     private readonly Queue<long> _memorySamples = new();
     private Process? _currentProcess;
@@ -33,41 +40,23 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
     private float _currentCpuUsage;
     private long _currentMemoryUsageMB;
 
-    // Test scenes
-    private IScene? _currentTestScene;
-    private SceneCamera? _cameraController;
-    private readonly Dictionary<string, Texture2D> _testTextures = new();
-
-    // Benchmark configurations
-    private int _entityCount = 10000;
-    private int _drawCallsPerFrame = 10000;
-    private int _textureCount = 1000;
-    private int _scriptEntityCount = 50;
-    private float _testDurationInSeconds = 5.0f;
-    private bool _enableVSync;
-
-    private BenchmarkTestType _currentTestType = BenchmarkTestType.None;
     private float _testElapsedTime;
-    private bool _isRunning;
     private int _frameCount;
     private List<BenchmarkResult> _baselineResults = [];
-    private readonly Random _rng = new();
     private readonly Graphics2DStatsAggregator _statsAggregator = new();
     private readonly Queue<float> _flushMsHistory = new();
     private readonly Queue<float> _gpuQuadMsHistory = new();
+    private readonly Queue<float> _colorCpuHistory = new();
+    private readonly Queue<float> _shadowCpuHistory = new();
     private readonly float[] _flushMsPlotBuffer = new float[MaxFrameSamples];
     private readonly float[] _gpuQuadMsPlotBuffer = new float[MaxFrameSamples];
-    private int _profilingPhase;
-    private bool _ecsRuntimeStarted;
+
+    private IBenchmarkRunner? _category;
+    private string? _status;
 
     public void OnAttach()
     {
-        _cameraController = new SceneCamera();
-        _cameraController.SetOrthographic(10f, -10f, 10f);
-        _cameraController.SetViewportSize(800, 600);
-        LoadTestAssets();
-
-        // Initialize process monitoring
+        _twoD.Load();
         _currentProcess = Process.GetCurrentProcess();
         _lastTotalProcessorTime = _currentProcess.TotalProcessorTime;
         _lastCpuCheck = DateTime.UtcNow;
@@ -75,51 +64,34 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
 
     public void OnDetach()
     {
-        CleanupTestScene();
-        // Color textures bypass the factory cache (Create(width, height) = caller-owned).
-        // Cached textures ("white", "container") belong to TextureFactory — leave them.
-        foreach (var kvp in _testTextures)
-        {
-            if (kvp.Key.StartsWith("color_", StringComparison.Ordinal)
-                || kvp.Key.StartsWith("profile_", StringComparison.Ordinal))
-                kvp.Value.Dispose();
-        }
-        _testTextures.Clear();
+        Finish(commit: false);
+        _twoD.Dispose();
     }
 
     public void OnUpdate(TimeSpan timeSpan)
     {
         _frameTimer.Restart();
-
-        // Update CPU and memory metrics
         UpdateSystemMetrics();
-
-        // Clear the screen first
-        graphics2D.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f)); // Dark gray background
+        graphics2D.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
         graphics2D.Clear();
 
-        if (_isRunning && _currentTestType != BenchmarkTestType.None)
+        var run = _active.Run;
+        if (run != null)
         {
-            UpdateBenchmark(timeSpan);
-        }
-
-        // Camera is event-driven, no per-frame update needed
-
-        // Render current test scene if active
-        if (_currentTestScene != null && _isRunning)
-        {
-            graphics2D.ResetStats();
-
-            if (UsesEcsRuntime(_currentTestType))
-                _currentTestScene.OnUpdateRuntime(timeSpan);
+            run.Tick(timeSpan);
+            _testElapsedTime += (float)timeSpan.TotalSeconds;
+            _frameCount++;
+            if (run.SamplesRenderer2D)
+                RecordRendererStats(graphics2D.GetStats());
             else
-                RenderTestScene();
-
-            RecordRendererStats(graphics2D.GetStats());
+                RecordPipelineStats(graphics3D.GetStats());
         }
 
         _frameTimer.Stop();
         RecordFrameTime((float)_frameTimer.Elapsed.TotalMilliseconds);
+
+        if (run != null && _testElapsedTime >= run.DurationSeconds)
+            Finish(commit: true);
     }
 
     public void Draw()
@@ -131,73 +103,148 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
 
     public void HandleInputEvent(InputEvent windowEvent)
     {
-        if (windowEvent is MouseScrolledEvent scrollEvent)
-            _cameraController!.AdjustOrthographicSize(scrollEvent.YOffset);
-    }
-
-    private void LoadTestAssets()
-    {
-        // Use shared white test texture
-        _testTextures["white"] = textureFactory.GetWhiteTexture();
-
-        // Create colored test textures with proper data initialization
-        var colors = new[] { 0xFF0000FF, 0xFF00FF00, 0xFFFF0000, 0xFFFF00FF, 0xFF00FFFF };
-        for (var i = 0; i < colors.Length; i++)
-        {
-            var texture = textureFactory.Create(1, 1); // Use 1x1 for simplicity
-            texture.SetData(colors[i], sizeof(uint)); // FIXED: Actually set the color data
-            _testTextures[$"color_{i}"] = texture;
-        }
-
-        _testTextures["container"] = textureFactory.Create("assets/textures/container.png");
+        if (_active.Run is PipelineBenchmarkRun pipeline)
+            pipeline.HandleInput(windowEvent, ImGui.GetIO().WantCaptureMouse);
+        else if (_category is Benchmark2DRunner && windowEvent is MouseScrolledEvent scrollEvent)
+            _twoD.AdjustZoom(scrollEvent.YOffset);
     }
 
     private void RenderBenchmarkUI()
     {
         ImGui.Begin("Benchmark Control", ImGuiWindowFlags.AlwaysVerticalScrollbar);
 
-        ImGui.Text("Benchmark Configuration");
-        ImGui.Separator();
-
-        ImGui.DragInt("Entity Count", ref _entityCount, 100, 100, 50000);
-        ImGui.DragInt("Draw Calls/Frame", ref _drawCallsPerFrame, 10, 10, 10000);
-        ImGui.DragInt("Texture Count", ref _textureCount, 1, 1, 32);
-        ImGui.DragInt("Script Entities", ref _scriptEntityCount, 10, 0, 1000);
-        ImGui.DragFloat("Test Duration (s)", ref _testDurationInSeconds, 0.5f, 1.0f, 60.0f);
-        ImGui.Checkbox("VSync", ref _enableVSync);
-
-        ImGui.Separator();
-
-        if (!_isRunning)
+        if (_category == null)
         {
-            ImGui.Text("Select Benchmark Test:");
+            ImGui.Text("Choose a category");
+            ImGui.Separator();
+            if (ImGui.Button("2D"))
+                _category = _twoD;
+            if (ImGui.Button("3D"))
+                _category = _threeD;
+            if (ImGui.Button("Lighting"))
+                _category = _lighting;
+            if (ImGui.Button("Shadows"))
+                _category = _shadows;
+            ImGui.End();
+            return;
+        }
 
-            if (ImGui.Button("Renderer2D Stress Test"))
-                StartBenchmark(BenchmarkTestType.Renderer2DStress);
+        if (ImGui.Button("Back"))
+        {
+            Finish(commit: false);
+            _category = null;
+            _status = null;
+            ImGui.End();
+            return;
+        }
 
-            if (ImGui.Button("Texture Switching Test"))
-                StartBenchmark(BenchmarkTestType.TextureSwitching);
+        ImGui.Text(_category.Title);
+        ImGui.Separator();
 
-            if (ImGui.Button("Draw Call Test"))
-                StartBenchmark(BenchmarkTestType.DrawCallOptimization);
+        var running = _active.Run != null;
+        if (!running)
+            _category.DrawControls();
 
-            if (ImGui.Button("Profiling2D Preset (5k sprites)"))
-                StartProfiling2DBenchmark();
+        ImGui.Separator();
+        if (!running)
+        {
+            if (_status != null)
+                ImGui.TextWrapped(_status);
 
-            if (ImGui.Button("Physics2D Stress Test"))
-                StartPhysics2DBenchmark();
+            foreach (var test in _category.Tests)
+            {
+                if (ImGui.Button(test.Label))
+                    Start(test.Id);
+            }
         }
         else
         {
-            ImGui.Text($"Running: {_currentTestType}");
-            ImGui.Text($"Progress: {(_testElapsedTime / _testDurationInSeconds * 100):F1}%");
-            ImGui.ProgressBar(_testElapsedTime / _testDurationInSeconds);
-
+            var duration = System.Math.Max(_active.Run!.DurationSeconds, 0.001f);
+            ImGui.Text($"Running: {_active.Run.ResultName}");
+            ImGui.Text($"Progress: {(_testElapsedTime / duration * 100):F1}%");
+            ImGui.ProgressBar(_testElapsedTime / duration);
             if (ImGui.Button("Stop"))
-                StopBenchmark();
+                Finish(commit: true);
         }
 
         ImGui.End();
+    }
+
+    private void Start(string testId)
+    {
+        if (!_category!.TryCreate(testId, _category.Settings, out var run, out var error))
+        {
+            _status = error;
+            return;
+        }
+
+        _status = null;
+        _active.Adopt(run!);
+        ResetSamples();
+    }
+
+    private void Finish(bool commit)
+    {
+        string? storedName = null;
+        var stored = _active.Finish(commit, _frameTimes.Count, run =>
+        {
+            var result = BuildResult(run);
+            storedName = result.TestName;
+            _results.Add(result);
+        });
+
+        if (_active.Run != null)
+        {
+            ResetSamples();
+            return;
+        }
+
+        if (stored && storedName == "Profiling2D_MultiTexture")
+            ExportResultsToMarkdown();
+    }
+
+    private void ResetSamples()
+    {
+        _testElapsedTime = 0;
+        _frameCount = 0;
+        _frameTimes.Clear();
+        _cpuUsageSamples.Clear();
+        _memorySamples.Clear();
+        _statsAggregator.Clear();
+        _flushMsHistory.Clear();
+        _gpuQuadMsHistory.Clear();
+        _colorCpuHistory.Clear();
+        _shadowCpuHistory.Clear();
+    }
+
+    private BenchmarkResult BuildResult(BenchmarkRun run)
+    {
+        var frameTimes = _frameTimes.ToArray();
+        Array.Sort(frameTimes);
+        var cpuSamples = _cpuUsageSamples.ToArray();
+        var memorySamples = _memorySamples.ToArray();
+
+        var result = new BenchmarkResult
+        {
+            TestName = run.ResultName,
+            TotalFrames = _frameCount,
+            AverageFrameTime = frameTimes.Average(),
+            MinFPS = 1000.0f / frameTimes.Max(),
+            MaxFPS = 1000.0f / frameTimes.Min(),
+            AverageFPS = 1000.0f / frameTimes.Average(),
+            Percentile99 = frameTimes[(int)(frameTimes.Length * 0.99)],
+            TestDuration = _testElapsedTime,
+            AverageCpuUsage = cpuSamples.Length > 0 ? cpuSamples.Average() : 0,
+            MaxCpuUsage = cpuSamples.Length > 0 ? cpuSamples.Max() : 0,
+            MinCpuUsage = cpuSamples.Length > 0 ? cpuSamples.Min() : 0,
+            AverageMemoryUsageMB = memorySamples.Length > 0 ? (long)memorySamples.Average() : 0,
+            MaxMemoryUsageMB = memorySamples.Length > 0 ? memorySamples.Max() : 0,
+            MinMemoryUsageMB = memorySamples.Length > 0 ? memorySamples.Min() : 0
+        };
+
+        _statsAggregator.ApplyTo(result);
+        run.Contribute(result);
+        return result;
     }
 
     private void RenderResultsWindow()
@@ -207,7 +254,16 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
 
         if (_results.Count > 0)
         {
-            RenderResultButtons();
+            if (ImGui.Button("Clear Results"))
+                _results.Clear();
+            if (ImGui.Button("Save as Baseline"))
+                BenchmarkStorage.SaveBaseline(_results);
+            ImGui.SameLine();
+            if (ImGui.Button("Load Baseline"))
+                _baselineResults = BenchmarkStorage.LoadBaseline();
+            ImGui.SameLine();
+            if (ImGui.Button("Export to Markdown"))
+                ExportResultsToMarkdown();
             ImGui.Separator();
 
             foreach (var result in _results)
@@ -224,25 +280,10 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
         ImGui.End();
     }
 
-    private void RenderResultButtons()
-    {
-        if (ImGui.Button("Clear Results"))
-            _results.Clear();
-        if (ImGui.Button("Save as Baseline"))
-            BenchmarkStorage.SaveBaseline(_results);
-        ImGui.SameLine();
-        if (ImGui.Button("Load Baseline"))
-            _baselineResults = BenchmarkStorage.LoadBaseline();
-        ImGui.SameLine();
-        if (ImGui.Button("Export to Markdown"))
-            ExportResultsToMarkdown();
-    }
-
     private static void RenderSingleResult(BenchmarkResult result, BenchmarkResult? baseline)
     {
         ImGui.Text($"{result.TestName}:");
         ImGui.Indent();
-
         ImGui.Text("Performance:");
         ImGui.Indent();
         ImGui.Text($"Avg FPS: {result.AverageFPS:F2}");
@@ -252,21 +293,18 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
         ImGui.Text($"99th Percentile: {result.Percentile99:F2}ms");
         ImGui.Text($"Total Frames: {result.TotalFrames}");
         ImGui.Unindent();
-
         ImGui.Text("CPU Usage:");
         ImGui.Indent();
         ImGui.Text($"Average: {result.AverageCpuUsage:F2}%");
         ImGui.Text($"Min: {result.MinCpuUsage:F2}%");
         ImGui.Text($"Max: {result.MaxCpuUsage:F2}%");
         ImGui.Unindent();
-
         ImGui.Text("Memory Usage:");
         ImGui.Indent();
         ImGui.Text($"Average: {result.AverageMemoryUsageMB} MB");
         ImGui.Text($"Min: {result.MinMemoryUsageMB} MB");
         ImGui.Text($"Max: {result.MaxMemoryUsageMB} MB");
         ImGui.Unindent();
-
         if (result.CustomMetrics.Count > 0)
         {
             ImGui.Text("Custom Metrics:");
@@ -278,7 +316,6 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
 
         ImGui.Unindent();
         ImGui.Separator();
-
         if (baseline != null)
             RenderBaselineComparison(result, baseline);
     }
@@ -287,48 +324,39 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
     {
         ImGui.Text("Comparison with Baseline:");
         ImGui.Indent();
-
         var fpsDiff = result.AverageFPS - baseline.AverageFPS;
         ImGui.PushStyleColor(ImGuiCol.Text, fpsDiff >= 0 ? new Vector4(0, 1, 0, 1) : new Vector4(1, 0, 0, 1));
         ImGui.Text($"Δ Avg FPS: {fpsDiff:+0.00;-0.00;0.00}");
         ImGui.PopStyleColor();
-
         var frameTimeDiff = result.AverageFrameTime - baseline.AverageFrameTime;
         ImGui.PushStyleColor(ImGuiCol.Text, frameTimeDiff <= 0 ? new Vector4(0, 1, 0, 1) : new Vector4(1, 0, 0, 1));
         ImGui.Text($"Δ Frame Time: {frameTimeDiff:+0.00;-0.00;0.00}ms");
         ImGui.PopStyleColor();
-
         var cpuDiff = result.AverageCpuUsage - baseline.AverageCpuUsage;
         ImGui.PushStyleColor(ImGuiCol.Text, cpuDiff <= 0 ? new Vector4(0, 1, 0, 1) : new Vector4(1, 0, 0, 1));
         ImGui.Text($"Δ Avg CPU: {cpuDiff:+0.00;-0.00;0.00}%");
         ImGui.PopStyleColor();
-
         var memoryDiff = result.AverageMemoryUsageMB - baseline.AverageMemoryUsageMB;
         ImGui.PushStyleColor(ImGuiCol.Text, memoryDiff <= 0 ? new Vector4(0, 1, 0, 1) : new Vector4(1, 0, 0, 1));
         ImGui.Text($"Δ Avg Memory: {memoryDiff:+0;-0;0} MB");
         ImGui.PopStyleColor();
-
         ImGui.Unindent();
     }
 
     private void RenderPerformanceMonitor()
     {
-        ImGui.Begin("Performance Monitor##Benchmark"); // Added unique ID suffix
-
+        ImGui.Begin("Performance Monitor##Benchmark");
         var frameTimes = _frameTimes.ToArray();
         if (frameTimes.Length > 0)
         {
             var avgFrameTime = frameTimes.Average();
             var minFrameTime = frameTimes.Min();
             var maxFrameTime = frameTimes.Max();
-
             ImGui.Text("Performance:");
             ImGui.Indent();
             ImGui.Text($"Current FPS: {(1000.0f / avgFrameTime):F2}");
             ImGui.Text($"Frame Time: {avgFrameTime:F2}ms (min: {minFrameTime:F2}, max: {maxFrameTime:F2})");
-
-            // Simple frame time graph
-            if (frameTimes.Length > 1) // Ensure we have enough data for plotting
+            if (frameTimes.Length > 1)
             {
                 ImGui.PlotLines("Frame Times", ref frameTimes[0], frameTimes.Length, 0,
                     null, 0, maxFrameTime * 1.2f, new Vector2(0, 80));
@@ -341,7 +369,6 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
             ImGui.Text("Collecting performance data...");
         }
 
-        // System resource usage
         ImGui.Separator();
         ImGui.Text("System Resources:");
         ImGui.Indent();
@@ -350,10 +377,30 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
         ImGui.Text($"CPU Cores: {Environment.ProcessorCount}");
         ImGui.Unindent();
 
-        // Renderer stats
-        var stats2D = graphics2D.GetStats();
         ImGui.Separator();
-        ImGui.Text("Renderer2D Stats (direct draw, not ECS path):");
+        switch (_category?.Title)
+        {
+            case "2D":
+                Draw2DStats();
+                break;
+            case "3D":
+                Draw3DStats(graphics3D.GetStats());
+                break;
+            case "Lighting":
+                DrawLightingStats(graphics3D.GetStats());
+                break;
+            case "Shadows":
+                DrawShadowStats(graphics3D.GetStats());
+                break;
+        }
+
+        ImGui.End();
+    }
+
+    private void Draw2DStats()
+    {
+        var stats2D = graphics2D.GetStats();
+        ImGui.Text("Renderer2D");
         ImGui.Indent();
         ImGui.Text($"Quad Draw Calls: {stats2D.DrawCalls}");
         ImGui.Text($"Line Draw Calls: {stats2D.LineDrawCalls}");
@@ -370,455 +417,90 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
             ImGui.SetTooltip("GPU times are from the previous frame (timer query lag).");
         ImGui.Text($"GPU Quad Pass: {stats2D.GpuQuadPassMs:F3} ms");
         ImGui.Text($"GPU Line Pass: {stats2D.GpuLinePassMs:F3} ms");
-
-        if (_flushMsHistory.Count > 1)
-        {
-            CopyQueueToPlotBuffer(_flushMsHistory, _flushMsPlotBuffer);
-            ImGui.PlotLines("Flush Ms", ref _flushMsPlotBuffer[0], _flushMsHistory.Count, 0,
-                null, 0, _flushMsPlotBuffer.Max() * 1.2f, new Vector2(0, 60));
-        }
-
-        if (_gpuQuadMsHistory.Count > 1)
-        {
-            CopyQueueToPlotBuffer(_gpuQuadMsHistory, _gpuQuadMsPlotBuffer);
-            ImGui.PlotLines("GPU Quad Ms (lag 1f)", ref _gpuQuadMsPlotBuffer[0], _gpuQuadMsHistory.Count, 0,
-                null, 0, MathF.Max(_gpuQuadMsPlotBuffer.Max() * 1.2f, 0.01f), new Vector2(0, 60));
-        }
-
+        PlotHistory("Flush Ms", _flushMsHistory, _flushMsPlotBuffer);
+        PlotHistory("GPU Quad Ms (lag 1f)", _gpuQuadMsHistory, _gpuQuadMsPlotBuffer);
         ImGui.Unindent();
-
-        ImGui.End();
     }
 
-    private void StartBenchmark(BenchmarkTestType testType)
+    private void Draw3DStats(Statistics stats)
     {
-        _currentTestType = testType;
-        _isRunning = true;
-        _testElapsedTime = 0;
-        _frameCount = 0;
-        _frameTimes.Clear();
-        _cpuUsageSamples.Clear();
-        _memorySamples.Clear();
-        _statsAggregator.Clear();
-        _flushMsHistory.Clear();
-        _gpuQuadMsHistory.Clear();
-
-        CleanupTestScene();
-        SetupTestScene(testType);
+        ImGui.Text("Renderer3D");
+        ImGui.Indent();
+        ImGui.Text($"Color Draw Calls: {stats.ColorDrawCalls}");
+        ImGui.Text($"Cubes: {stats.CubeDraws}");
+        ImGui.Text($"Mesh Draws: {stats.MeshDraws} (instanced: {stats.InstancedDraws})");
+        ImGui.Text($"Instances: {stats.Instances}");
+        ImGui.Text($"Vertices: {stats.Vertices}");
+        ImGui.Text($"Triangles: {stats.Triangles}");
+        ImGui.Text($"CPU Color: {stats.ColorCpuMs:F3} ms");
+        ImGui.Text($"Directional Shadow: {(stats.DirectionalShadow ? "on" : "off")}");
+        ImGui.Text($"Point Shadow Lights: {stats.PointShadowLights}");
+        PlotHistory("CPU Color Ms", _colorCpuHistory, _flushMsPlotBuffer);
+        ImGui.Unindent();
     }
 
-    private void StartProfiling2DBenchmark()
+    private void DrawLightingStats(Statistics stats)
     {
-        _entityCount = 5000;
-        _testDurationInSeconds = 5.0f;
-        _profilingPhase = 1;
-        StartBenchmark(BenchmarkTestType.Profiling2D);
+        ImGui.Text("Lighting");
+        ImGui.Indent();
+        ImGui.Text($"Point Lights: {stats.PointLights}");
+        ImGui.Text($"Directional Shadow: {(stats.DirectionalShadow ? "on" : "off")}");
+        ImGui.Text($"Point Shadow Lights: {stats.PointShadowLights}");
+        ImGui.Text($"Color Draw Calls: {stats.ColorDrawCalls}");
+        ImGui.Text($"CPU Color: {stats.ColorCpuMs:F3} ms");
+        ImGui.Text($"CPU Shadows: {stats.ShadowCpuMs:F3} ms");
+        PlotHistory("CPU Color Ms", _colorCpuHistory, _flushMsPlotBuffer);
+        ImGui.Unindent();
     }
 
-    private void StartPhysics2DBenchmark()
+    private void DrawShadowStats(Statistics stats)
     {
-        _entityCount = 500;
-        _testDurationInSeconds = 5.0f;
-        StartBenchmark(BenchmarkTestType.Physics2DStress);
+        ImGui.Text("Shadows");
+        ImGui.Indent();
+        ImGui.Text($"Directional Shadow: {(stats.DirectionalShadow ? "on" : "off")}");
+        ImGui.Text($"Dir Shadow Draw Calls: {stats.DirectionalShadowDrawCalls}");
+        ImGui.Text($"Point Lights: {stats.PointLights} (shadow: {stats.PointShadowLights}, cache hits: {stats.PointShadowCacheHits})");
+        ImGui.Text($"Point Shadow Draw Calls: {stats.PointShadowDrawCalls}");
+        ImGui.Text($"Shadow Caster Culled: {stats.ShadowCasterCulled}");
+        ImGui.Text($"CPU Shadows: {stats.ShadowCpuMs:F3} ms");
+        ImGui.Text($"CPU Color: {stats.ColorCpuMs:F3} ms");
+        ImGui.Text($"Color Draw Calls: {stats.ColorDrawCalls}");
+        PlotHistory("CPU Shadow Ms", _shadowCpuHistory, _flushMsPlotBuffer);
+        PlotHistory("CPU Color Ms", _colorCpuHistory, _gpuQuadMsPlotBuffer);
+        ImGui.Unindent();
     }
 
-    private void StopBenchmark()
+    private static void PlotHistory(string label, Queue<float> history, float[] buffer)
     {
-        if (_isRunning && _currentTestType != BenchmarkTestType.None)
-        {
-            FinalizeBenchmark();
+        if (history.Count <= 1)
+            return;
 
-            if (_currentTestType == BenchmarkTestType.Profiling2D && _profilingPhase == 1)
-            {
-                _profilingPhase = 2;
-                _testElapsedTime = 0;
-                _frameCount = 0;
-                _frameTimes.Clear();
-                _cpuUsageSamples.Clear();
-                _memorySamples.Clear();
-                _statsAggregator.Clear();
-                CleanupTestScene();
-                SetupTestScene(BenchmarkTestType.Profiling2D);
-                return;
-            }
-
-            if (_currentTestType == BenchmarkTestType.Profiling2D && _profilingPhase == 2)
-            {
-                _profilingPhase = 0;
-                ExportResultsToMarkdown();
-            }
-        }
-
-        _isRunning = false;
-        _currentTestType = BenchmarkTestType.None;
-        _profilingPhase = 0;
-        CleanupTestScene();
+        CopyQueueToPlotBuffer(history, buffer);
+        var max = 0f;
+        for (var i = 0; i < history.Count; i++)
+            if (buffer[i] > max)
+                max = buffer[i];
+        ImGui.PlotLines(label, ref buffer[0], history.Count, 0, null, 0, System.Math.Max(max * 1.2f, 0.01f), new Vector2(0, 60));
     }
-
-    private void UpdateBenchmark(TimeSpan ts)
-    {
-        _testElapsedTime += (float)ts.TotalSeconds;
-        _frameCount++;
-
-        // Update test scene
-        if (_currentTestScene != null && !UsesEcsRuntime(_currentTestType))
-        {
-            switch (_currentTestType)
-            {
-                case BenchmarkTestType.Renderer2DStress:
-                    UpdateRenderer2DStress();
-                    break;
-                case BenchmarkTestType.DrawCallOptimization:
-                    UpdateDrawCall();
-                    break;
-                case BenchmarkTestType.TextureSwitching:
-                    UpdateTextureSwitching();
-                    break;
-                case BenchmarkTestType.Profiling2D:
-                    UpdateRenderer2DStress();
-                    break;
-            }
-        }
-
-        // Check if test is complete
-        if (_testElapsedTime >= _testDurationInSeconds)
-        {
-            StopBenchmark();
-        }
-    }
-
-    private void UpdateDrawCall()
-    {
-        if (_currentTestScene == null) return;
-
-        var textures = _testTextures.Values.ToArray();
-
-        foreach (var entity in _currentTestScene.Entities)
-        {
-            if (!entity.TryGetComponent<TransformComponent>(out var transform))
-                continue;
-
-            transform.Translation += new Vector3(
-                (float)(_rng.NextDouble() * 0.02 - 0.01),
-                (float)(_rng.NextDouble() * 0.02 - 0.01),
-                0);
-
-            transform.Rotation = transform.Rotation with { Z = transform.Rotation.Z + 0.01f };
-
-            if (textures.Length > 1 && entity.TryGetComponent<SpriteRendererComponent>(out var sprite) && _rng.NextDouble() < 0.05)
-            {
-                sprite.TexturePath = textures[_rng.Next(textures.Length)].Path;
-            }
-        }
-    }
-
-    private void SetupTestScene(BenchmarkTestType testType)
-    {
-        _currentTestScene = sceneFactory.Create("Benchmark");
-
-        // Add camera entity
-        var cameraEntity = _currentTestScene.CreateEntity("BenchmarkCamera");
-        cameraEntity.AddComponent<TransformComponent>(); // Add required TransformComponent
-        var cameraComponent = cameraEntity.AddComponent<CameraComponent>();
-        if (UsesEcsRuntime(testType))
-        {
-            cameraComponent.Primary = true;
-            cameraComponent.OrthographicSize = 20f;
-        }
-
-        switch (testType)
-        {
-            case BenchmarkTestType.Renderer2DStress:
-                SetupRenderer2DStressTest();
-                break;
-            case BenchmarkTestType.TextureSwitching:
-                SetupTextureSwitchingTest();
-                break;
-            case BenchmarkTestType.DrawCallOptimization:
-                SetupDrawCallTest();
-                break;
-            case BenchmarkTestType.Profiling2D:
-                SetupProfiling2DTest(multiTexture: _profilingPhase == 2);
-                break;
-            case BenchmarkTestType.Physics2DStress:
-                SetupPhysics2DStressTest();
-                break;
-        }
-
-        if (UsesEcsRuntime(testType))
-        {
-            _currentTestScene.OnRuntimeStart();
-            _ecsRuntimeStarted = true;
-        }
-        else
-        {
-            _ecsRuntimeStarted = false;
-        }
-    }
-
-    private void SetupProfiling2DTest(bool multiTexture)
-    {
-        EnsureProfilingTextures();
-        var texturePaths = _testTextures.Values.Select(t => t.Path).Where(p => !string.IsNullOrEmpty(p)).ToArray();
-        if (texturePaths.Length == 0)
-            texturePaths = [_testTextures["white"].Path!];
-
-        var singlePath = texturePaths[0];
-
-        for (var i = 0; i < _entityCount; i++)
-        {
-            var entity = _currentTestScene!.CreateEntity($"ProfileSprite_{i}");
-            entity.AddComponent<TransformComponent>();
-            var transform = entity.GetComponent<TransformComponent>();
-            transform.Translation = new Vector3(
-                (float)(_rng.NextDouble() * 20 - 10),
-                (float)(_rng.NextDouble() * 20 - 10),
-                0);
-            transform.Scale = new Vector3(0.5f, 0.5f, 1.0f);
-
-            var sprite = entity.AddComponent<SpriteRendererComponent>();
-            sprite.TexturePath = multiTexture
-                ? texturePaths[i % texturePaths.Length]
-                : singlePath;
-            sprite.Color = Vector4.One;
-        }
-    }
-
-    private void EnsureProfilingTextures()
-    {
-        while (_testTextures.Count < 32)
-        {
-            var i = _testTextures.Count;
-            var texture = textureFactory.Create(1, 1);
-            texture.SetData((uint)(0xFF000000 | (uint)(i * 8 % 256) << 16 | (uint)(i * 4 % 256) << 8 | (uint)(i * 2 % 256)), sizeof(uint));
-            _testTextures[$"profile_{i}"] = texture;
-        }
-    }
-
-    private void SetupRenderer2DStressTest()
-    {
-        var random = new Random();
-
-        // Create many sprite entities
-        for (var i = 0; i < _entityCount; i++)
-        {
-            var entity = _currentTestScene!.CreateEntity($"Sprite_{i}");
-            entity.AddComponent<TransformComponent>(); // Explicitly add TransformComponent
-            var transform = entity.GetComponent<TransformComponent>();
-            transform.Translation = new Vector3(
-                (float)(random.NextDouble() * 20 - 10),
-                (float)(random.NextDouble() * 20 - 10),
-                0);
-            transform.Scale = new Vector3(0.5f, 0.5f, 1.0f);
-
-            var sprite = new SpriteRendererComponent
-            {
-                Color = new Vector4(
-                    (float)random.NextDouble(),
-                    (float)random.NextDouble(),
-                    (float)random.NextDouble(),
-                    1.0f)
-            };
-            entity.AddComponent<SpriteRendererComponent>(sprite);
-        }
-    }
-
-    private void SetupTextureSwitchingTest()
-    {
-        var textureKeys = _testTextures.Keys.ToArray();
-        var random = new Random();
-
-        for (var i = 0; i < _entityCount; i++)
-        {
-            var entity = _currentTestScene!.CreateEntity($"TexturedSprite_{i}");
-            entity.AddComponent<TransformComponent>(); // Add required component
-            var transform = entity.GetComponent<TransformComponent>();
-            transform.Translation = new Vector3(
-                (float)(random.NextDouble() * 20 - 10),
-                (float)(random.NextDouble() * 20 - 10),
-                0);
-
-            var sprite = entity.AddComponent<SpriteRendererComponent>();
-            sprite.TexturePath = _testTextures[textureKeys[i % textureKeys.Length]].Path;
-        }
-    }
-
-    private void SetupPhysics2DStressTest()
-    {
-        const float boxSize = 0.5f;
-        const float spacing = 0.52f;
-        const int maxRows = 3;
-        const float spawnBaseY = 10f;
-
-        var cols = System.Math.Max(1, (int)System.Math.Ceiling(_entityCount / (double)maxRows));
-        var groundWidth = cols * spacing + 2f;
-
-        var ground = _currentTestScene!.CreateEntity("Ground");
-        ground.AddComponent<TransformComponent>();
-        var groundTransform = ground.GetComponent<TransformComponent>();
-        groundTransform.Translation = new Vector3(0, -8, 0);
-        groundTransform.Scale = new Vector3(groundWidth, 1, 1);
-
-        var groundBody = ground.AddComponent<RigidBody2DComponent>();
-        groundBody.BodyType = RigidBodyType.Static;
-
-        var groundCollider = ground.AddComponent<BoxCollider2DComponent>();
-        groundCollider.Size = new Vector2(groundWidth, 1);
-
-        var groundSprite = ground.AddComponent<SpriteRendererComponent>();
-        groundSprite.Color = new Vector4(0.3f, 0.3f, 0.35f, 1f);
-
-        var xOffset = (cols - 1) * spacing * 0.5f;
-        for (var i = 0; i < _entityCount; i++)
-        {
-            var row = i / cols;
-            var col = i % cols;
-
-            var entity = _currentTestScene.CreateEntity($"PhysicsBox_{i}");
-            entity.AddComponent<TransformComponent>();
-            var transform = entity.GetComponent<TransformComponent>();
-            transform.Translation = new Vector3(
-                col * spacing - xOffset,
-                spawnBaseY + row * spacing,
-                0);
-
-            var body = entity.AddComponent<RigidBody2DComponent>();
-            body.BodyType = RigidBodyType.Dynamic;
-
-            var collider = entity.AddComponent<BoxCollider2DComponent>();
-            collider.Size = new Vector2(boxSize, boxSize);
-
-            var sprite = entity.AddComponent<SpriteRendererComponent>();
-            sprite.Color = new Vector4(
-                (float)(_rng.NextDouble() * 0.5 + 0.5),
-                (float)(_rng.NextDouble() * 0.5 + 0.5),
-                (float)(_rng.NextDouble() * 0.5 + 0.5),
-                1f);
-        }
-    }
-
-    private void SetupDrawCallTest()
-    {
-        // Create entities that will force many draw calls
-        var random = new Random();
-
-        for (var i = 0; i < _drawCallsPerFrame; i++)
-        {
-            var entity = _currentTestScene!.CreateEntity($"DrawCall_{i}");
-            entity.AddComponent<TransformComponent>(); // Add required component
-            var transform = entity.GetComponent<TransformComponent>();
-            transform.Translation = new Vector3(
-                (float)(random.NextDouble() * 20 - 10),
-                (float)(random.NextDouble() * 20 - 10),
-                (float)i * 0.001f); // Different Z values to prevent batching
-
-            var sprite = entity.AddComponent<SpriteRendererComponent>();
-
-            // Use different textures to force draw call breaks
-            if (i % 2 == 0 && _testTextures.Count > 1)
-            {
-                sprite.TexturePath = _testTextures.Values.ElementAt(i % _testTextures.Count).Path;
-            }
-        }
-    }
-
-    private void UpdateRenderer2DStress()
-    {
-        // Animate sprites
-        foreach (var entity in _currentTestScene!.Entities)
-        {
-            if (entity.HasComponent<SpriteRendererComponent>() &&
-                entity.TryGetComponent<TransformComponent>(out var transform))
-            {
-                transform.Rotation = new Vector3(0, 0, transform.Rotation.Z + 0.01f);
-            }
-        }
-    }
-
-    private void UpdateTextureSwitching()
-    {
-        var textureValues = _testTextures.Values.ToArray();
-
-        foreach (var entity in _currentTestScene!.Entities)
-        {
-            if (_rng.NextDouble() < 0.1 && entity.TryGetComponent<SpriteRendererComponent>(out var sprite))
-            {
-                sprite.TexturePath = textureValues[_rng.Next(textureValues.Length)].Path;
-            }
-        }
-    }
-
-    private void RenderTestScene()
-    {
-        if (_cameraController == null) return;
-
-        graphics2D.BeginScene(new SceneView(_cameraController.GetProjectionMatrix()));
-
-        foreach (var entity in _currentTestScene!.Entities)
-        {
-            if (!entity.TryGetComponent<TransformComponent>(out var transform)) continue;
-
-            if (entity.TryGetComponent<SpriteRendererComponent>(out var sprite))
-            {
-                var trs = transform.GetTransform();
-                if (!string.IsNullOrWhiteSpace(sprite.TexturePath))
-                {
-                    try
-                    {
-                        var texture = textureFactory.Create(PathBuilder.Resolve(sprite.TexturePath));
-                        graphics2D.DrawQuad(trs, texture, [
-                            new Vector2(0.0f, 0.0f),
-                            new Vector2(1.0f, 0.0f),
-                            new Vector2(1.0f, 1.0f),
-                            new Vector2(0.0f, 1.0f)
-                        ], sprite.TilingFactor, sprite.Color, entity.Id);
-                        continue;
-                    }
-                    catch
-                    {
-                        // fall through to solid color
-                    }
-                }
-
-                graphics2D.DrawQuad(trs, sprite.Color, entity.Id);
-            }
-        }
-
-        graphics2D.EndScene();
-    }
-
-    private void CleanupTestScene()
-    {
-        if (_currentTestScene != null)
-        {
-            if (_ecsRuntimeStarted)
-            {
-                _currentTestScene.OnRuntimeStop();
-                _ecsRuntimeStarted = false;
-            }
-
-            _currentTestScene.Dispose();
-            _currentTestScene = null;
-        }
-    }
-
-    private static bool UsesEcsRuntime(BenchmarkTestType testType) =>
-        testType is BenchmarkTestType.Physics2DStress;
 
     private void RecordRendererStats(Graphics2DStats stats)
     {
-        if (!_isRunning)
-            return;
-
         _statsAggregator.AddSample(stats);
+        EnqueueSample(_flushMsHistory, (float)stats.FlushMs);
+        EnqueueSample(_gpuQuadMsHistory, (float)stats.GpuQuadPassMs);
+    }
 
-        _flushMsHistory.Enqueue((float)stats.FlushMs);
-        if (_flushMsHistory.Count > MaxFrameSamples)
-            _flushMsHistory.Dequeue();
+    private void RecordPipelineStats(Statistics stats)
+    {
+        EnqueueSample(_colorCpuHistory, (float)stats.ColorCpuMs);
+        EnqueueSample(_shadowCpuHistory, (float)stats.ShadowCpuMs);
+    }
 
-        _gpuQuadMsHistory.Enqueue((float)stats.GpuQuadPassMs);
-        if (_gpuQuadMsHistory.Count > MaxFrameSamples)
-            _gpuQuadMsHistory.Dequeue();
+    private static void EnqueueSample(Queue<float> history, float sample)
+    {
+        history.Enqueue(sample);
+        if (history.Count > MaxFrameSamples)
+            history.Dequeue();
     }
 
     private static void CopyQueueToPlotBuffer(Queue<float> source, float[] buffer)
@@ -835,45 +517,31 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
             _frameTimes.Dequeue();
     }
 
-    /// <summary>
-    /// Updates CPU and memory usage metrics for monitoring and benchmarking.
-    /// CPU usage is calculated as a percentage across all cores.
-    /// </summary>
     private void UpdateSystemMetrics()
     {
-        if (_currentProcess == null) return;
+        if (_currentProcess == null)
+            return;
 
         try
         {
-            // Refresh process to get latest values
             _currentProcess.Refresh();
-
-            // Calculate CPU usage
             var currentTime = DateTime.UtcNow;
             var currentTotalProcessorTime = _currentProcess.TotalProcessorTime;
-
             var timeDiff = (currentTime - _lastCpuCheck).TotalMilliseconds;
-            if (timeDiff > 500) // Update CPU every 500ms to smooth out readings
+            if (timeDiff > 500)
             {
                 var cpuTimeDiff = (currentTotalProcessorTime - _lastTotalProcessorTime).TotalMilliseconds;
                 var cpuUsagePercent = (float)((cpuTimeDiff / (Environment.ProcessorCount * timeDiff)) * 100.0);
-
                 _currentCpuUsage = System.Math.Clamp(cpuUsagePercent, 0, 100 * Environment.ProcessorCount);
-
                 _lastCpuCheck = currentTime;
                 _lastTotalProcessorTime = currentTotalProcessorTime;
             }
 
-            // Get memory usage in MB
             _currentMemoryUsageMB = _currentProcess.WorkingSet64 / (1024 * 1024);
-
-            // Record samples during benchmark
-            if (_isRunning)
+            if (_active.Run != null)
             {
                 _cpuUsageSamples.Enqueue(_currentCpuUsage);
                 _memorySamples.Enqueue(_currentMemoryUsageMB);
-
-                // Limit sample count to prevent unbounded growth
                 if (_cpuUsageSamples.Count > 1000)
                     _cpuUsageSamples.Dequeue();
                 if (_memorySamples.Count > 1000)
@@ -882,66 +550,10 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
         }
         catch (Exception ex)
         {
-            // Handle cases where process info is unavailable
             Console.WriteLine($"Failed to update system metrics: {ex.Message}");
         }
     }
 
-    private void FinalizeBenchmark()
-    {
-        var frameTimes = _frameTimes.ToArray();
-        if (frameTimes.Length == 0) return;
-
-        Array.Sort(frameTimes);
-
-        // Calculate CPU and memory statistics
-        var cpuSamples = _cpuUsageSamples.ToArray();
-        var memorySamples = _memorySamples.ToArray();
-
-        var result = new BenchmarkResult
-        {
-            TestName = GetBenchmarkResultName(),
-            TotalFrames = _frameCount,
-            AverageFrameTime = frameTimes.Average(),
-            MinFPS = 1000.0f / frameTimes.Max(),
-            MaxFPS = 1000.0f / frameTimes.Min(),
-            AverageFPS = 1000.0f / frameTimes.Average(),
-            Percentile99 = frameTimes[(int)(frameTimes.Length * 0.99)],
-            TestDuration = _testElapsedTime,
-
-            // CPU metrics
-            AverageCpuUsage = cpuSamples.Length > 0 ? cpuSamples.Average() : 0,
-            MaxCpuUsage = cpuSamples.Length > 0 ? cpuSamples.Max() : 0,
-            MinCpuUsage = cpuSamples.Length > 0 ? cpuSamples.Min() : 0,
-
-            // Memory metrics
-            AverageMemoryUsageMB = memorySamples.Length > 0 ? (long)memorySamples.Average() : 0,
-            MaxMemoryUsageMB = memorySamples.Length > 0 ? memorySamples.Max() : 0,
-            MinMemoryUsageMB = memorySamples.Length > 0 ? memorySamples.Min() : 0
-        };
-
-        _statsAggregator.ApplyTo(result);
-        result.CustomMetrics["Render Path"] = UsesEcsRuntime(_currentTestType)
-            ? "ECS (SceneRenderPipeline)"
-            : "direct draw (BenchmarkLayer)";
-
-        if (_currentTestType == BenchmarkTestType.Physics2DStress)
-            result.CustomMetrics["Physics Bodies"] = (_entityCount + 1).ToString();
-
-        _results.Add(result);
-    }
-
-    private string GetBenchmarkResultName() => _currentTestType switch
-    {
-        BenchmarkTestType.Profiling2D when _profilingPhase == 1 => "Profiling2D_SingleTexture",
-        BenchmarkTestType.Profiling2D when _profilingPhase == 2 => "Profiling2D_MultiTexture",
-        _ => _currentTestType.ToString()
-    };
-
-    /// <summary>
-    /// Formats benchmark results as Markdown and saves to a file.
-    /// Uses emoji indicators for improvements (🟢) and regressions (🔴) when comparing with baseline.
-    /// </summary>
     private void ExportResultsToMarkdown()
     {
         try
@@ -953,7 +565,6 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
             markdown.AppendLine($"**Platform:** {Environment.OSVersion.Platform}");
             markdown.AppendLine($"**CPU Cores:** {Environment.ProcessorCount}");
             markdown.AppendLine();
-
             foreach (var result in _results)
             {
                 AppendResultSection(markdown, result);
@@ -967,12 +578,11 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
             var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
             var filename = $"benchmark_results_{timestamp}.md";
             File.WriteAllText(filename, markdown.ToString());
-            Console.WriteLine($"✓ Benchmark results exported to: {filename}");
-            Console.WriteLine($"   File saved in: {Path.GetFullPath(filename)}");
+            Console.WriteLine($"Benchmark results exported to: {Path.GetFullPath(filename)}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"✗ Failed to export results to Markdown: {ex.Message}");
+            Console.WriteLine($"Failed to export results to Markdown: {ex.Message}");
         }
     }
 
@@ -1005,7 +615,6 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
         markdown.AppendLine($"| Min | {result.MinMemoryUsageMB} MB |");
         markdown.AppendLine($"| Max | {result.MaxMemoryUsageMB} MB |");
         markdown.AppendLine();
-
         if (result.CustomMetrics.Count > 0)
         {
             markdown.AppendLine("### Custom Metrics");
@@ -1022,19 +631,14 @@ public class BenchmarkLayer(IGraphics2D graphics2D, SceneFactory sceneFactory, I
         markdown.AppendLine("### Comparison with Baseline");
         markdown.AppendLine("| Metric | Delta | Status |");
         markdown.AppendLine("|--------|-------|--------|");
-
         var fpsDiff = result.AverageFPS - baseline.AverageFPS;
         markdown.AppendLine($"| Avg FPS | {fpsDiff:+0.00;-0.00;0.00} | {(fpsDiff >= 0 ? "🟢" : "🔴")} |");
-
         var frameTimeDiff = result.AverageFrameTime - baseline.AverageFrameTime;
         markdown.AppendLine($"| Avg Frame Time | {frameTimeDiff:+0.00;-0.00;0.00} ms | {(frameTimeDiff <= 0 ? "🟢" : "🔴")} |");
-
         var cpuDiff = result.AverageCpuUsage - baseline.AverageCpuUsage;
         markdown.AppendLine($"| Avg CPU | {cpuDiff:+0.00;-0.00;0.00}% | {(cpuDiff <= 0 ? "🟢" : "🔴")} |");
-
         var memoryDiff = result.AverageMemoryUsageMB - baseline.AverageMemoryUsageMB;
         markdown.AppendLine($"| Avg Memory | {memoryDiff:+0;-0;0} MB | {(memoryDiff <= 0 ? "🟢" : "🔴")} |");
-
         markdown.AppendLine();
     }
 }

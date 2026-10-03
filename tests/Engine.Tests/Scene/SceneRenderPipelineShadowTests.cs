@@ -41,6 +41,33 @@ public class SceneRenderPipelineShadowTests
     }
 
     [Fact]
+    public void RenderScene_DirectionalLight_DirectionalShadowsDisabled_SkipsShadowPass()
+    {
+        var context = new Context();
+        var sun = new Entity(1, "sun");
+        sun.AddComponent(new DirectionalLightComponent
+        {
+            Direction = new Vector3(0.3f, -1f, 0.2f),
+            Color = Vector4.One,
+            Intensity = 1f
+        });
+        context.Register(sun);
+
+        var graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context,
+            Substitute.For<IGraphics2D>(),
+            graphics,
+            Substitute.For<ITextureFactory>(),
+            Substitute.For<IModelFactory>(),
+            new SceneView(ViewProjection(new Vector3(0f, 12f, 18f)), DirectionalShadows: false));
+
+        graphics.ShadowPasses.ShouldBeEmpty();
+        graphics.BeginScenes.ShouldBe(1);
+        graphics.Shadows.ShouldBe([(Matrix4x4.Identity, false)]);
+    }
+
+    [Fact]
     public void RenderScene_DirectionalLight_DrawsCubeInBothPasses()
     {
         var context = new Context();
