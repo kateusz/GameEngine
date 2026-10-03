@@ -23,6 +23,10 @@
         </None>
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="assets\models\" />
+    </ItemGroup>
+
     <Target Name="EnsureOutputFolders" BeforeTargets="Build">
         <MakeDir Directories="$(OutputPath)assets;$(OutputPath)assets/shaders;$(OutputPath)assets/shaders/OpenGL;$(OutputPath)assets/textures" />
     </Target>

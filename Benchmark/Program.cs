@@ -18,7 +18,10 @@ public class Program
             EngineIoCContainer.RegisterCore(container);
             // PathBuilder wires via RegisterInitializer on first IProjectContext resolve (same as Runtime).
             container.Resolve<IProjectContext>().Apply(AppContext.BaseDirectory);
-            EngineIoCContainer.RegisterWindowing(container, new EngineHostOptions("Benchmark", 1280, 720));
+            EngineIoCContainer.RegisterWindowing(container, new EngineHostOptions("Benchmark", 1280, 720)
+            {
+                EnsureRuntimeMeshSiblingOnLoad = true
+            });
             ImGuiIoCContainer.Register(container);
             container.Register<BenchmarkLayer>(Reuse.Singleton);
             container.Register<BenchmarkApplication>(Reuse.Singleton);

@@ -143,7 +143,12 @@ internal class ModelFactory : IModelFactory
             return ([], null);
         }
 
-        if (ensureRuntimeMeshSibling)
+        byte[] bytes;
+        if (runtimeMeshBytes != null)
+        {
+            bytes = runtimeMeshBytes;
+        }
+        else if (ensureRuntimeMeshSibling)
         {
             if (!File.Exists(normalizedPath))
             {
@@ -153,12 +158,8 @@ internal class ModelFactory : IModelFactory
 
             if (!RuntimeMeshBuilder.TryEnsureUpToDate(normalizedPath))
                 return ([], null);
-        }
 
-        byte[] bytes;
-        if (runtimeMeshBytes != null)
-        {
-            bytes = runtimeMeshBytes;
+            bytes = File.ReadAllBytes(RuntimeMeshPaths.SiblingPath(normalizedPath));
         }
         else
         {
