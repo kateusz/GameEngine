@@ -1,0 +1,92 @@
+{
+  "asset": {
+    "version": "2.0"
+  },
+  "scene": 0,
+  "scenes": [
+    {
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "mesh": 0
+    }
+  ],
+  "meshes": [
+    {
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "TEXCOORD_0": 2
+          },
+          "indices": 3
+        }
+      ]
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "data:application/octet-stream;base64,AAAAvwAAAD8AAAC/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAA/AAAAPwAAAL8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAD8AAAA/AAAAPwAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAvwAAAD8AAAA/AAAAAAAAgD8AAAAAAAAAAAAAgD8AAAC/AAAAvwAAAD8AAAAAAACAvwAAAAAAAAAAAAAAAAAAAD8AAAC/AAAAPwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAAPwAAAL8AAAC/AAAAAAAAgL8AAAAAAACAPwAAgD8AAAC/AAAAvwAAAL8AAAAAAACAvwAAAAAAAAAAAACAPwAAAD8AAAC/AAAAvwAAgD8AAAAAAAAAAAAAAAAAAAAAAAAAPwAAAD8AAAC/AACAPwAAAAAAAAAAAACAPwAAAAAAAAA/AAAAPwAAAD8AAIA/AAAAAAAAAAAAAIA/AACAPwAAAD8AAAC/AAAAPwAAgD8AAAAAAAAAAAAAAAAAAIA/AAAAvwAAAL8AAAA/AACAvwAAAAAAAAAAAAAAAAAAAAAAAAC/AAAAPwAAAD8AAIC/AAAAAAAAAAAAAIA/AAAAAAAAAL8AAAA/AAAAvwAAgL8AAAAAAAAAAAAAgD8AAIA/AAAAvwAAAL8AAAC/AACAvwAAAAAAAAAAAAAAAAAAgD8AAAC/AAAAvwAAAD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAAD8AAAC/AAAAPwAAAAAAAAAAAACAPwAAgD8AAAAAAAAAPwAAAD8AAAA/AAAAAAAAAAAAAIA/AACAPwAAgD8AAAC/AAAAPwAAAD8AAAAAAAAAAAAAgD8AAAAAAACAPwAAAD8AAAC/AAAAvwAAAAAAAAAAAACAvwAAAAAAAAAAAAAAvwAAAL8AAAC/AAAAAAAAAAAAAIC/AACAPwAAAAAAAAC/AAAAPwAAAL8AAAAAAAAAAAAAgL8AAIA/AACAPwAAAD8AAAA/AAAAvwAAAAAAAAAAAACAvwAAAAAAAIA/AAABAAIAAAACAAMABAAFAAYABAAGAAcACAAJAAoACAAKAAsADAANAA4ADAAOAA8AEAARABIAEAASABMAFAAVABYAFAAWABcA",
+      "byteLength": 840
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 768,
+      "target": 34962,
+      "byteStride": 32
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 768,
+      "byteLength": 72,
+      "target": 34963
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 24,
+      "type": "VEC3",
+      "min": [
+        -0.5,
+        -0.5,
+        -0.5
+      ],
+      "max": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 12,
+      "componentType": 5126,
+      "count": 24,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 24,
+      "componentType": 5126,
+      "count": 24,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5123,
+      "count": 36,
+      "type": "SCALAR"
+    }
+  ]
+}

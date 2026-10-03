@@ -16,16 +16,48 @@ A component-based game engine built with C# and .NET 10, featuring a visual edit
 - **Audio** — OpenAL spatial audio (WAV/Ogg), per-entity sources with optional EFX (reverb, echo, low-pass)
 - **Cross-Platform** — Windows and macOS
 
-### Editor
-- **Visual Scene Editor** — hierarchy tree (multi-select, reparent), viewport tools (select/move/scale/rotate/ruler), and properties panel with multi-entity edit
-- **Undo/Redo** — reversible transform, component, and entity-delete operations (Ctrl+Z / Ctrl+Y)
-- **Content Browser** — bottom-dock asset browser; drag-drop textures, 3D models, audio, and prefabs; asset picker on component fields
-- **Command Palette** — search and run editor commands
-- **Project & Scene Settings** — project settings, per-scene settings, and entity show/hide for rendering
-- **Live Console** — bottom-dock logging while you work
-- **Project Management** — create and open game projects
-- **Game Publishing** — build a standalone executable for the host RID (Windows/macOS x64 or ARM64), with publish validation (`IGamePublisher` / `PublishedBuildValidator`)
-- **Keyboard Shortcuts** — configurable shortcuts with an in-editor reference ([docs](docs/guide/editor/shortcuts.md))
+## Editor
+
+The visual editor targets 2D and 3D projects with a docked ImGui layout. See the [scene editor guide](docs/guide/editor/scene-editor.md) for day-to-day workflow.
+
+### Scene & hierarchy
+
+- Parent/child **entity tree** with search (always visible at the top of the panel), **component-type filter**, expand/collapse, and drag-and-drop reparenting
+- **Multi-select** (Shift/Ctrl), **multi-entity move** in the hierarchy, and **multi-entity property editing** (shared components only)
+- Create entities from a **+** menu; **duplicate** (`Ctrl+D`); **delete** (`Del`); context menus on entities and empty space
+- **Scroll to selected** when picking in the viewport (optional) or when selection changes
+- Per-entity **Visible** flag (cascading show/hide in the viewport and at runtime)
+
+### Viewport & tools
+
+- **2D/3D edit camera** — fly, orbit, pan, zoom; frame selection; reset camera (`Ctrl+R`)
+- **Tools** — Select, Move, Scale, Rotate (ImGuizmo), Ruler (`Shift+Q/W/R/E`); left-click pick in 3D
+- **Selection outline** on selected entities (edit mode only; supports multiple selection)
+- **2D grid** and rulers; **3D grid**; grid can be fully disabled from the toolbar or **View** menu
+- **Visibility zone** wireframe debug for assigned volumes
+- Drag-and-drop **textures**, **audio**, **prefabs**, and **3D models** into the scene
+
+### Panels & layout
+
+- **Godot-style bottom panel** — thin tab bar under the viewport (Console, Content Browser); click to expand or collapse
+- **Properties** — component inspectors, **field search** across the current selection, asset pickers on paths
+- **Console** — script `Console.WriteLine` and engine logs, level filters, search, auto-scroll
+- **Stats** — 2D or 3D render metrics depending on project type (**View → Show Stats**)
+- **Command palette** — run menu actions and jump to entities (`Ctrl+Shift+P`)
+
+### Project, play, and publish
+
+- **New / open / close** project and scene; recent projects list
+- **Project → Settings** — default scene, game title, window size, fullscreen, target FPS
+- **Scene → Settings** — per-scene options (e.g. ambient, physics)
+- **Play / Stop / Restart** — hot-reload scripts before play; stop reloads the last saved scene from disk
+- **Publish** — standalone executable for the host RID (Windows/macOS x64 or ARM64) with validation
+- **Undo/redo** — transforms, components, deletes, and model-import hierarchy (`Ctrl+Z` / `Ctrl+Y`)
+
+### Assets & shortcuts
+
+- **Content Browser** — folder tree and asset grid; drag to viewport or inspector; Windows **Show in Explorer** / **Edit** on right-click
+- **Configurable keyboard shortcuts** and in-editor reference ([docs](docs/guide/editor/shortcuts.md))
 
 ## Getting Started
 
@@ -85,6 +117,7 @@ Open `assets/scenes/arena.scene`, then press Play. **R** restarts after game ove
 
 ## Documentation
 
+- [Changelog](CHANGELOG.md) — release notes (latest: **0.10.0**)
 - [Developer Guide](docs/guide/index.md) — setup, editor, scripting, concepts
 - [Cameras and Rendering](docs/guide/concepts/cameras-and-rendering.md) — 2D sprites, 3D models, lights, cameras
 - [Architecture](docs/architecture/README.md) — how the engine is structured

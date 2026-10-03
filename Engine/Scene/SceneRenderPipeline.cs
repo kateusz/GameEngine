@@ -154,7 +154,8 @@ internal static class SceneRenderPipeline
         var shadowCasterView = view.ViewPosition;
 
         graphics3D.SetDirectionalShadow(Matrix4x4.Identity, false);
-        if (lightColor != Vector3.Zero &&
+        if (view.DirectionalShadows &&
+            lightColor != Vector3.Zero &&
             LightingMath.TryFitDirectionalShadow(view.ViewProjection, lightDirection, out var lightViewProjection))
         {
             perf.DirectionalShadow = true;
@@ -165,7 +166,7 @@ internal static class SceneRenderPipeline
             graphics3D.EndShadowPass();
             graphics3D.SetDirectionalShadow(lightViewProjection, true);
         }
-        else if (lightColor != Vector3.Zero && !_shadowFitWarned)
+        else if (view.DirectionalShadows && lightColor != Vector3.Zero && !_shadowFitWarned)
         {
             _shadowFitWarned = true;
             Logger.Warning("Directional shadow fit failed; drawing the frame without directional shadows");

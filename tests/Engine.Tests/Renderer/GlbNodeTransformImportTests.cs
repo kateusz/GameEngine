@@ -10,6 +10,18 @@ namespace Engine.Tests.Renderer;
 public class GlbNodeTransformImportTests
 {
     [Fact]
+    public void ImportSource_BenchmarkTemplate_HasASubmesh()
+    {
+        var path = Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory, "..", "..", "..", "..", "..",
+            "Benchmark", "assets", "meshes", "template.gltf"));
+        using var importer = new AssimpModelImporter();
+        var model = importer.ImportSource(path);
+        model.ShouldNotBeNull(path);
+        model!.Submeshes.Count.ShouldBeGreaterThan(0);
+    }
+
+    [Fact]
     public void ImportSource_GltfNodeTranslation_LandsInRowTranslation()
     {
         var path = Path.Combine(AppContext.BaseDirectory, "TestAssets", "TranslatedBox.gltf");
