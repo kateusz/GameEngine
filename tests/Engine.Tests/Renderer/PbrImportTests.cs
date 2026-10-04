@@ -26,6 +26,9 @@ public class PbrImportTests
         mesh.BaseColorFactor.Y.ShouldBe(0.5f, 0.001f);
         mesh.BaseColorFactor.Z.ShouldBe(0.1f, 0.001f);
         mesh.AlphaCutout.ShouldBeFalse();
+        mesh.Emissive.X.ShouldBe(0.2f, 0.001f);
+        mesh.Emissive.Y.ShouldBe(0f, 0.001f);
+        mesh.Emissive.Z.ShouldBe(2f, 0.001f);
     }
 
     [Fact]
@@ -42,6 +45,7 @@ public class PbrImportTests
         mesh.AlphaCutout.ShouldBeTrue();
         mesh.DoubleSided.ShouldBeTrue();
         mesh.AlphaCutoff.ShouldBe(0.5f, 0.001f);
+        mesh.Emissive.ShouldBe(Vector3.Zero);
     }
 
     [Fact]
@@ -72,6 +76,14 @@ public class PbrImportTests
     {
         AssimpModelImporter.ChooseMetallicRoughnessPath(null, "orm.png", "orm.png")
             .ShouldBe("orm.png");
+    }
+
+    [Fact]
+    public void ImportedEmissive_MissingOrNonFinite_IsZero_AndCapsAt16()
+    {
+        AssimpModelImporter.ImportedEmissive(false, new Vector4(2f, 2f, 2f, 1f)).ShouldBe(Vector3.Zero);
+        AssimpModelImporter.ImportedEmissive(true, new Vector4(float.NaN, -1f, 40f, 1f))
+            .ShouldBe(new Vector3(0f, 0f, 16f));
     }
 
     [Fact]

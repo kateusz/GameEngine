@@ -10,8 +10,17 @@ public sealed class GraphicsFactAttribute : FactAttribute
     private const string SkipMessage =
         "No headless GL stack available; see docs/specs/graphics-context-init-tests";
 
+    private const string SkipOnMacOsMessage =
+        "Graphics integration tests are not run on macOS (no supported headless GL stack).";
+
     public GraphicsFactAttribute()
     {
+        if (OperatingSystem.IsMacOS())
+        {
+            Skip = SkipOnMacOsMessage;
+            return;
+        }
+
         if (IsCiEnvironment())
             return;
 

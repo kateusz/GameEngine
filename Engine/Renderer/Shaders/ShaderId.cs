@@ -15,5 +15,7 @@ public enum ShaderId
     Irradiance,
     Prefilter,
     BrdfLut,
-    Tonemap
+    Tonemap,
+    BloomExtract,
+    BloomBlur
 }

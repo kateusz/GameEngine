@@ -544,11 +544,13 @@ internal static class SceneRenderPipeline
                         continue;
 
                     var factors = ResolvePbr(modelRenderer);
+                    var emissive = CombineEmissive(Vector3.Zero, modelRenderer);
                     if (!string.IsNullOrWhiteSpace(modelRenderer.TexturePath))
-                        DrawCubeWithTexture(graphics3D, textureFactory, modelRenderer, transform, entity, factors);
+                        DrawCubeWithTexture(graphics3D, textureFactory, modelRenderer, transform, entity, factors, emissive);
                     else
                         graphics3D.DrawCube(transform, modelRenderer.Color, entity.Id,
-                            metallic: factors.Metallic, roughness: factors.Roughness, ao: factors.Ao);
+                            metallic: factors.Metallic, roughness: factors.Roughness, ao: factors.Ao,
+                            emissive: emissive);
                     stats.CubeDraws++;
                     continue;
                 }
@@ -655,7 +657,8 @@ internal static class SceneRenderPipeline
         return true;
     }
 
-    private readonly record struct MeshBatchKey(Mesh Mesh, Vector4 Tint, float Metallic, float Roughness, float Ao);
+    private readonly record struct MeshBatchKey(
+        Mesh Mesh, Vector4 Tint, float Metallic, float Roughness, float Ao, Vector3 Emissive);
 
     private static readonly Dictionary<MeshBatchKey, List<MeshDrawInstance>> MeshBatches = new();
     private static readonly Stack<List<MeshDrawInstance>> BatchLists = new();
@@ -674,7 +677,8 @@ internal static class SceneRenderPipeline
 
         AdoptSubmeshFactors(modelRenderer, submesh);
         var pbr = ResolvePbr(modelRenderer);
-        var key = new MeshBatchKey(submesh, tint, pbr.Metallic, pbr.Roughness, pbr.Ao);
+        var emissive = CombineEmissive(submesh.EmissiveFactor, modelRenderer);
+        var key = new MeshBatchKey(submesh, tint, pbr.Metallic, pbr.Roughness, pbr.Ao, emissive);
         if (!MeshBatches.TryGetValue(key, out var batch))
         {
             batch = BatchLists.Count > 0 ? BatchLists.Pop() : [];
@@ -688,7 +692,8 @@ internal static class SceneRenderPipeline
             Tint = tint,
             Metallic = pbr.Metallic,
             Roughness = pbr.Roughness,
-            Ao = pbr.Ao
+            Ao = pbr.Ao,
+            Emissive = emissive
         });
     }
 
@@ -724,7 +729,8 @@ internal static class SceneRenderPipeline
     }
 
     private static void DrawCubeWithTexture(IGraphics3D graphics3D, ITextureFactory textureFactory,
-        ModelRendererComponent modelRenderer, Matrix4x4 transform, Entity entity, PbrFactors factors)
+        ModelRendererComponent modelRenderer, Matrix4x4 transform, Entity entity, PbrFactors factors,
+        Vector3 emissive)
     {
         try
         {
@@ -738,7 +744,8 @@ internal static class SceneRenderPipeline
                 modelRenderer.TilingFactor,
                 factors.Metallic,
                 factors.Roughness,
-                factors.Ao);
+                factors.Ao,
+                emissive);
         }
         catch (Exception ex)
         {
@@ -771,6 +778,15 @@ internal static class SceneRenderPipeline
 
     internal static PbrFactors ResolvePbr(ModelRendererComponent renderer) =>
         new(Finite01(renderer.Metallic), Finite01(renderer.Roughness), Finite01(renderer.Ao));
+
+    internal static Vector3 CombineEmissive(Vector3 fileFactor, ModelRendererComponent renderer)
+    {
+        var sum = fileFactor + renderer.Emissive * renderer.EmissiveStrength;
+        return new Vector3(
+            LightingMath.ClampEmissive(sum.X),
+            LightingMath.ClampEmissive(sum.Y),
+            LightingMath.ClampEmissive(sum.Z));
+    }
 
     /// <summary>
     /// Unpacked children are new components, so they miss the factors stored on the mesh.

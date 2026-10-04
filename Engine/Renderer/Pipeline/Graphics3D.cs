@@ -366,7 +366,8 @@ internal sealed class Graphics3D(
     }
 
     public void DrawCube(Matrix4x4 transform, Vector4 color, int entityId = -1, Texture2D? texture = null,
-        float tilingFactor = 1.0f, float metallic = 0f, float roughness = 0.5f, float ao = 1f)
+        float tilingFactor = 1.0f, float metallic = 0f, float roughness = 0.5f, float ao = 1f,
+        Vector3 emissive = default)
     {
         if (_shadowPass)
         {
@@ -381,6 +382,7 @@ internal sealed class Graphics3D(
         _cubeShader.SetFloat("u_Metallic", metallic);
         _cubeShader.SetFloat("u_Roughness", roughness);
         _cubeShader.SetFloat("u_Ao", ao);
+        _cubeShader.SetFloat3("u_Emissive", emissive);
         _cubeShader.SetInt("u_UseTexture", texture != null ? 1 : 0);
         if (texture != null)
         {
@@ -395,7 +397,7 @@ internal sealed class Graphics3D(
     }
 
     public void DrawMesh(Matrix4x4 transform, Mesh mesh, Vector4 tint, int entityId = -1,
-        float metallic = 0f, float roughness = 0.5f, float ao = 1f)
+        float metallic = 0f, float roughness = 0.5f, float ao = 1f, Vector3 emissive = default)
     {
         Span<MeshDrawInstance> one = stackalloc MeshDrawInstance[1];
         one[0] = new MeshDrawInstance
@@ -405,7 +407,8 @@ internal sealed class Graphics3D(
             Tint = tint,
             Metallic = metallic,
             Roughness = roughness,
-            Ao = ao
+            Ao = ao,
+            Emissive = emissive
         };
         DrawMeshInstances(mesh, one);
     }
@@ -439,6 +442,7 @@ internal sealed class Graphics3D(
         _modelShader.SetFloat("u_Metallic", first.Metallic);
         _modelShader.SetFloat("u_Roughness", first.Roughness);
         _modelShader.SetFloat("u_Ao", first.Ao);
+        _modelShader.SetFloat3("u_Emissive", first.Emissive);
         _modelShader.SetFloat3("u_BaseColor", mesh.BaseColorFactor);
         _modelShader.SetInt("u_HasDiffuseMap", mesh.HasDiffuseMap ? 1 : 0);
         _modelShader.SetInt("u_HasMetallicRoughnessMap", mesh.HasMetallicRoughnessMap ? 1 : 0);
@@ -621,7 +625,8 @@ internal sealed class Graphics3D(
             AttachmentsSpec = new FrameBufferAttachmentSpecification([
                 new FrameBufferTextureSpecification(FrameBufferTextureFormat.DepthComponent)
                 {
-                    Filter = FrameBufferTextureFilter.Nearest,
+                    // Linear compare is the 2×2 PCF. Nearest is a hard edge.
+                    Filter = FrameBufferTextureFilter.Linear,
                     Wrap = FrameBufferTextureWrap.ClampToBorder
                 }
             ])

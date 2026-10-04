@@ -41,6 +41,20 @@ public class ModelRendererComponent : IComponent
         set => field = Sanitize(value, 1f);
     } = 1f;
 
+    /// <summary>Linear emissive color, 0–1. Multiplied by <see cref="EmissiveStrength"/>.</summary>
+    public Vector3 Emissive
+    {
+        get;
+        set => field = new Vector3(Sanitize(value.X, 0f), Sanitize(value.Y, 0f), Sanitize(value.Z, 0f));
+    }
+
+    /// <summary>Scales <see cref="Emissive"/>. Values above 1 are what push a surface over the bloom threshold.</summary>
+    public float EmissiveStrength
+    {
+        get;
+        set => field = float.IsFinite(value) ? MathF.Max(0f, value) : 0f;
+    }
+
     /// <summary>Zone entity id for visibility filtering, or -1 to use frustum only.</summary>
     public int VisibilityZoneEntityId { get; set; } = -1;
 
@@ -67,6 +81,8 @@ public class ModelRendererComponent : IComponent
         Metallic = Metallic,
         Roughness = Roughness,
         Ao = Ao,
+        Emissive = Emissive,
+        EmissiveStrength = EmissiveStrength,
         VisibilityZoneEntityId = VisibilityZoneEntityId
     };
 }

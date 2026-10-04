@@ -86,6 +86,16 @@ public class ModelRendererComponentEditor(
             e => e.GetComponent<ModelRendererComponent>().Ao,
             (e, v) => e.GetComponent<ModelRendererComponent>().Ao = v,
             MultiField.SameFloat);
+
+        propertyRenderer.DrawPropertyField("Emissive", entity,
+            e => e.GetComponent<ModelRendererComponent>().Emissive,
+            (e, v) => e.GetComponent<ModelRendererComponent>().Emissive = v,
+            UIPropertyRenderer.SameVector3);
+
+        propertyRenderer.DrawPropertyField("Emissive Strength", entity,
+            e => e.GetComponent<ModelRendererComponent>().EmissiveStrength,
+            (e, v) => e.GetComponent<ModelRendererComponent>().EmissiveStrength = v,
+            MultiField.SameFloat);
     }
 
     private void DrawVisibilityZonePicker(Entity entity)

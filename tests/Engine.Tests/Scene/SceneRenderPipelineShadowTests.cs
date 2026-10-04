@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using ECS;
+using Engine.Project;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.VertexArray;
@@ -460,6 +461,31 @@ public class SceneRenderPipelineShadowTests
     }
 
     [Fact]
+    public void RenderScene_Cube_PassesEmissiveAndCapsTheSum()
+    {
+        var context = new Context();
+        var entity = new Entity(1, "glow");
+        entity.AddComponent(new TransformComponent());
+        entity.AddComponent(new ModelRendererComponent
+        {
+            Emissive = Vector3.One,
+            EmissiveStrength = 100f
+        });
+        context.Register(entity);
+
+        var graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context,
+            Substitute.For<IGraphics2D>(),
+            graphics,
+            Substitute.For<ITextureFactory>(),
+            Substitute.For<IModelFactory>(),
+            new SceneView(ViewProjection(new Vector3(0f, 2f, 5f))));
+
+        graphics.CubeEmissive.ShouldBe([new Vector3(16f, 16f, 16f)]);
+    }
+
+    [Fact]
     public void RenderScene_Mesh_PassesComponentFactors()
     {
         var mesh = new Mesh("part") { MetallicFactor = 0.3f, RoughnessFactor = 0.6f };
@@ -489,6 +515,41 @@ public class SceneRenderPipelineShadowTests
             new SceneView(ViewProjection(new Vector3(0f, 2f, 5f))));
 
         graphics.MeshFactors.ShouldBe([(0.8f, 0.25f, 0.4f)]);
+        model.Dispose();
+    }
+
+    [Fact]
+    public void RenderScene_Mesh_AddsFileEmissiveToComponent()
+    {
+        var mesh = new Mesh("part") { EmissiveFactor = new Vector3(2f, 0f, 0f) };
+        var model = new Model(@"C:\prop.glb", [mesh]);
+        var models = Substitute.For<IModelFactory>();
+        models.Create(Arg.Any<string>()).Returns(model);
+        var project = Substitute.For<IProjectContext>();
+        project.AssetsPath.Returns(Path.GetTempPath());
+        PathBuilder.UseProjectContext(project);
+
+        var context = new Context();
+        var entity = new Entity(1, "prop");
+        entity.AddComponent(new TransformComponent());
+        entity.AddComponent(new ModelRendererComponent
+        {
+            ModelPath = @"C:\prop.glb",
+            Emissive = new Vector3(0f, 1f, 0f),
+            EmissiveStrength = 3f
+        });
+        context.Register(entity);
+
+        var graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context,
+            Substitute.For<IGraphics2D>(),
+            graphics,
+            Substitute.For<ITextureFactory>(),
+            models,
+            new SceneView(ViewProjection(new Vector3(0f, 2f, 5f))));
+
+        graphics.MeshEmissive.ShouldBe([new Vector3(2f, 3f, 0f)]);
         model.Dispose();
     }
 
@@ -766,6 +827,8 @@ public class SceneRenderPipelineShadowTests
         public List<int> MeshInstanceCounts { get; } = [];
         public List<(float Metallic, float Roughness, float Ao)> CubeFactors { get; } = [];
         public List<(float Metallic, float Roughness, float Ao)> MeshFactors { get; } = [];
+        public List<Vector3> CubeEmissive { get; } = [];
+        public List<Vector3> MeshEmissive { get; } = [];
 
         public void SetDirectionalShadow(Matrix4x4 lightViewProjection, bool enabled)
         {
@@ -824,15 +887,17 @@ public class SceneRenderPipelineShadowTests
         public void EndScene() { }
 
         public void DrawCube(Matrix4x4 transform, Vector4 color, int entityId = -1, Texture2D? texture = null,
-            float tilingFactor = 1.0f, float metallic = 0f, float roughness = 0.5f, float ao = 1f)
+            float tilingFactor = 1.0f, float metallic = 0f, float roughness = 0.5f, float ao = 1f,
+            Vector3 emissive = default)
         {
             CubeDraws++;
             CubeFactors.Add((metallic, roughness, ao));
+            CubeEmissive.Add(emissive);
             Order.Add("cube");
         }
 
         public void DrawMesh(Matrix4x4 transform, Mesh mesh, Vector4 tint, int entityId = -1,
-            float metallic = 0f, float roughness = 0.5f, float ao = 1f)
+            float metallic = 0f, float roughness = 0.5f, float ao = 1f, Vector3 emissive = default)
         {
             DrawMeshInstances(mesh, [new MeshDrawInstance
             {
@@ -841,7 +906,8 @@ public class SceneRenderPipelineShadowTests
                 Tint = tint,
                 Metallic = metallic,
                 Roughness = roughness,
-                Ao = ao
+                Ao = ao,
+                Emissive = emissive
             }]);
         }
 
@@ -852,6 +918,7 @@ public class SceneRenderPipelineShadowTests
             foreach (var instance in instances)
             {
                 MeshFactors.Add((instance.Metallic, instance.Roughness, instance.Ao));
+                MeshEmissive.Add(instance.Emissive);
                 Order.Add("mesh");
             }
         }

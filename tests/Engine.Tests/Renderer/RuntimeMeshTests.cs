@@ -71,6 +71,18 @@ public class RuntimeMeshTests
     }
 
     [Fact]
+    public void RoundTrip_PreservesEmissive()
+    {
+        var model = SampleModel();
+        model.Submeshes[0].Emissive = new Vector3(1f, 2f, 3f);
+        var bytes = RuntimeMeshWriter.Serialize(model, new RuntimeMeshStamp(1, new byte[32],
+            RuntimeMeshFormat.ImporterVersion, RuntimeMeshFormat.AssimpPostProcessFlags));
+
+        RuntimeMeshReader.TryRead(bytes, out var read).ShouldBeTrue();
+        read!.Submeshes[0].Emissive.ShouldBe(new Vector3(1f, 2f, 3f));
+    }
+
+    [Fact]
     public void TryRead_RejectsTruncatedFile()
     {
         var model = SampleModel();

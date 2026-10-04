@@ -18,7 +18,7 @@ internal static class RuntimeMeshFormat
     public const uint Flags = 0;
     public const uint VertexLayoutId = 1;
     public const uint IndexType = 1;
-    public const uint ImporterVersion = 4;
+    public const uint ImporterVersion = 5;
     public const uint SurfaceAlphaCutout = 1;
     public const uint SurfaceDoubleSided = 2;
     public const int VertexLayoutStride = 56;

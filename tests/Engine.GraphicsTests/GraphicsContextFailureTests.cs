@@ -11,13 +11,13 @@ namespace Engine.GraphicsTests;
 [Collection("GraphicsIntegration")]
 public class GraphicsContextFailureTests
 {
-    [Fact]
+    [GraphicsFact]
     public void Constructor_WithNullWindow_ThrowsArgumentNullException()
     {
         Should.Throw<ArgumentNullException>(() => new SilkNetGraphicsContext(null!));
     }
 
-    [Fact]
+    [GraphicsFact]
     public void Create_WhenGLFactoryThrows_WrapsInRendererInitializationException()
     {
         var inner = new InvalidOperationException("no GPU");
