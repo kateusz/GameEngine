@@ -122,7 +122,7 @@ Collider debug draw is `PhysicsDebugRenderSystem` (priority 151), after scene re
 
 ### Instancing for identical mesh/material
 
-In the color pass, `SceneRenderPipeline` batches opaque submeshes that share mesh, tint, and PBR factors and submits them with `DrawMeshInstances` when count ≥ 2.
+In the color pass, `SceneRenderPipeline` batches opaque submeshes that share mesh, tint, and PBR factors and submits them with `DrawMeshInstances`. Two or more instances use instanced draw; one instance uses a single indexed draw. Directional shadow draws reuse those batches. Point-shadow faces do not: `pointDepth` has no instance attributes, so each instance is its own depth draw.
 
 | Option | Pros | Cons |
 |--------|------|------|
@@ -132,10 +132,10 @@ In the color pass, `SceneRenderPipeline` batches opaque submeshes that share mes
 
 ### Visibility: hierarchy, frustum, zones
 
-Before an opaque draw (and when collecting shadow casters), the pipeline applies three filters:
+Before an opaque draw, the pipeline applies three filters:
 
 1. **`EffectiveVisible`** — hierarchy show/hide; invisible subtrees never draw.
-2. **Frustum cull** — AABB vs the active view frustum (or light VP in shadow passes); optional directional **shadow-caster distance** cut from the view position.
+2. **Frustum cull** — AABB vs the active view frustum (or the light view-projection in shadow passes). Shadow draws also drop casters farther than `DirectionalShadowCasterMaxDistance` from the camera (`0` disables that cut). The color pass does not.
 3. **Visibility zones** — if the camera is inside one or more `VisibilityZoneComponent` AABBs, only `ModelRendererComponent`s that reference an active zone draw; others are zone-culled. When the camera is outside all zones, zone filtering is off.
 
 This is a cheap CPU portal-style partition: authors mark interior volumes and tag meshes with a zone entity id so large exteriors can stay loaded but not draw while the camera is “inside.” It is not a full portal engine (no clipped rendering, no automatic zone graph).
@@ -208,8 +208,8 @@ sequenceDiagram
 Canonical order inside `RenderScene`:
 
 1. **2D** — `BeginScene` → sprites → subtextures → `EndScene` (flush)
-2. **3D lights** — ambient / directional / point data uploaded to `IGraphics3D` ([Lighting](lighting.md))
-3. **Directional shadow** (if sun color non-zero and fit succeeds) — depth pass, then bind map ([Shadows](shadows.md))
+2. **3D lights** — ambient / directional / point data uploaded to `IGraphics3D`. Directional RGB is multiplied by intensity ([Lighting](lighting.md))
+3. **Directional shadow** (if directional shadows are enabled, the resolved sun color is not black, and the fit succeeds) — depth pass, then bind map ([Shadows](shadows.md))
 4. **Point shadows** (if `SceneView.PointShadows` and lights cast) — cubemap faces or cache reuse ([Shadows](shadows.md))
 5. **3D color** — `BeginScene` → opaque cubes/meshes (instanced when possible) → `EndScene`
 
@@ -243,7 +243,7 @@ sequenceDiagram
     participant G3D as IGraphics3D
 
     SRP->>G3D: SetAmbientLight / SetDirectionalLight / SetPointLights
-    alt Directional color non-zero and shadow fit OK
+    alt Directional shadows on, sun color non-zero, shadow fit OK
         SRP->>G3D: BeginShadowPass → DrawOpaque3D → EndShadowPass
         SRP->>G3D: SetDirectionalShadow
     else Fit failed (defensive)
@@ -271,10 +271,13 @@ These are deliberate guards so a bad frame degrades instead of submitting nonsen
 |-----------|----------|
 | Primary camera / view missing (runtime system) | No `RenderScene` call |
 | Directional shadow frustum fit fails | Skip dir shadow pass; color still runs; one warning |
-| Point shadow cubemap/face setup fails | That light draws without its shadow; warning |
+| `SceneView.DirectionalShadows == false` | Skip the directional shadow pass; color still runs |
+| Point shadow cubemap create fails | That light draws without its shadow; one warning |
+| Point shadow face projection fails (`Range` ≤ 0.1) | That light draws without its shadow; no warning |
 | `SceneView.PointShadows == false` | Skip point shadow work; mark cache stale |
-| Directional light color zero | No directional shadow pass |
-| Point light `Range <= 0` or over max count | Not uploaded / not shadowed |
+| Point light farther than 20 from the camera | No cubemap update and no point-shadow sample that frame |
+| Resolved directional color is black (missing light, or intensity ≤ 0) | No directional shadow pass |
+| Point light `Range <= 0` or over max count (8) | Not uploaded / not shadowed |
 | `EffectiveVisible` false / frustum or zone cull | Entity skipped in opaque (and caster) collection |
 
 Prefer fixing scene/camera setup over “always draw with a default view” — silent defaults hide configuration bugs.
@@ -434,11 +437,11 @@ With a path and **no** `MeshIndex`, the pipeline submits every submesh at the en
 
 ### Instancing
 
-Opaque submeshes that share the same mesh, tint, and PBR factors are grouped and submitted with `DrawMeshInstances` when count ≥ 2; otherwise a single-instance draw. Same `Model` program — no extra `ShaderId`.
+Opaque submeshes that share the same mesh, tint, and PBR factors are grouped and submitted with `DrawMeshInstances`. Count ≥ 2 uses instanced draw (`u_Instanced`); a single instance uses `DrawIndexed` on the same `Model` program. Directional shadow batches the same way. Point-shadow faces draw instances one at a time.
 
 ### Visibility
 
-Opaque color and shadow-caster collection share the filters described under [Design Decisions](#visibility-hierarchy-frustum-zones): `EffectiveVisible`, frustum (or light VP) cull, optional directional caster-distance cut, optional visibility zones. Shadow and color stay consistent by construction ([shared opaque path](#shared-opaque-draw-for-shadow-and-color)).
+Opaque color and shadow draws share `EffectiveVisible`, frustum (or light view-projection) cull, and optional visibility zones ([Design Decisions](#visibility-hierarchy-frustum-zones)). Shadow draws also apply the caster-distance cut. Point-shadow faces skip casters that contain the lamp ([Shadows](shadows.md)).
 
 ### Model import (short)
 
@@ -476,25 +479,89 @@ Role of each id: [Shader Contracts](#shader-contracts). Editor-only programs (`F
 
 ## Cameras / SceneView
 
-[To be written]
+Callers build one `SceneView` and pass it to `SceneRenderPipeline.RenderScene`. `SceneRenderSystem` (priority 150) does that only when `CameraQueries.TryGetPrimaryView` succeeds; otherwise the frame draws nothing. `PhysicsDebugRenderSystem` (priority 151) resolves the same primary view for collider lines and does not go through `RenderScene`.
+
+**File**: `Engine/Renderer/Pipeline/SceneView.cs`  
+**File**: `Engine/Scene/Systems/SceneRenderSystem.cs`  
+**File**: `Engine/Scene/Systems/PhysicsDebugRenderSystem.cs`
+
+| Field | Default | Used for |
+|-------|---------|----------|
+| `ViewProjection` | (required) | 2D and 3D color view-projection. Also the matrix the directional shadow fit unprojects |
+| `ViewPosition` | `0` | Directional caster-distance test, point-shadow near test, `u_ViewPosition` |
+| `PointShadows` | `true` | When false, skip point-shadow work and mark the cache stale |
+| `DirectionalShadows` | `true` | When false, skip the directional shadow pass |
+| `DirectionalShadowCasterMaxDistance` | `50` (`LightingMath.ShadowDistance`) | Drop shadow casters whose closest point is farther from the camera. `0` disables the cut. Not applied to the color pass |
+
+How a `CameraComponent` becomes this struct is the camera system’s job. Projection fields and the primary-camera rule: [Cameras and Rendering](../guide/concepts/cameras-and-rendering.md).
 
 ---
 
 ## Framebuffers
 
-[To be written]
+`IFrameBuffer` is the engine target: bind, resize, color and depth attachment ids, `ReadPixel` / `ClearAttachment` for the integer picking attachment, and `BindDepthCubemapFace` for point shadows. `RenderingConstants.MaxFramebufferSize` is 8192.
+
+**File**: `Engine/Renderer/Buffers/FrameBuffer/IFrameBuffer.cs`  
+**File**: `Engine/Renderer/Buffers/FrameBuffer/FramebufferTextureFormat.cs`  
+**File**: `Engine/Renderer/RenderingConstants.cs`
+
+`SceneRenderPipeline` does not create the scene color target. The caller binds it before `RenderScene`. Color and 2D programs write color to attachment 0 and an entity id to attachment 1 when that attachment exists.
+
+Targets this module does own:
+
+| Target | Owner | Spec |
+|--------|-------|------|
+| Directional shadow | `Graphics3D`, created on first use | 1024×1024 `DepthComponent`, nearest, clamp-to-border |
+| Point shadow | `Graphics3D`, one per casting entity id | 512×512 `DepthCubemap` |
+| FXAA scene / resolve | `FxaaPass` | RGBA8, linear, clamp-to-edge. The scene target also has a depth attachment; the resolve target does not |
+| Selection outline | `SelectionOutlinePass` | RGBA8, linear, clamp-to-edge |
+
+Attachment formats available on the spec: `RGBA8`, `RGBA16F`, `RED_INTEGER`, `DEPTH24STENCIL8` (alias `Depth`), `DepthComponent`, `DepthCubemap`.
 
 ---
 
 ## Editor-Only Paths
 
-[To be written]
+`SceneRenderPipeline` never binds `ShaderId.Fxaa` or `ShaderId.SelectionOutline`. The editor runs those after `RenderScene`. Game materials, lights, and shadow maps stay the same in the player.
+
+**File**: `Engine/Renderer/Pipeline/FxaaPass.cs`  
+**File**: `Engine/Renderer/Pipeline/SelectionOutlinePass.cs`
+
+**FXAA.** `Present` draws the scene into an RGBA8+depth target, then resolves to the default framebuffer. `Resolve` takes an existing color attachment and returns an RGBA8 target. Either path falls back to the source (or a direct draw) if the shader or the target cannot be created. The pass sets `u_Texture` (unit 0), `u_InverseWidth`, and `u_InverseHeight`, and forces the source sample filter to linear.
+
+**Selection outline.** `Resolve` returns the color source unchanged when there are no ids, the target is 0×0, attachment 1 of the scene framebuffer is missing, or init fails. Otherwise it composites into its own RGBA8 target from the color texture (`u_Color`, unit 0) and the entity-id texture (`u_EntityIds`, unit 1). At most 64 ids are uploaded (`u_IdCount`, `u_Ids`).
 
 ---
 
 ## Rendering Statistics
 
-[To be written]
+`RenderScene` does not call `ResetStats`. GPU counters add up until the caller resets them. At the end of the 3D pass the pipeline **overwrites** the CPU fields below from that frame’s color pass (shadow caster counts are the sum of the shadow passes).
+
+**File**: `Engine/Renderer/Statistics.cs`  
+**File**: `Engine/Renderer/Graphics2DStats.cs`  
+**File**: `Engine/Renderer/Pipeline/Graphics3D.cs`  
+**File**: `Engine/Renderer/Pipeline/Graphics2D.cs`
+
+### 3D (`Statistics` on `IGraphics3D`)
+
+| Field | Source |
+|-------|--------|
+| `DrawCalls`, `ColorDrawCalls`, `DirectionalShadowDrawCalls`, `PointShadowDrawCalls` | Incremented per submission in `Graphics3D` |
+| `CubeDraws`, `MeshDraws`, `InstancedDraws`, `Instances`, `Vertices`, `Indices` | Same. `Triangles` is `Indices / 3` |
+| `Renderers`, `FrustumCulled`, `ZoneCulled` | Color pass only |
+| `ShadowCasterCulled` | Directional pass + all point-shadow faces |
+| `SingleMaterialDraws` | Color-pass batches of one instance |
+| `MultiMaterialDraws` | Color-pass batches of two or more (same mesh and PBR key, not “more than one material”) |
+| `MaxBatchInstances` | Largest color-pass batch |
+| `PointLights` | Uploaded point lights |
+| `PointShadowLights` | Uploaded lights with `CastsShadow` |
+| `PointShadowCacheHits` | Lights that skipped a redraw, including lights farther than 20 that were already clean |
+| `DirectionalShadow` | The directional depth pass ran |
+| `ColorCpuMs`, `ShadowCpuMs` | CPU time in `DrawOpaque3D` |
+
+### 2D (`Graphics2DStats` on `IGraphics2D`)
+
+`DrawCalls`, `QuadCount`, `LineDrawCalls`, `LineVertexCount`, `BatchCount`, `TextureBinds`, `ProgramSwitches`, `UploadBytes`, `BatchFillMs`, `FlushMs`. `GpuQuadPassMs` and `GpuLinePassMs` are the previous frame’s timer-query results in debug builds. `GetTotalVertexCount` / `GetTotalIndexCount` / `GetTotalDrawCalls` derive from the quad and line counters.
 
 ---
 

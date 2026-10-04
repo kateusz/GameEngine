@@ -51,20 +51,22 @@ Put models under `assets/models/`.
 
 ## Lights
 
-3D shading combines ambient, directional, and point lights (Cook-Torrance direct lighting; no image-based lighting).
+3D shading combines ambient, directional, and point lights (Cook-Torrance direct lighting; no image-based lighting). The frame uses the first ambient light, the first directional light, and the first eight point lights it visits. Lights stored on an imported model are not used unless those components exist.
 
 | Component | Limit | Notes |
 |-----------|-------|--------|
 | **AmbientLightComponent** | First in scene | `Color`, `Strength`. If none → white at strength 0.1 |
-| **DirectionalLightComponent** | First in scene | `Direction`, `Color`. If none → no sun (ambient only) |
-| **PointLightComponent** | Up to **8** (`PointLightComponent` + transform) | `Color`, `Intensity`, `Range` (≤ 0 skipped). Position = world translation (+ `Offset` when `ApplyOffset`) |
+| **DirectionalLightComponent** | First in scene | `Direction`, `Color`, `Intensity`. Resolved color is RGB × intensity (negative intensity counts as 0). A near-zero direction becomes (0, −1, 0). If there is no component, or the resolved color is black → no sun |
+| **PointLightComponent** | Up to **8**, each with a transform | `Color`, `Intensity` (negative counts as 0), `Range` (≤ 0 skipped), `CastsShadow`. Position = world translation (+ `Offset` when `ApplyOffset`). Lights past the eighth are ignored |
 
 2D sprites ignore these lights.
 
+Metallic, roughness, and AO on `ModelRendererComponent` are clamped to 0–1. On an unpacked submesh (`MeshIndex` set) that is still at the defaults (metallic 0, roughness 0.5, AO 1), the first draw copies metallic and roughness from that submesh. AO is not copied. Unit cubes use the component values only.
+
 ### Shadows
 
-- **Directional** — cast when the directional light has non-zero color and the engine can fit a shadow frustum to the camera view. Opaque cubes and models (`ModelRendererComponent`) write the map.
-- **Point** — enable **CastsShadow** on `PointLightComponent`. Cubemaps update only for lights within **20** units of the camera; unchanged scenes reuse the previous frame’s map when possible.
-- The editor viewport can disable point shadows via `SceneView.PointShadows` (runtime play uses defaults).
+- **Directional** — runs when `SceneView.DirectionalShadows` is on (the default), the resolved sun color is not black, and a shadow frustum fits the camera. Opaque cubes and models write the map. Casters farther than `DirectionalShadowCasterMaxDistance` from the camera are skipped (default 50; 0 disables that cut).
+- **Point** — set **CastsShadow**. A cubemap is redrawn or reused only for lights within **20** units of the camera. Farther lights still shade, without a shadow, that frame. Unchanged nearby lamps reuse the previous cubemap.
+- `SceneView.PointShadows` and `SceneView.DirectionalShadows` both default to on. A caller can turn either off for that frame.
 
-Pipeline details: [Scene Rendering Pipeline](../../architecture/scene-rendering-pipeline.md). Property details: [Component Inspector](../editor/component-inspector.md#cameracomponent).
+Algorithm and shader constants: [Lighting](../../architecture/lighting.md), [Shadows](../../architecture/shadows.md). Pass order: [Scene Rendering Pipeline](../../architecture/scene-rendering-pipeline.md). Property details: [Component Inspector](../editor/component-inspector.md#cameracomponent).

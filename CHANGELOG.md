@@ -41,6 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Player** — `game.config.json` drives window and graphics settings in the standalone player and published builds.
 - **Publishing** — simplified export (self-contained single-file defaults); host RID selection for OpenAL packaging.
 - **Scripting** — leaner runtime graph (Roslyn not required in the player); simplified `IGameSystem` / hot-reload path.
+- **Benchmarks** — opening screen with four categories (2D, 3D, lighting, shadows). A category times only its own scenes; results stay for the session and compare against a baseline. 3D measures geometry with shadows and point lights off; lighting and shadows reuse one cube grid so the extra cost is the lights or the shadow passes.
 
 ### Changed
 
@@ -49,12 +50,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Asset management** — smaller surface area; GPU resource lifetime fixes.
 - **Model materials** — per-instance material override removed; materials come from imported assets and component fields.
 - **Editor layout** — dockspace and panel structure updated for the bottom panel host; 2D/3D stats panels respect project type.
+- **Directional shadows** — a view can turn the sun's depth pass off (`DirectionalShadows`, default on) so a lit frame is not also a shadow measurement.
 - **NuGet** — dependency updates across the solution.
 
 ### Fixed
 
 - Point-light attenuation and point-light shadow rendering.
 - GLB/FBX loading (textures, colors, UE-exported FBX).
+- Dark fringes on cutout textures: sRGB decode copies edge color into transparent texels before filtering.
 - Entity selection outline when multiple entities share the same name.
 - Ctrl+click multi-select clearing immediately in the hierarchy.
 - Editor crash when stopping play mode (intermittent).
@@ -65,4 +68,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Architecture guides for the **scene rendering pipeline**, **lighting**, and **shadows**.
 - Module and developer-guide updates; README refresh.
-- Feature specs under `docs/specs/` (multi-entity edit, runtime mesh, visibility zones, selection outline, and related topics).
+- Feature specs under `docs/specs/` (multi-entity edit, runtime mesh, visibility zones, selection outline, benchmark categories, and related topics).
