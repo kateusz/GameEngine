@@ -2,6 +2,7 @@ using System.Numerics;
 using Engine.Platform.SilkNet;
 using Engine.Renderer;
 using Engine.Renderer.Buffers.VertexArray;
+using Engine.Renderer.Textures;
 using Silk.NET.OpenGL;
 
 namespace Engine.Platform.OpenGL;
@@ -37,6 +38,18 @@ internal sealed class OpenGLRendererApi : IRendererAPI
         SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, 0);
         SilkNetContext.GL.BindTexture(TextureTarget.TextureCubeMap, textureId);
         OpenGLDebug.CheckError(SilkNetContext.GL, "BindTexture(TextureCubeMap)");
+    }
+
+    public bool TryCreateSkyCapture(string absolutePath, out uint cubemapId, out ISkyCapture capture) =>
+        OpenGLSkyCapture.TryCreate(absolutePath, out cubemapId, out capture);
+
+    public void DeleteTexture(uint textureId)
+    {
+        if (textureId == 0)
+            return;
+
+        SilkNetContext.GL.DeleteTexture(textureId);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "DeleteTexture");
     }
 
     public void BindDefaultFramebuffer()

@@ -1,4 +1,5 @@
 using Engine.Renderer.Buffers.VertexArray;
+using Engine.Renderer.Textures;
 using System.Numerics;
 
 namespace Engine.Renderer;
@@ -9,6 +10,8 @@ public interface IRendererAPI
     void Clear();
     void BindTexture2D(uint textureId, int slot = 0);
     void BindTextureCube(uint textureId, int slot = 0);
+    bool TryCreateSkyCapture(string absolutePath, out uint cubemapId, out ISkyCapture capture);
+    void DeleteTexture(uint textureId);
     void BindDefaultFramebuffer();
     void SetBoundTexture2DFilterLinear();
     void DrawIndexed(IVertexArray vertexArray, uint count);

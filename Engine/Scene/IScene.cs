@@ -32,6 +32,8 @@ public interface IScene : IDisposable, IEntityHierarchy
     /// Gets all entities in the scene.
     /// </summary>
     IEnumerable<Entity> Entities { get; }
+    
+    string Skybox { get; set; }
 
     /// <summary>
     /// Creates a new entity with the specified name.

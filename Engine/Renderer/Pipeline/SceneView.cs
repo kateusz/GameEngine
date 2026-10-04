@@ -7,4 +7,5 @@ public readonly record struct SceneView(
     Vector3 ViewPosition = default,
     bool PointShadows = true,
     float DirectionalShadowCasterMaxDistance = LightingMath.ShadowDistance,
-    bool DirectionalShadows = true);
+    bool DirectionalShadows = true,
+    Matrix4x4 SkyViewProjection = default);
