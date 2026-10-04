@@ -62,6 +62,7 @@ public static class ComponentSelector
             DrawComponentMenuItem<AudioListenerComponent>("Audio Listener", entity, history);
             DrawComponentMenuItem<AmbientLightComponent>("Ambient Light", entity, history);
             DrawComponentMenuItem<DirectionalLightComponent>("Directional Light", entity, history);
+            DrawComponentMenuItem<PointLightComponent>("Point Light", entity, history);
 
             if (ImGui.MenuItem("Game Component"))
             {

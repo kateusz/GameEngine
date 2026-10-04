@@ -13,6 +13,7 @@ public interface IGraphics3D : IGraphics
     void DrawMesh(Matrix4x4 transform, Mesh mesh, Vector4 tint, int entityId = -1);
     void SetAmbientLight(Vector3 color, float strength);
     void SetDirectionalLight(Vector3 direction, Vector3 color);
+    void SetPointLights(ReadOnlySpan<PointLightData> lights);
     void ResetStats();
     Statistics GetStats();
 }

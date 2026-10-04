@@ -25,6 +25,8 @@ internal static class SceneRenderPipeline
         new(1.0f, 1.0f),
         new(0.0f, 1.0f)
     ];
+    
+    private static readonly PointLightData[] PointLightBuffer = new PointLightData[LightingMath.MaxPointLights];
 
     public static void RenderScene(
         Context context,
@@ -113,8 +115,13 @@ internal static class SceneRenderPipeline
     {
         var (ambientColor, ambientStrength) = ResolveAmbient(context);
         graphics3D.SetAmbientLight(ambientColor, ambientStrength);
+        
         var (lightDirection, lightColor) = ResolveDirectional(context);
         graphics3D.SetDirectionalLight(lightDirection, lightColor);
+        
+        var pointCount = ResolvePointLights(context, PointLightBuffer);
+        graphics3D.SetPointLights(PointLightBuffer.AsSpan(0, pointCount));
+        
         graphics3D.BeginScene(view);
 
         foreach (var (entity, modelRenderer, transformComponent) in
@@ -201,6 +208,27 @@ internal static class SceneRenderPipeline
             return (LightingMath.NormalizeDirection(dlc.Direction), new Vector3(dlc.Color.X, dlc.Color.Y, dlc.Color.Z));
 
         return (LightingMath.DefaultDirection, Vector3.Zero);
+    }
+    
+    internal static int ResolvePointLights(Context context, Span<PointLightData> destination)
+    {
+        var limit = System.Math.Min(destination.Length, LightingMath.MaxPointLights);
+        var count = 0;
+        foreach (var (_, light, transform) in context.View<PointLightComponent, TransformComponent>())
+        {
+            if (light.Range <= 0f)
+                continue;
+            if (count == limit)
+                break;
+
+            destination[count++] = new PointLightData(
+                transform.GetWorldTransform().Translation,
+                new Vector3(light.Color.X, light.Color.Y, light.Color.Z),
+                MathF.Max(0f, light.Intensity),
+                light.Range);
+        }
+
+        return count;
     }
 
     internal static Vector2[] GetSubTextureTexCoords(SubTextureRendererComponent component, Texture2D texture)
