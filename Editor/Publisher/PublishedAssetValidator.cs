@@ -90,6 +90,12 @@ public static class PublishedAssetValidator
                                     $"{sibling} (from {RelativeToAssets(assetsRoot, sourceFile)}, cooked sibling for {prop.Name})");
                             }
                         }
+                        else if (prop.Name == "Skybox"
+                                 && !path.EndsWith(".hdr", StringComparison.OrdinalIgnoreCase))
+                        {
+                            missing.Add(
+                                $"{path} (from {RelativeToAssets(assetsRoot, sourceFile)}, Skybox must be a .hdr file)");
+                        }
                     }
                     else
                     {

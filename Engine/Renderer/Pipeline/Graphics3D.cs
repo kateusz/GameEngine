@@ -19,6 +19,9 @@ internal sealed class Graphics3D(
     private const int ShadowMapSlot = 3;
     private const int PointShadowSlot = 4;
     private const int OcclusionMapSlot = 12;
+    private const int IrradianceSlot = 13;
+    private const int PrefilterSlot = 14;
+    private const int BrdfLutSlot = 15;
     
     private static readonly string[] PointPositionUniforms = Names("u_PointLightPositions");
     private static readonly string[] PointColorUniforms = Names("u_PointLightColors");
@@ -33,6 +36,9 @@ internal sealed class Graphics3D(
     private IShader _pointDepthShader = null!;
     private IShader _equirectShader = null!;
     private IShader _skyShader = null!;
+    private IShader _irradianceShader = null!;
+    private IShader _prefilterShader = null!;
+    private IShader _brdfShader = null!;
     private Mesh _cubeMesh = null!;
     private IFrameBuffer? _shadowMap;
     private readonly Dictionary<int, IFrameBuffer> _pointShadowMapsByEntity = new();
@@ -62,6 +68,9 @@ internal sealed class Graphics3D(
     // Upgrade path: scale from that camera's near and far.
     private const float SkyScale = 4f;
     private uint _skyCubemap;
+    private uint _irradiance;
+    private uint _prefilter;
+    private uint _brdfLut;
     private string _skySource = "";
 
     public void Init()
@@ -74,6 +83,9 @@ internal sealed class Graphics3D(
 
         _cubeShader.Bind();
         _cubeShader.SetInt("u_ShadowMap", ShadowMapSlot);
+        _cubeShader.SetInt("u_Irradiance", IrradianceSlot);
+        _cubeShader.SetInt("u_Prefilter", PrefilterSlot);
+        _cubeShader.SetInt("u_BrdfLut", BrdfLutSlot);
         for (var i = 0; i < LightingMath.MaxPointLights; i++)
             _cubeShader.SetInt(PointShadowMapUniforms[i], PointShadowSlot + i);
         _cubeShader.Unbind();
@@ -98,9 +110,25 @@ internal sealed class Graphics3D(
         _modelShader.SetInt("u_NormalMap", 2);
         _modelShader.SetInt("u_ShadowMap", ShadowMapSlot);
         _modelShader.SetInt("u_OcclusionMap", OcclusionMapSlot);
+        _modelShader.SetInt("u_Irradiance", IrradianceSlot);
+        _modelShader.SetInt("u_Prefilter", PrefilterSlot);
+        _modelShader.SetInt("u_BrdfLut", BrdfLutSlot);
         for (var i = 0; i < LightingMath.MaxPointLights; i++)
             _modelShader.SetInt(PointShadowMapUniforms[i], PointShadowSlot + i);
         _modelShader.Unbind();
+
+        _irradianceShader = shaderFactory.Create(ShaderId.Irradiance);
+        _prefilterShader = shaderFactory.Create(ShaderId.Prefilter);
+        _brdfShader = shaderFactory.Create(ShaderId.BrdfLut);
+        _irradianceShader.Bind();
+        _irradianceShader.SetInt("environmentMap", 0);
+        _irradianceShader.Unbind();
+        _prefilterShader.Bind();
+        _prefilterShader.SetInt("environmentMap", 0);
+        _prefilterShader.Unbind();
+        _brdfShader.Bind();
+        rendererApi.TryCreateBrdfLut(out _brdfLut);
+        _brdfShader.Unbind();
     }
 
     public void SetDirectionalShadow(Matrix4x4 lightViewProjection, bool enabled)
@@ -199,31 +227,34 @@ internal sealed class Graphics3D(
             return;
 
         var full = Path.IsPathRooted(path) ? Path.GetFullPath(path) : PathBuilder.Resolve(path);
-        if (!rendererApi.TryCreateSkyCapture(full, out var cubemapId, out var capture))
+        if (!rendererApi.TryCreateSkyCapture(full, out var environment, out var capture))
         {
             _skySource = path;
             return;
         }
 
-        var kept = false;
         using (capture)
         {
             Span<Matrix4x4> faces = stackalloc Matrix4x4[LightingMath.PointShadowFaceCount];
-            if (LightingMath.TryBuildPointShadowFaces(Vector3.Zero, LightingMath.SkyCaptureFar, faces)
-                && DrawCapture(capture, faces))
+            if (!LightingMath.TryBuildPointShadowFaces(Vector3.Zero, LightingMath.SkyCaptureFar, faces)
+                || !DrawEnvironment(capture, environment, faces)
+                || !capture.GenerateEnvironmentMips()
+                || !DrawIrradiance(capture, faces)
+                || !DrawPrefilter(capture, faces))
             {
-                ClearSky();
-                _skyCubemap = cubemapId;
+                rendererApi.DeleteTexture(environment);
+                rendererApi.DeleteTexture(capture.IrradianceId);
+                rendererApi.DeleteTexture(capture.PrefilterId);
                 _skySource = path;
-                kept = true;
+                return;
             }
+
+            ClearSky();
+            _skyCubemap = environment;
+            _irradiance = capture.IrradianceId;
+            _prefilter = capture.PrefilterId;
+            _skySource = path;
         }
-
-        if (kept)
-            return;
-
-        rendererApi.DeleteTexture(cubemapId);
-        _skySource = path;
     }
 
     public void DrawSkybox(Matrix4x4 skyViewProjection)
@@ -252,22 +283,45 @@ internal sealed class Graphics3D(
         }
     }
 
-    private bool DrawCapture(ISkyCapture capture, ReadOnlySpan<Matrix4x4> faces)
+    private bool DrawEnvironment(ISkyCapture capture, uint environment, ReadOnlySpan<Matrix4x4> faces) =>
+        DrawFaces(_equirectShader, capture, environment, faces, mip: 0, LightingMath.SkyCaptureFaceSize, roughness: null);
+
+    private bool DrawIrradiance(ISkyCapture capture, ReadOnlySpan<Matrix4x4> faces) =>
+        DrawFaces(_irradianceShader, capture, capture.IrradianceId, faces, mip: 0, LightingMath.IrradianceFaceSize, roughness: null);
+
+    private bool DrawPrefilter(ISkyCapture capture, ReadOnlySpan<Matrix4x4> faces)
+    {
+        for (var mip = 0; mip < LightingMath.PrefilterMipCount; mip++)
+        {
+            var roughness = mip / (float)(LightingMath.PrefilterMipCount - 1);
+            var size = LightingMath.PrefilterFaceSize >> mip;
+            if (!DrawFaces(_prefilterShader, capture, capture.PrefilterId, faces, mip, size, roughness))
+                return false;
+        }
+
+        return true;
+    }
+
+    private bool DrawFaces(
+        IShader shader, ISkyCapture capture, uint cubemap, ReadOnlySpan<Matrix4x4> faces,
+        int mip, int size, float? roughness)
     {
         rendererApi.SetDepthTest(true);
         rendererApi.SetDepthWrite(true);
         rendererApi.SetFaceCulling(false);
         try
         {
-            _equirectShader.Bind();
-            _equirectShader.SetFloat("u_Scale", 1f);
+            shader.Bind();
+            shader.SetFloat("u_Scale", 1f);
+            if (roughness is { } value)
+                shader.SetFloat("u_Roughness", value);
             _cubeMesh.Bind();
             for (var i = 0; i < faces.Length; i++)
             {
-                if (!capture.BeginFace(i))
+                if (!capture.Begin(cubemap, i, mip, size))
                     return false;
 
-                _equirectShader.SetMat4(ViewProjectionUniform, faces[i]);
+                shader.SetMat4(ViewProjectionUniform, faces[i]);
                 rendererApi.DrawIndexed(_cubeMesh.GetVertexArray(), (uint)_cubeMesh.GetIndexCount());
             }
 
@@ -275,7 +329,7 @@ internal sealed class Graphics3D(
         }
         finally
         {
-            _equirectShader.Unbind();
+            shader.Unbind();
             rendererApi.SetFaceCulling(true);
             rendererApi.SetDepthWrite(true);
         }
@@ -283,9 +337,17 @@ internal sealed class Graphics3D(
 
     private void ClearSky()
     {
+        rendererApi.BindTextureCube(0, IrradianceSlot);
+        rendererApi.BindTextureCube(0, PrefilterSlot);
         if (_skyCubemap != 0)
             rendererApi.DeleteTexture(_skyCubemap);
+        if (_irradiance != 0)
+            rendererApi.DeleteTexture(_irradiance);
+        if (_prefilter != 0)
+            rendererApi.DeleteTexture(_prefilter);
         _skyCubemap = 0;
+        _irradiance = 0;
+        _prefilter = 0;
         _skySource = "";
     }
 
@@ -469,6 +531,16 @@ internal sealed class Graphics3D(
                 && _pointShadowMapsByEntity.TryGetValue(_pointShadowEntity[i], out var pointMap))
                 rendererApi.BindTextureCube(pointMap.GetDepthAttachmentRendererId(), PointShadowSlot + i);
         }
+
+        var ibl = _irradiance != 0 && _prefilter != 0 && _brdfLut != 0;
+        shader.SetInt("u_Ibl", ibl ? 1 : 0);
+        if (ibl)
+        {
+            rendererApi.BindTextureCube(_irradiance, IrradianceSlot);
+            rendererApi.BindTextureCube(_prefilter, PrefilterSlot);
+            rendererApi.BindTexture2D(_brdfLut, BrdfLutSlot);
+        }
+
         shader.Unbind();
     }
 
@@ -602,6 +674,9 @@ internal sealed class Graphics3D(
         _shadowMap?.Dispose();
         _shadowMap = null;
         ClearSky();
+        if (_brdfLut != 0)
+            rendererApi.DeleteTexture(_brdfLut);
+        _brdfLut = 0;
         foreach (var map in _pointShadowMapsByEntity.Values)
             map.Dispose();
         _pointShadowMapsByEntity.Clear();
@@ -613,6 +688,9 @@ internal sealed class Graphics3D(
         _pointDepthShader = null!;
         _equirectShader = null!;
         _skyShader = null!;
+        _irradianceShader = null!;
+        _prefilterShader = null!;
+        _brdfShader = null!;
         _cubeMesh = null!;
 
         _disposed = true;

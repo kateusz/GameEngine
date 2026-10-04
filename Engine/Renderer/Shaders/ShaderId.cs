@@ -11,5 +11,8 @@ public enum ShaderId
     Fxaa,
     SelectionOutline,
     EquirectToCube,
-    Skybox
+    Skybox,
+    Irradiance,
+    Prefilter,
+    BrdfLut
 }

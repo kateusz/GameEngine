@@ -9,6 +9,9 @@ uniform samplerCube u_Skybox;
 
 void main()
 {
-    o_Color = texture(u_Skybox, v_Direction);
+    vec3 envColor = textureLod(u_Skybox, v_Direction, 0.0).rgb;
+    envColor = envColor / (envColor + vec3(1.0));
+    envColor = pow(envColor, vec3(1.0 / 2.2));
+    o_Color = vec4(envColor, 1.0);
     o_EntityID = -1;
 }

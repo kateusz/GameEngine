@@ -59,4 +59,31 @@ public class ShaderFactoryCacheTests(HeadlessGraphicsContextFixture fixture)
         GlBufferQueries.IsProgramAlive(id).ShouldBeTrue();
         factory.Dispose();
     }
+
+    [GraphicsFact]
+    public void Create_IblShaders_Compile()
+    {
+        _ = fixture;
+        var dir = Path.Combine(AppContext.BaseDirectory, "assets", "shaders", "OpenGL");
+        var factory = new ShaderFactory();
+        try
+        {
+            foreach (var (vertName, fragName) in new[]
+            {
+                ("skybox.vert", "irradiance.frag"),
+                ("skybox.vert", "prefilter.frag"),
+                ("brdfLut.vert", "brdfLut.frag")
+            })
+            {
+                var shader = factory.Create(Path.Combine(dir, vertName), Path.Combine(dir, fragName));
+                var id = ((OpenGLShader)shader).RendererId;
+                id.ShouldNotBe(0u);
+                GlBufferQueries.IsProgramAlive(id).ShouldBeTrue();
+            }
+        }
+        finally
+        {
+            factory.Dispose();
+        }
+    }
 }

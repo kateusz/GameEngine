@@ -20,6 +20,10 @@ uniform int u_UseTexture;
 uniform float u_Metallic;
 uniform float u_Roughness;
 uniform float u_Ao;
+uniform int u_Ibl;
+uniform samplerCube u_Irradiance;
+uniform samplerCube u_Prefilter;
+uniform sampler2D u_BrdfLut;
 
 const int c_MaxPointLights = 8;
 const float c_PointEpsilon = 0.0001;
@@ -174,6 +178,24 @@ vec3 PointLights(vec3 N, vec3 V, vec3 fragPos, vec3 albedo, float metallic, floa
     return sum;
 }
 
+vec3 FresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
+{
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+
+vec3 ImageBasedLight(vec3 N, vec3 V, vec3 albedo, float metallic, float roughness, float ao)
+{
+    vec3 F0 = mix(vec3(c_DielectricF0), albedo, metallic);
+    float nDotV = max(dot(N, V), 0.0);
+    vec3 F = FresnelSchlickRoughness(nDotV, F0, roughness);
+    vec3 kD = (1.0 - F) * (1.0 - metallic);
+    vec3 diffuse = texture(u_Irradiance, N).rgb * albedo;
+    vec3 R = reflect(-V, N);
+    vec3 prefiltered = textureLod(u_Prefilter, R, roughness * 4.0).rgb;
+    vec2 brdf = texture(u_BrdfLut, vec2(nDotV, roughness)).rg;
+    return (kD * diffuse + prefiltered * (F * brdf.x + brdf.y)) * ao;
+}
+
 vec3 Encode(vec3 color)
 {
     color = color / (color + vec3(1.0));
@@ -193,7 +215,9 @@ void main()
     float shadow = DirectionalShadow(v_FragPos);
     vec3 sun = CookTorrance(N, V, L, u_LightColor, albedo, metallic, roughness) * shadow;
     vec3 lamps = PointLights(N, V, v_FragPos, albedo, metallic, roughness);
-    vec3 ambient = u_AmbientStrength * u_AmbientColor * albedo * ao;
+    vec3 ambient = u_Ibl != 0
+        ? ImageBasedLight(N, V, albedo, metallic, roughness, ao)
+        : u_AmbientStrength * u_AmbientColor * albedo * ao;
     o_Color = vec4(Encode(ambient + sun + lamps), u_Color.a);
     o_EntityID = u_EntityID;
 }

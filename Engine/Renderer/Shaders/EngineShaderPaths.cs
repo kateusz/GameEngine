@@ -9,6 +9,10 @@ internal static class EngineShaderPaths
             return (Path.Combine(dir, "fxaa.vert"), Path.Combine(dir, "selectionOutline.frag"));
         if (shader == ShaderId.EquirectToCube)
             return (Path.Combine(dir, "skybox.vert"), Path.Combine(dir, "equirectToCube.frag"));
+        if (shader == ShaderId.Irradiance)
+            return (Path.Combine(dir, "skybox.vert"), Path.Combine(dir, "irradiance.frag"));
+        if (shader == ShaderId.Prefilter)
+            return (Path.Combine(dir, "skybox.vert"), Path.Combine(dir, "prefilter.frag"));
 
         var name = shader switch
         {
@@ -20,6 +24,7 @@ internal static class EngineShaderPaths
             ShaderId.PointDepth => "pointDepth",
             ShaderId.Fxaa => "fxaa",
             ShaderId.Skybox => "skybox",
+            ShaderId.BrdfLut => "brdfLut",
             _ => throw new ArgumentOutOfRangeException(nameof(shader), shader, null)
         };
 
