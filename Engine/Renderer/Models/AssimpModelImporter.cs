@@ -83,7 +83,9 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
                     }
 
                     var material = ExtractMaterialInfo(scene, aiMesh->MMaterialIndex, directory);
-                    mesh.Shininess = material.Shininess;
+                    mesh.MetallicFactor = material.MetallicFactor;
+                    mesh.RoughnessFactor = material.RoughnessFactor;
+                    mesh.BaseColorFactor = material.BaseColorFactor;
                     pendingTextures.Add((mesh, material));
                     meshIndexMap[i] = submeshes.Count;
                     submeshes.Add(mesh);
@@ -100,8 +102,9 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
         foreach (var (mesh, material) in pendingTextures)
         {
             mesh.DiffuseTexture = LoadTexture(material.DiffusePath, sRgb: true);
-            mesh.SpecularTexture = LoadTexture(material.SpecularPath);
             mesh.NormalTexture = LoadTexture(material.NormalPath);
+            mesh.MetallicRoughnessTexture = LoadTexture(material.MetallicRoughnessPath);
+            mesh.OcclusionTexture = LoadTexture(material.OcclusionPath);
         }
 
         return (submeshes, sceneGraph);
@@ -197,11 +200,32 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
                || name.StartsWith("UCP_", StringComparison.OrdinalIgnoreCase);
     }
 
+    internal static string? ChooseMetallicRoughnessPath(string? packed, string? metalness, string? roughness)
+    {
+        if (!string.IsNullOrEmpty(packed))
+            return packed;
+        if (!string.IsNullOrEmpty(metalness))
+            return metalness;
+        if (!string.IsNullOrEmpty(roughness))
+            return roughness;
+        return null;
+    }
+
+    internal static float ImportedFactor(bool found, float value, float missing)
+    {
+        if (!found || !float.IsFinite(value))
+            return missing;
+        return System.Math.Clamp(value, 0f, 1f);
+    }
+
     private readonly record struct MaterialInfo(
         string? DiffusePath,
-        string? SpecularPath,
         string? NormalPath,
-        float Shininess);
+        string? MetallicRoughnessPath,
+        string? OcclusionPath,
+        float MetallicFactor,
+        float RoughnessFactor,
+        Vector3 BaseColorFactor);
 
     private unsafe MaterialInfo ExtractMaterialInfo(Silk.NET.Assimp.Scene* scene, uint materialIndex,
         string directory)
@@ -211,7 +235,7 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
             Logger.Warning(
                 "Material index {MaterialIndex} out of range (MNumMaterials={MaterialCount})",
                 materialIndex, scene->MNumMaterials);
-            return new MaterialInfo(null, null, null, 32.0f);
+            return new MaterialInfo(null, null, null, null, 0f, 0.5f, Vector3.One);
         }
 
         var aiMaterial = scene->MMaterials[materialIndex];
@@ -222,8 +246,6 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
         var diffuseTexturePath =
             ResolveTexturePath(scene, aiMaterial, TextureType.BaseColor, directory)
             ?? ResolveTexturePath(scene, aiMaterial, TextureType.Diffuse, directory);
-        // Phong specular ≠ glTF metallic-roughness. Leave ORM maps out of this slot.
-        var specularTexturePath = ResolveTexturePath(scene, aiMaterial, TextureType.Specular, directory);
         var normalTexturePath = ResolveTexturePath(scene, aiMaterial, TextureType.Normals, directory)
                                 ?? ResolveTexturePath(scene, aiMaterial, TextureType.Height, directory);
 
@@ -239,11 +261,52 @@ internal sealed class AssimpModelImporter(ITextureFactory textureFactory) : IDis
             }
         }
 
-        var shininess = 32.0f;
-        _assimp.GetMaterialFloatArray(aiMaterial, Assimp.MaterialShininess, 0, 0, ref shininess, (uint*)null);
-        shininess = shininess > 0 ? shininess : 32.0f;
+        var packed = ResolveTexturePath(scene, aiMaterial, TextureType.GltfMetallicRoughness, directory);
+        var metalness = ResolveTexturePath(scene, aiMaterial, TextureType.Metalness, directory);
+        var roughness = ResolveTexturePath(scene, aiMaterial, TextureType.DiffuseRoughness, directory);
+        if (string.IsNullOrEmpty(packed)
+            && !string.IsNullOrEmpty(metalness)
+            && !string.IsNullOrEmpty(roughness)
+            && !string.Equals(metalness, roughness, StringComparison.OrdinalIgnoreCase))
+        {
+            Logger.Warning(
+                "Metallic and roughness textures differ; using metallic {Path}",
+                metalness);
+        }
 
-        return new MaterialInfo(diffuseTexturePath, specularTexturePath, normalTexturePath, shininess);
+        var metallicRoughnessPath = ChooseMetallicRoughnessPath(packed, metalness, roughness);
+        var occlusionPath = ResolveTexturePath(scene, aiMaterial, TextureType.AmbientOcclusion, directory);
+        var metallicFactor = ReadFactor(aiMaterial, Assimp.MatkeyMetallicFactor, missing: 0f);
+        var roughnessFactor = ReadFactor(aiMaterial, Assimp.MatkeyRoughnessFactor, missing: 0.5f);
+        var baseColor = ReadBaseColor(aiMaterial);
+
+        return new MaterialInfo(
+            diffuseTexturePath,
+            normalTexturePath,
+            metallicRoughnessPath,
+            occlusionPath,
+            metallicFactor,
+            roughnessFactor,
+            baseColor);
+    }
+
+    private unsafe float ReadFactor(Material* material, string key, float missing)
+    {
+        var value = 0f;
+        var found = _assimp.GetMaterialFloatArray(material, key, 0, 0, ref value, (uint*)null) == Return.Success;
+        return ImportedFactor(found, value, missing);
+    }
+
+    private unsafe Vector3 ReadBaseColor(Material* material)
+    {
+        var color = new Vector4(1f, 1f, 1f, 1f);
+        if (_assimp.GetMaterialColor(material, Assimp.MatkeyBaseColor, 0, 0, ref color) != Return.Success)
+            return Vector3.One;
+
+        return new Vector3(
+            System.Math.Clamp(color.X, 0f, 1f),
+            System.Math.Clamp(color.Y, 0f, 1f),
+            System.Math.Clamp(color.Z, 0f, 1f));
     }
 
     private unsafe string? ResolveTexturePath(Silk.NET.Assimp.Scene* scene, Material* aiMaterial,

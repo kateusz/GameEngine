@@ -95,8 +95,12 @@ Draws either a unit cube or a static imported 3D model at the entity's transform
 | `ModelPath` | string | — | `.glb`, `.gltf`, or `.fbx`. Drag from the Content Browser. Empty → cube. |
 | `TexturePath` | string | — | Cube albedo only (ignored when `ModelPath` is set). |
 | `TilingFactor` | float | 1.0 | Cube texture repeat (ignored for imported models). |
+| `Metallic` | float | 0 | 0 dielectric, 1 metal. On a model this applies only when Override Material is on. |
+| `Roughness` | float | 0.5 | 0 mirror, 1 fully matte. Same override rule as Metallic. |
+| `AO` | float | 1 | Ambient occlusion factor. Same override rule as Metallic. |
+| `Override Material` | bool | false | Shown when `ModelPath` is set. Replaces imported metallic, roughness, and AO factors. Textures still multiply. |
 
-Imported models use Blinn-Phong (diffuse / specular / normal maps from the file). Skinning and animation clips are not imported.
+Imported models use Cook-Torrance (albedo, normal, metallic-roughness, occlusion). Skinning and animation clips are not imported. Image-based lighting is not supported.
 
 **When to use:** 3D props and environments. Pair with a perspective primary camera and optional `AmbientLightComponent` / `DirectionalLightComponent`.
 

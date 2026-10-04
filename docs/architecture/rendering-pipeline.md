@@ -194,7 +194,7 @@ sequenceDiagram
 
 **File**: `Engine/Renderer/Pipeline/Graphics3D.cs`, `Engine/Renderer/Pipeline/IGraphics3D.cs`, `Engine/Renderer/Models/`, `Engine/Renderer/Meshes/Mesh.cs`, `Engine/Renderer/Meshes/IMeshFactory.cs`
 
-3D is a **forward, unbatched** path: one `DrawIndexed` per cube or imported submesh. That is enough for static props and a handful of characters; it is not an instancing or PBR pipeline.
+3D is a **forward, unbatched** path: one `DrawIndexed` per cube or imported submesh. That is enough for static props and a handful of characters; it is not an instancing pipeline. Lighting is direct Cook-Torrance with one directional shadow and no image-based lighting.
 
 ### Draw API
 
@@ -205,9 +205,9 @@ sequenceDiagram
 | `BeginScene` | Store `SceneView`, then upload view-projection, lights, and (model shader) view position |
 | `SetAmbientLight` / `SetDirectionalLight` | Store scene lights; call before `BeginScene` so the upload sees them |
 | `DrawCube` | Shared unit cube mesh (`IMeshFactory.CreateCube`) |
-| `DrawMesh` | GPU mesh + optional diffuse/specular/normal maps |
+| `DrawMesh` | GPU mesh + albedo, normal, metallic-roughness, and occlusion maps |
 
-Lighting is Blinn-Phong (`Engine/assets/shaders/OpenGL/modelShader.*`, `cube.*`). The pipeline takes the **first** `AmbientLightComponent` and **first** `DirectionalLightComponent` in the scene. Missing ambient → white at strength 0.1. Missing directional → light color zero (ambient only).
+Lighting is direct Cook-Torrance (`Engine/assets/shaders/OpenGL/modelShader.*`, `cube.*`), with Reinhard and gamma in the fragment shader. There is no image-based lighting. The pipeline takes the **first** `AmbientLightComponent` and **first** `DirectionalLightComponent` in the scene. Missing ambient → white at strength 0.1. Missing directional → light color zero (ambient only).
 
 ### Model import
 
@@ -220,7 +220,7 @@ Lighting is Blinn-Phong (`Engine/assets/shaders/OpenGL/modelShader.*`, `cube.*`)
 | Post-process | Triangulate, sort by primitive type, join identical vertices, generate normals, tangent space, flip UVs. Node transforms are **not** baked into vertices |
 | Scene graph | `Model.SceneGraph` walks Assimp nodes (`ModelSceneNode`: name, mesh indices, children, local transform) |
 | CPU mesh | Positions, normals, UV0, tangents, bitangents. Triangle faces only (non-triangle faces skipped). Unreal collision mesh names (`UCX_`, `UBX_`, `USP_`, `UCP_`) skipped |
-| Materials | BaseColor then Diffuse (albedo, sRGB), specular, normals (Height as fallback). Embedded GLB images dumped to a temp cache then loaded as files. Missing albedo next to a `*_N` normal may be inferred (`AssimpTexturePath`) |
+| Materials | BaseColor then Diffuse (albedo, sRGB), metallic-roughness and occlusion (linear), normals (Height as fallback). Embedded GLB images dumped to a temp cache then loaded as files. Missing albedo next to a `*_N` normal may be inferred (`AssimpTexturePath`) |
 | GPU upload | `Mesh.Initialize` — vertex layout in `Engine/Renderer/Meshes/Mesh.cs`; CPU vertex/index lists cleared after upload |
 
 `SceneRenderPipeline` draws with the **entity** world matrix. A single entity with `ModelPath` and no `MeshIndex` submits every submesh at that transform. `MeshIndex` draws one submesh (typical when the graph is unpacked onto child entities). `SuppressDraw` skips the catch-all draw.

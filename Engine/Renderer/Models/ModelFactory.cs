@@ -99,6 +99,26 @@ internal class ModelFactory : IModelFactory
                 return null;
             }
 
+            long vertices = 0;
+            long indices = 0;
+            foreach (var submesh in initialized)
+            {
+                vertices += submesh.VertexCount;
+                indices += submesh.GetIndexCount();
+            }
+
+            Logger.Information(
+                "Loaded model {Path}: submeshes={Submeshes} vertices={Vertices} indices={Indices} triangles={Triangles}",
+                normalizedPath, initialized.Count, vertices, indices, indices / 3);
+
+            foreach (var submesh in initialized.OrderByDescending(m => m.VertexCount).Take(8))
+            {
+                var indexCount = submesh.GetIndexCount();
+                Logger.Information(
+                    "Model submesh vertices={Vertices} indices={Indices} triangles={Triangles} name={Name}",
+                    submesh.VertexCount, indexCount, indexCount / 3, submesh.Name);
+            }
+
             return new Model(normalizedPath, initialized, sceneGraph);
         }
         catch (Exception ex)
