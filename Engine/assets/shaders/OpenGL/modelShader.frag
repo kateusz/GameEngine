@@ -18,11 +18,15 @@ uniform vec3 u_ViewPosition;
 uniform float u_Metallic;
 uniform float u_Roughness;
 uniform float u_Ao;
+uniform sampler2D u_Ssao;
+uniform float u_SsaoStrength;
 uniform vec3 u_Emissive;
 uniform int u_Ibl;
 uniform samplerCube u_Irradiance;
 uniform samplerCube u_Prefilter;
+#ifdef USE_BRDF_LUT
 uniform sampler2D u_BrdfLut;
+#endif
 uniform vec3 u_BaseColor;
 uniform int u_HasDiffuseMap;
 uniform int u_AlphaTest;
@@ -127,6 +131,17 @@ vec3 FresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
     return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
+#ifndef USE_BRDF_LUT
+vec2 EnvBrdfApprox(float nDotV, float roughness)
+{
+    vec4 c0 = vec4(-1.0, -0.0275, -0.572, 0.022);
+    vec4 c1 = vec4(1.0, 0.0425, 1.04, -0.04);
+    vec4 r = roughness * c0 + c1;
+    float a004 = min(r.x * r.x, exp2(-9.28 * nDotV)) * r.x + r.y;
+    return vec2(-1.04, 1.04) * a004 + r.zw;
+}
+#endif
+
 vec3 ImageBasedLight(vec3 N, vec3 V, vec3 albedo, float metallic, float roughness, float ao)
 {
     vec3 F0 = mix(vec3(c_DielectricF0), albedo, metallic);
@@ -136,7 +151,11 @@ vec3 ImageBasedLight(vec3 N, vec3 V, vec3 albedo, float metallic, float roughnes
     vec3 diffuse = texture(u_Irradiance, N).rgb * albedo;
     vec3 R = reflect(-V, N);
     vec3 prefiltered = textureLod(u_Prefilter, R, roughness * 4.0).rgb;
+#ifdef USE_BRDF_LUT
     vec2 brdf = texture(u_BrdfLut, vec2(nDotV, roughness)).rg;
+#else
+    vec2 brdf = EnvBrdfApprox(nDotV, roughness);
+#endif
     return (kD * diffuse + prefiltered * (F * brdf.x + brdf.y)) * ao;
 }
 
@@ -166,6 +185,8 @@ void main()
     vec3 ambient = u_Ibl != 0
         ? ImageBasedLight(norm, V, albedo, metallic, roughness, ao)
         : u_AmbientStrength * u_AmbientColor * albedo * ao;
+    float ssao = texture(u_Ssao, gl_FragCoord.xy / vec2(textureSize(u_Ssao, 0))).r;
+    ambient *= mix(1.0, ssao, u_SsaoStrength);
     o_Color = vec4(ambient + sun + lamps + u_Emissive, u_Color.a);
     o_EntityID = v_EntityID;
 }

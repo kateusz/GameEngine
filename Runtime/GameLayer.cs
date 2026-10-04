@@ -77,7 +77,10 @@ public class GameLayer(
 
         var size = gameWindow.ClientSize;
         var scale = gameWindow.ContentScale;
-        var hdr = fxaaPass.DrawScene((uint)(size.X * scale), (uint)(size.Y * scale), () =>
+        var pixelWidth = (uint)(size.X * scale);
+        var pixelHeight = (uint)(size.Y * scale);
+        graphics3D.SetSceneTargetSize(pixelWidth, pixelHeight);
+        var hdr = fxaaPass.DrawScene(pixelWidth, pixelHeight, () =>
         {
             graphics3D.SetSkybox(scene.Skybox);
             graphics2D.SetClearColor(scene.BackgroundColor);

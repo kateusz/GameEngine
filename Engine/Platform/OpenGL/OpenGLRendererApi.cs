@@ -10,6 +10,7 @@ namespace Engine.Platform.OpenGL;
 
 internal sealed class OpenGLRendererApi : IRendererAPI
 {
+    public int MaxFragmentTextureImageUnits { get; private set; }
     private static readonly ILogger Logger = Log.ForContext<OpenGLRendererApi>();
     private static bool _brdfLutWarned;
     private readonly HashSet<uint> _meshInstanceLayoutVaos = [];
@@ -375,6 +376,9 @@ internal sealed class OpenGLRendererApi : IRendererAPI
 
         SilkNetContext.GL.Enable(EnableCap.TextureCubeMapSeamless);
         OpenGLDebug.CheckError(SilkNetContext.GL, "Enable(TextureCubeMapSeamless)");
+
+        MaxFragmentTextureImageUnits = SilkNetContext.GL.GetInteger(GLEnum.MaxTextureImageUnits);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "GetInteger(MaxTextureImageUnits)");
     }
 
     public int GetError()

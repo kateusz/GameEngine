@@ -38,4 +38,5 @@ public interface IRendererAPI
     void SetViewport(int x, int y, uint width, uint height);
     void Init();
     int GetError();
+    int MaxFragmentTextureImageUnits { get; }
 }

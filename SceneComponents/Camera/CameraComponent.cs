@@ -16,6 +16,9 @@ public class CameraComponent : IComponent
     public float AspectRatio { get; set; } = 16.0f / 9.0f;
     public bool Primary { get; set; }
     public bool FixedAspectRatio { get; set; }
+    public bool Ssao { get; set; }
+    public float SsaoRadius { get; set; } = 0.5f;
+    public float SsaoStrength { get; set; } = 1f;
 
     [JsonIgnore]
     public Matrix4x4? CameraViewTransform { get; set; }
@@ -33,7 +36,10 @@ public class CameraComponent : IComponent
             PerspectiveFOV = PerspectiveFOV,
             PerspectiveNear = PerspectiveNear,
             PerspectiveFar = PerspectiveFar,
-            AspectRatio = AspectRatio
+            AspectRatio = AspectRatio,
+            Ssao = Ssao,
+            SsaoRadius = SsaoRadius,
+            SsaoStrength = SsaoStrength
         };
 
         return cloned;

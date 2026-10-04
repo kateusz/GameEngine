@@ -34,20 +34,44 @@ internal sealed class CameraQueries(Context context, IPointerSurface pointerSurf
             sceneView.ViewProjection);
     }
 
-    internal static bool TryGetPrimaryView(Context context, out SceneView view)
+    internal static bool TryGetPrimaryCamera(Context context, out CameraComponent camera)
     {
-        foreach (var (entity, cameraComponent) in context.View<CameraComponent>())
+        foreach (var (_, component) in context.View<CameraComponent>())
         {
-            if (!cameraComponent.Primary)
+            if (!component.Primary)
                 continue;
 
-            var transform = cameraComponent.CameraViewTransform
+            camera = component;
+            return true;
+        }
+
+        camera = null!;
+        return false;
+    }
+
+    internal static bool TryGetPrimaryView(Context context, out SceneView view)
+    {
+        foreach (var (entity, component) in context.View<CameraComponent>())
+        {
+            if (!component.Primary)
+                continue;
+
+            var transform = component.CameraViewTransform
                 ?? (entity.TryGetComponent<TransformComponent>(out var transformComponent)
                     ? transformComponent.GetWorldTransform()
                     : Matrix4x4.Identity);
 
-            Scratch.Apply(cameraComponent);
-            return CameraViews.TryFrom(Scratch, transform, out view);
+            Scratch.Apply(component);
+            if (!CameraViews.TryFrom(Scratch, transform, out view))
+                return false;
+
+            view = view with
+            {
+                Ssao = component.Ssao,
+                SsaoRadius = component.SsaoRadius,
+                SsaoStrength = component.SsaoStrength
+            };
+            return true;
         }
 
         view = default;

@@ -1,0 +1,924 @@
+{
+  "Scene": "SSAO",
+  "BackgroundColor": [
+    0.04,
+    0.04,
+    0.045,
+    1
+  ],
+  "Dimension": "ThreeD",
+  "Entities": [
+    {
+      "Id": 1,
+      "Name": "Camera",
+      "Components": [
+        {
+          "Translation": [
+            0.8,
+            4.6,
+            8.2
+          ],
+          "Rotation": [
+            -0.82,
+            0.18,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "ProjectionType": "Perspective",
+          "OrthographicSize": 10,
+          "OrthographicNear": -1,
+          "OrthographicFar": 1,
+          "PerspectiveFOV": 0.95,
+          "PerspectiveNear": 0.1,
+          "PerspectiveFar": 80,
+          "AspectRatio": 1.7777778,
+          "Primary": true,
+          "FixedAspectRatio": false,
+          "Ssao": true,
+          "SsaoRadius": 0.5,
+          "SsaoStrength": 1,
+          "Name": "CameraComponent"
+        },
+        {
+          "IsActive": true,
+          "Name": "AudioListenerComponent"
+        }
+      ]
+    },
+    {
+      "Id": 2,
+      "Name": "Ambient",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.45,
+            0.48,
+            0.55,
+            1
+          ],
+          "Strength": 0.035,
+          "Name": "AmbientLightComponent"
+        }
+      ]
+    },
+    {
+      "Id": 3,
+      "Name": "Floor",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            -0.05,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            18,
+            0.1,
+            14
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.34,
+            0.35,
+            0.38,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.78,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 10,
+      "Name": "Cube_Red_Large",
+      "Components": [
+        {
+          "Translation": [
+            -3.1,
+            0.72,
+            2.4
+          ],
+          "Rotation": [
+            0,
+            0.12,
+            0
+          ],
+          "Scale": [
+            1.44,
+            1.44,
+            1.44
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.92,
+            0.18,
+            0.14,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.82,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 11,
+      "Name": "Cube_Yellow",
+      "Components": [
+        {
+          "Translation": [
+            -2.15,
+            0.42,
+            0.65
+          ],
+          "Rotation": [
+            0,
+            -0.08,
+            0
+          ],
+          "Scale": [
+            0.84,
+            0.84,
+            0.84
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.98,
+            0.88,
+            0.12,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.8,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 12,
+      "Name": "Cube_Blue_Front",
+      "Components": [
+        {
+          "Translation": [
+            -0.25,
+            0.56,
+            2.85
+          ],
+          "Rotation": [
+            0,
+            0.05,
+            0
+          ],
+          "Scale": [
+            1.12,
+            1.12,
+            1.12
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.15,
+            0.38,
+            0.95,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.78,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 13,
+      "Name": "Cube_Orange_Base",
+      "Components": [
+        {
+          "Translation": [
+            2.25,
+            0.43,
+            1.15
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.86,
+            0.86,
+            0.86
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.98,
+            0.52,
+            0.12,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.8,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 14,
+      "Name": "Cube_Blue_Stack",
+      "Components": [
+        {
+          "Translation": [
+            2.25,
+            1.22,
+            1.15
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.76,
+            0.76,
+            0.76
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.18,
+            0.42,
+            0.92,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.78,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 15,
+      "Name": "Cube_Green_Back",
+      "Components": [
+        {
+          "Translation": [
+            3.75,
+            0.48,
+            -1.35
+          ],
+          "Rotation": [
+            0,
+            -0.15,
+            0
+          ],
+          "Scale": [
+            0.96,
+            0.96,
+            0.96
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.22,
+            0.82,
+            0.28,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.8,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 16,
+      "Name": "Cube_Green_Small",
+      "Components": [
+        {
+          "Translation": [
+            4.05,
+            0.28,
+            2.95
+          ],
+          "Rotation": [
+            0,
+            0.2,
+            0
+          ],
+          "Scale": [
+            0.56,
+            0.56,
+            0.56
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.28,
+            0.88,
+            0.35,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.82,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 20,
+      "Name": "Point_Yellow",
+      "Components": [
+        {
+          "Translation": [
+            -4.2,
+            3.4,
+            0.8
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            0.92,
+            0.35,
+            1
+          ],
+          "Intensity": 2.8,
+          "Range": 11,
+          "CastsShadow": false,
+          "ApplyOffset": false,
+          "Offset": [
+            0,
+            0,
+            0
+          ],
+          "Name": "PointLightComponent"
+        }
+      ]
+    },
+    {
+      "Id": 21,
+      "Name": "Point_Blue",
+      "Components": [
+        {
+          "Translation": [
+            -0.4,
+            3.9,
+            -1.8
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.45,
+            0.65,
+            1,
+            1
+          ],
+          "Intensity": 2.5,
+          "Range": 12,
+          "CastsShadow": false,
+          "ApplyOffset": false,
+          "Offset": [
+            0,
+            0,
+            0
+          ],
+          "Name": "PointLightComponent"
+        }
+      ]
+    },
+    {
+      "Id": 22,
+      "Name": "Point_Red",
+      "Components": [
+        {
+          "Translation": [
+            2.6,
+            3.5,
+            0.4
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            0.32,
+            0.28,
+            1
+          ],
+          "Intensity": 2.6,
+          "Range": 10,
+          "CastsShadow": false,
+          "ApplyOffset": false,
+          "Offset": [
+            0,
+            0,
+            0
+          ],
+          "Name": "PointLightComponent"
+        }
+      ]
+    },
+    {
+      "Id": 23,
+      "Name": "Point_Green",
+      "Components": [
+        {
+          "Translation": [
+            5.4,
+            3.2,
+            -0.6
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.4,
+            1,
+            0.45,
+            1
+          ],
+          "Intensity": 2.4,
+          "Range": 11,
+          "CastsShadow": false,
+          "ApplyOffset": false,
+          "Offset": [
+            0,
+            0,
+            0
+          ],
+          "Name": "PointLightComponent"
+        }
+      ]
+    },
+    {
+      "Id": 30,
+      "Name": "Fixture_Yellow",
+      "Components": [
+        {
+          "Translation": [
+            -4.2,
+            3.4,
+            0.8
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.32,
+            0.32,
+            0.32
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            0.92,
+            0.35,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.35,
+          "Ao": 1,
+          "Emissive": [
+            1,
+            0.92,
+            0.35
+          ],
+          "EmissiveStrength": 3.5,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 31,
+      "Name": "Fixture_Blue",
+      "Components": [
+        {
+          "Translation": [
+            -0.4,
+            3.9,
+            -1.8
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.32,
+            0.32,
+            0.32
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.45,
+            0.65,
+            1,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.35,
+          "Ao": 1,
+          "Emissive": [
+            0.45,
+            0.65,
+            1
+          ],
+          "EmissiveStrength": 3.5,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 32,
+      "Name": "Fixture_Red",
+      "Components": [
+        {
+          "Translation": [
+            2.6,
+            3.5,
+            0.4
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.32,
+            0.32,
+            0.32
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            0.32,
+            0.28,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.35,
+          "Ao": 1,
+          "Emissive": [
+            1,
+            0.32,
+            0.28
+          ],
+          "EmissiveStrength": 3.5,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 33,
+      "Name": "Fixture_Green",
+      "Components": [
+        {
+          "Translation": [
+            5.4,
+            3.2,
+            -0.6
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.32,
+            0.32,
+            0.32
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.4,
+            1,
+            0.45,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.35,
+          "Ao": 1,
+          "Emissive": [
+            0.4,
+            1,
+            0.45
+          ],
+          "EmissiveStrength": 3.5,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    }
+  ]
+}

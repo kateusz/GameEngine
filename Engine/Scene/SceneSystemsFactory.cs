@@ -21,7 +21,8 @@ internal sealed class SceneSystemsFactory(
     IAudio audio,
     AudioPlaybackService playbackService,
     IPhysicsWorldFactory physicsWorldFactory,
-    IModelFactory modelFactory) : ISceneSystemsFactory
+    IModelFactory modelFactory,
+    SsaoPass ssao) : ISceneSystemsFactory
 {
     private static readonly Vector2 DefaultGravity2D = new(0, -9.8f);
 
@@ -42,7 +43,7 @@ internal sealed class SceneSystemsFactory(
             new PhysicsSimulationSystem(physicsWorld, context, bodyStore),
             new PhysicsDebugRenderSystem(graphics2D, context, debugSettings, bodyStore),
             audioSystem,
-            new SceneRenderSystem(graphics2D, graphics3D, textureFactory, context, modelFactory)
+            new SceneRenderSystem(graphics2D, graphics3D, textureFactory, context, modelFactory, ssao)
         ];
 
         foreach (var system in systems)

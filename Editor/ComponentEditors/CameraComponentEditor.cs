@@ -16,6 +16,20 @@ public class CameraComponentEditor(
 
     protected override void DrawContent(CameraComponent component, Entity entity)
     {
+        propertyRenderer.DrawPropertyField("SSAO", entity,
+            e => e.GetComponent<CameraComponent>().Ssao,
+            (e, v) => e.GetComponent<CameraComponent>().Ssao = v);
+
+        propertyRenderer.DrawPropertyField("SSAO Radius", entity,
+            e => e.GetComponent<CameraComponent>().SsaoRadius,
+            (e, v) => e.GetComponent<CameraComponent>().SsaoRadius = v,
+            MultiField.SameFloat);
+
+        propertyRenderer.DrawPropertyField("SSAO Strength", entity,
+            e => e.GetComponent<CameraComponent>().SsaoStrength,
+            (e, v) => e.GetComponent<CameraComponent>().SsaoStrength = v,
+            MultiField.SameFloat);
+
         propertyRenderer.DrawPropertyField("Primary", entity,
             e => e.GetComponent<CameraComponent>().Primary,
             (e, v) =>

@@ -815,7 +815,7 @@ public class SceneRenderPipelineShadowTests
     /// <summary>
     /// NSubstitute cannot proxy <see cref="IGraphics3D.SetPointLights"/> because it takes a span.
     /// </summary>
-    private sealed class RecordingGraphics3D : IGraphics3D
+    internal sealed class RecordingGraphics3D : IGraphics3D
     {
         public List<(Matrix4x4 Matrix, bool Enabled)> Shadows { get; } = [];
         public List<Matrix4x4> ShadowPasses { get; } = [];
@@ -829,6 +829,7 @@ public class SceneRenderPipelineShadowTests
         public List<(float Metallic, float Roughness, float Ao)> MeshFactors { get; } = [];
         public List<Vector3> CubeEmissive { get; } = [];
         public List<Vector3> MeshEmissive { get; } = [];
+        public (uint Texture, float Strength) Ssao { get; private set; }
 
         public void SetDirectionalShadow(Matrix4x4 lightViewProjection, bool enabled)
         {
@@ -882,6 +883,13 @@ public class SceneRenderPipelineShadowTests
             EndPointShadowFaces++;
             Order.Add("end-point-shadow");
         }
+
+        public void SetSceneTargetSize(uint width, uint height) { }
+        public uint SceneTargetWidth => 0;
+        public uint SceneTargetHeight => 0;
+        public void BeginNormalPass(Matrix4x4 view, Matrix4x4 viewProjection) => Order.Add("normal");
+        public void EndNormalPass() { }
+        public void SetSsao(uint textureId, float strength) => Ssao = (textureId, strength);
 
         public void BeginScene(in SceneView view)
         {
