@@ -88,4 +88,43 @@ public class SceneHierarchyRowsTests
 
         rows.Select(r => r.Entity.Name).ShouldBe(["parent", "hit"]);
     }
+
+    [Fact]
+    public void ResolveEntitiesToReparent_DraggedNotInSelection_MovesOnlyDragged()
+    {
+        using var scene = CreateScene();
+        var a = Create(scene, "a");
+        var b = Create(scene, "b");
+        var c = Create(scene, "c");
+
+        SceneHierarchyPanel.ResolveEntitiesToReparent(scene, c, [a, b])
+            .Select(e => e.Name)
+            .ShouldBe(["c"]);
+    }
+
+    [Fact]
+    public void ResolveEntitiesToReparent_MultiSelection_MovesSelectionRootsOnly()
+    {
+        using var scene = CreateScene();
+        var parent = Create(scene, "parent");
+        var child = Create(scene, "child");
+        var sibling = Create(scene, "sibling");
+        scene.SetParent(child, parent);
+
+        // parent+child+sibling selected; drag parent → only parent and sibling (child rides with parent)
+        SceneHierarchyPanel.ResolveEntitiesToReparent(scene, parent, [parent, child, sibling])
+            .Select(e => e.Name)
+            .ShouldBe(["parent", "sibling"]);
+    }
+
+    [Fact]
+    public void ResolveEntitiesToReparent_SingleSelection_MovesOnlyThatEntity()
+    {
+        using var scene = CreateScene();
+        var a = Create(scene, "a");
+
+        SceneHierarchyPanel.ResolveEntitiesToReparent(scene, a, [a])
+            .Select(e => e.Name)
+            .ShouldBe(["a"]);
+    }
 }

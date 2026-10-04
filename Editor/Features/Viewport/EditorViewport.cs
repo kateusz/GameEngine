@@ -116,7 +116,8 @@ public sealed class EditorViewport(
 
         var display = editorPreferences.Fxaa ? fxaaPass.Resolve(_frameBuffer) : _frameBuffer;
         var selected = selection.SelectedEntities;
-        if (selected.Count > 0)
+        // Play mode keeps selection for hierarchy/properties, but no edit outline overlay
+        if (selected.Count > 0 && sceneContext.State == SceneState.Edit)
         {
             var ids = selected.Count <= 64 ? stackalloc int[selected.Count] : new int[selected.Count];
             for (var i = 0; i < selected.Count; i++)
@@ -379,12 +380,13 @@ public sealed class EditorViewport(
 
     private void PickHoveredEntity()
     {
-        HoveredEntity = null;
-
         var mousePos = ImGui.GetMousePos();
-        if (mousePos == _lastPickMousePos) 
+        // Keep last HoveredEntity when skipping ReadPixel (mouse still) — clearing first broke click-select.
+        if (mousePos == _lastPickMousePos)
             return;
+
         _lastPickMousePos = mousePos;
+        HoveredEntity = null;
         var mx = (mousePos.X - _viewportBounds[0].X) * _contentScale;
         var my = (mousePos.Y - _viewportBounds[0].Y) * _contentScale;
         var physicalWidth = (_viewportBounds[1].X - _viewportBounds[0].X) * _contentScale;

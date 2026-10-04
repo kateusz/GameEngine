@@ -54,7 +54,7 @@ public class EditorSelectionTests
 
         selection.Select(entity, SelectionSource.Hierarchy);
 
-        cameraFraming.Received(1).FocusOnEntity(entity, false);
+        cameraFraming.Received(1).FocusOnEntity(entity, true);
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public class EditorSelectionTests
 
         selection.SelectedEntities.Select(e => e.Id).ShouldBe([1, 2, 3]);
         selection.SelectedEntity.ShouldBe(e3);
-        cameraFraming.Received(1).FocusOnEntity(e3, false);
+        cameraFraming.Received(1).FocusOnEntity(e3, true);
 
         selection.SelectRange(visible, e2);
         selection.SelectedEntities.Select(e => e.Id).ShouldBe([1, 2]);
@@ -144,6 +144,26 @@ public class EditorSelectionTests
     {
         MultiField.SameFloat(1.001f, 1.0f).ShouldBeTrue();
         MultiField.SameFloat(float.NaN, float.NaN).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void MultiField_EntityNames_UniformAndWriteEach()
+    {
+        var a = new Entity(1, "same");
+        var b = new Entity(2, "same");
+        MultiField.Targets = [a, b];
+
+        MultiField.TryUniform(a, e => e.Name, (x, y) => x == y, out var name).ShouldBeTrue();
+        name.ShouldBe("same");
+
+        MultiField.WriteEach(a, (Entity e, string n) => e.Name = n, "renamed");
+        a.Name.ShouldBe("renamed");
+        b.Name.ShouldBe("renamed");
+
+        b.Name = "other";
+        MultiField.TryUniform(a, e => e.Name, (x, y) => x == y, out _).ShouldBeFalse();
+
+        MultiField.Targets = null;
     }
 
     private static (EditorSelection selection, ISceneContext sceneContext, IEditorCameraFraming cameraFraming)

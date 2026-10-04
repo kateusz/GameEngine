@@ -49,4 +49,41 @@ public class EditorCameraFramingTests
 
         camera.FocalPoint.ShouldBe(new Vector3(10f, 0f, 5f));
     }
+
+    /// <summary>
+    /// Sponza-style: scaled root, intermediate group without Transform, child with large local translation.
+    /// Focus must use composed world position, not local Translation and not identity.
+    /// </summary>
+    [Fact]
+    public void FocusOnEntity_ScaledParent_UsesComposedWorldNotLocal()
+    {
+        using var scene = CreateScene();
+        var sceneContext = Substitute.For<ISceneContext>();
+        sceneContext.ActiveScene.Returns(scene);
+
+        var root = scene.CreateEntity("sponza");
+        root.AddComponent(new TransformComponent(Vector3.Zero, Vector3.Zero, new Vector3(0.05f)));
+
+        var group = scene.CreateEntity("Plants");
+        // no TransformComponent — real scenes have empty group nodes
+        scene.SetParent(group, root);
+
+        var child = scene.CreateEntity("Plant");
+        child.AddComponent(new TransformComponent(
+            new Vector3(495.27972f, 148.15741f, 198.49435f),
+            Vector3.Zero,
+            Vector3.One));
+        scene.SetParent(child, group);
+
+        var camera = new EditorCamera();
+        var framing = new EditorCameraFramingService(sceneContext);
+        framing.SetCamera(camera);
+
+        framing.FocusOnEntity(child);
+
+        // local would be ~495; identity would be 0; composed world is local * parentScale
+        camera.FocalPoint.X.ShouldBe(24.763986f, 0.001f);
+        camera.FocalPoint.Y.ShouldBe(7.4078705f, 0.001f);
+        camera.FocalPoint.Z.ShouldBe(9.9247175f, 0.001f);
+    }
 }
