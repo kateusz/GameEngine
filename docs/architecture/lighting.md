@@ -8,14 +8,16 @@ Forward shading for the 3D color pass: which lights are uploaded, how PBR factor
 
 ## Design Decisions
 
-### Direct Cook-Torrance, no image-based lighting
+### Direct Cook-Torrance, image-based fill when a sky is captured
 
-`cube.frag` and `modelShader.frag` shade each fragment with a Cook-Torrance specular lobe (GGX distribution, Smith geometry, Schlick Fresnel) plus a Lambertian diffuse term. There is no environment map, irradiance cube, or split-sum LUT.
+`cube.frag` and `modelShader.frag` shade each fragment with a Cook-Torrance specular lobe (GGX distribution, Smith geometry, Schlick Fresnel) plus a Lambertian diffuse term. When `Graphics3D` has an irradiance cubemap and a prefilter cubemap, `u_Ibl` replaces the flat ambient term with that image-based fill. The sun and the point lights stay direct Cook-Torrance.
+
+A device with at least 17 fragment texture units also samples the BRDF LUT on unit 15 (`USE_BRDF_LUT`, injected when the fragment shader is compiled). At 16 units that sampler is left out and `EnvBrdfApprox` supplies the scale and bias. macOS OpenGL is the 16-unit case.
 
 | Option | Pros | Cons |
 |--------|------|------|
-| **Direct lights only (chosen)** | One color pass; no prefiltered environment assets | Metals look flat without a sun or lamp; no sky reflections |
-| Image-based lighting | Plausible ambient specular | Extra maps, a BRDF LUT, and a second specular path |
+| **IBL when the sky capture exists (chosen)** | Metals pick up the sky; flat ambient remains the fallback | Needs the irradiance and prefilter maps |
+| BRDF LUT on every device | One specular path | The model shader would declare 17 samplers and fail to link on macOS |
 | Blinn-Phong | Smaller shader | Does not match the metallic-roughness factors already on imported meshes |
 
 ### One ambient, one sun, eight point lights
@@ -30,12 +32,12 @@ Forward shading for the 3D color pass: which lights are uploaded, how PBR factor
 
 ### Ambient is not a BRDF lobe
 
-Ambient is `strength * color * albedo * ao`, added after the sun and point lights. It is not Cook-Torrance and it is not shadowed.
+Flat ambient is `strength * color * albedo * ao`. With IBL on, that product is the image-based fill, still multiplied by material `ao`. Either result is then multiplied by `mix(1, ssao, u_SsaoStrength)`. The sun, the point lights, and emissive are added after that. SSAO does not shadow them.
 
 | Option | Pros | Cons |
 |--------|------|------|
-| **Flat ambient (chosen)** | Cheap fill; occlusion map still darkens crevices | No directional sky; metals do not pick up ambient specular |
-| Ambient through the BRDF | One lighting equation | Needs an environment; fill becomes view-dependent |
+| **Indirect term only (chosen)** | Creases darken without fighting the shadow maps | Needs a normal prepass before the color draw |
+| Darken the whole pixel | Easier to see | Direct light goes muddy in the same creases the shadow maps already cover |
 
 ### Imported file lights are not the frame light list
 
@@ -46,14 +48,14 @@ Assimp point and directional lights are converted into `ImportedPointLight` / `I
 | **ECS components only (chosen)** | One resolution path for editor and play | Lights authored in a DCC do not illuminate until something creates components from the import |
 | Auto-spawn components at draw time | File opens looking lit | Draw path would mutate the scene; duplicates on every load |
 
-### Tonemap in the color shader
+### Linear color, tonemap outside this pass
 
-Lit color is Reinhard-compressed (`color / (color + 1)`) and then encoded with gamma 2.2. Alpha is the tint alpha, not tonemapped. There is no HDR framebuffer requirement for this pass.
+`cube.frag` and `modelShader.frag` write `ambient + sun + lamps + emissive` with the tint alpha. They do not run Reinhard. `TonemapPass` is a later fullscreen pass and is not called from `SceneRenderPipeline`.
 
 | Option | Pros | Cons |
 |--------|------|------|
-| **Reinhard + gamma in the fragment shader (chosen)** | Bright lamps do not clip to white as early; output matches an 8-bit target | Exposure is fixed; no grading pass |
-| Linear HDR target | Post can expose later | Color attachments and FXAA would have to stay linear |
+| **Linear sum in the color shader (chosen)** | SSAO and bloom can read light that has not been compressed | The scene color attachment has to be float |
+| Reinhard inside the fragment shader | Output matches an 8-bit target immediately | A later occlusion or bloom pass would scale an already compressed picture |
 
 ---
 
@@ -114,6 +116,7 @@ Shared lighting uniforms, set from `Graphics3D.UploadFrame`:
 | `u_PointLightPositions[i]`, `u_PointLightColors[i]`, `u_PointLightIntensities[i]`, `u_PointLightRanges[i]` | Point lights. Unused slots are still written |
 | `u_PointShadowsEnabled[i]`, `u_PointShadowMaps[i]` | Per-light cubemap enable. See [Shadows](shadows.md) |
 | `u_LightViewProjection`, `u_ShadowsEnabled`, `u_ShadowMap` | Directional map |
+| `u_Ssao`, `u_SsaoStrength` | Blurred occlusion. Strength 0 leaves indirect light unchanged |
 
 Per-draw surface uniforms:
 
@@ -138,6 +141,10 @@ Bound by `Graphics3D`. Point-shadow cubes occupy units 4–11 (eight lights). Do
 | 3 | Directional shadow (`u_ShadowMap`) | Directional shadow |
 | 4–11 | `u_PointShadowMaps[0..7]` | Same |
 | 12 | — | Occlusion, or white |
+| 13 | Irradiance cubemap when `u_Ibl` is set | Same |
+| 14 | Prefilter cubemap when `u_Ibl` is set | Same |
+| 15 | BRDF LUT when the device has 17 fragment units; otherwise the SSAO map | Same |
+| 16 | SSAO map when the device has 17 fragment units | Same |
 
 Model map channels: roughness is green, metallic is blue, occlusion is red. A missing map is treated as 1 before multiplying by the scalar factor, so the factor alone still applies. The normal map is tangent-space; the vertex shader builds TBN from the tangent and the normal.
 
@@ -149,10 +156,21 @@ Constants in both color shaders: minimum roughness `0.045`, dielectric F0 `0.04`
 2. Roughness is at least `0.045`. Model multiplies the green map channel first.
 3. **Sun.** Cook-Torrance with radiance `u_LightColor`, times the directional shadow factor. A black sun contributes nothing.
 4. **Point lights.** Skip when distance ≥ range. Radiance is `color * intensity * (1 - distance / range)²`. Inside `0.0001` units the contribution is `radiance * albedo` with no BRDF and no shadow. Otherwise Cook-Torrance times the point-shadow factor.
-5. **Ambient.** `u_AmbientStrength * u_AmbientColor * albedo * ao`. AO does not scale the sun or the lamps.
-6. **Output.** Reinhard, then `pow(color, 1/2.2)`. Alpha is `u_Color.a`.
+5. **Indirect.** Flat ambient, or image-based light when `u_Ibl` is set. Material AO multiplies that term. `mix(1, u_Ssao, u_SsaoStrength)` multiplies it again. Neither factor scales the sun or the lamps.
+6. **Output.** `ambient + sun + lamps + emissive`. Alpha is `u_Color.a`.
 
 Alpha-cutout meshes discard in the model (and depth) fragment shaders when diffuse alpha is below `Mesh.AlphaCutoff` (default `0.5`). That is not a sorted transparency pass. Cube draws have no alpha test.
+
+### Screen-space ambient occlusion
+
+**File**: `Engine/Renderer/Pipeline/SsaoPass.cs`  
+**File**: `Engine/Renderer/LightingMath.cs` (`SsaoKernelSize` 64, `SsaoBias` 0.025)
+
+The pass runs only when `SceneView.Ssao` is set, `SsaoRadius` is finite and `> 0`, `SsaoStrength` is finite and clamps above 0, and `TargetWidth` / `TargetHeight` are non-zero. `SsaoPass.TryOcclude` draws the opaque set into its own normal-and-depth target (`ViewNormal` / `ViewNormalModel`), writes an `RGBA8` occlusion map, then blurs it 4×4. The kernel is 64 samples, built once. A 4×4 noise texture is uploaded once through `CreateFromRgba`.
+
+If the pass cannot be built, the projection does not invert, or a resize fails, the color pass still runs. It samples the white texture at strength 0. Fewer than 16 fragment texture units leaves the pass unavailable.
+
+The normal prepass does not apply the shadow caster-distance cut.
 
 ---
 

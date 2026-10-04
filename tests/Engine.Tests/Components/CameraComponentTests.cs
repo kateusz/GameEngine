@@ -15,6 +15,9 @@ public class CameraComponentTests
         component.ProjectionType.ShouldBe(CameraProjectionTypeData.Orthographic);
         component.Primary.ShouldBeFalse();
         component.FixedAspectRatio.ShouldBeFalse();
+        component.Ssao.ShouldBeFalse();
+        component.SsaoRadius.ShouldBe(0.5f);
+        component.SsaoStrength.ShouldBe(1f);
     }
 
     [Fact]
@@ -70,6 +73,18 @@ public class CameraComponentTests
         clone.OrthographicNear.ShouldBe(original.OrthographicNear);
         clone.OrthographicFar.ShouldBe(original.OrthographicFar);
         clone.AspectRatio.ShouldBe(original.AspectRatio);
+    }
+
+    [Fact]
+    public void CameraComponent_Clone_CopiesSsao()
+    {
+        var original = new CameraComponent { Ssao = true, SsaoRadius = 1.25f, SsaoStrength = 0.4f };
+
+        var clone = (CameraComponent)original.Clone();
+
+        clone.Ssao.ShouldBeTrue();
+        clone.SsaoRadius.ShouldBe(1.25f);
+        clone.SsaoStrength.ShouldBe(0.4f);
     }
 
     [Fact]

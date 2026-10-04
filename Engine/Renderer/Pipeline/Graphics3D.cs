@@ -22,6 +22,11 @@ internal sealed class Graphics3D(
     private const int IrradianceSlot = 13;
     private const int PrefilterSlot = 14;
     private const int BrdfLutSlot = 15;
+    private const int SsaoSlotWithLut = 16;
+    private const int SsaoSlotWithoutLut = 15;
+
+    private int SsaoUnit =>
+        rendererApi.MaxFragmentTextureImageUnits >= 17 ? SsaoSlotWithLut : SsaoSlotWithoutLut;
     
     private static readonly string[] PointPositionUniforms = Names("u_PointLightPositions");
     private static readonly string[] PointColorUniforms = Names("u_PointLightColors");
@@ -35,6 +40,8 @@ internal sealed class Graphics3D(
     private IShader _emissiveShader = null!;
     private IShader _depthShader = null!;
     private IShader _pointDepthShader = null!;
+    private IShader _viewNormalShader = null!;
+    private IShader _viewNormalModelShader = null!;
     private IShader _equirectShader = null!;
     private IShader _skyShader = null!;
     private IShader _irradianceShader = null!;
@@ -47,6 +54,10 @@ internal sealed class Graphics3D(
     private readonly bool[] _pointShadowEnabled = new bool[LightingMath.MaxPointLights];
     private bool _shadowPass;
     private bool _pointShadowPass;
+    private bool _normalPass;
+    private Matrix4x4 _normalView = Matrix4x4.Identity;
+    private uint _ssaoTexture;
+    private float _ssaoStrength;
     private IFrameBuffer? _activePointMap;
     private Matrix4x4 _lightViewProjection = Matrix4x4.Identity;
     private Matrix4x4 _farLightViewProjection = Matrix4x4.Identity;
@@ -54,6 +65,8 @@ internal sealed class Graphics3D(
     private ShadowQuality _quality = new();
 
     private Matrix4x4 _viewProjection = Matrix4x4.Identity;
+    private uint _sceneTargetWidth;
+    private uint _sceneTargetHeight;
     private Vector3 _viewPosition;
     private Vector3 _ambientColor = Vector3.One;
     private float _ambientStrength = 0.1f;
@@ -89,6 +102,7 @@ internal sealed class Graphics3D(
         _cubeShader.SetInt("u_Irradiance", IrradianceSlot);
         _cubeShader.SetInt("u_Prefilter", PrefilterSlot);
         _cubeShader.SetInt("u_BrdfLut", BrdfLutSlot);
+        _cubeShader.SetInt("u_Ssao", SsaoUnit);
         for (var i = 0; i < LightingMath.MaxPointLights; i++)
             _cubeShader.SetInt(PointShadowMapUniforms[i], PointShadowSlot + i);
         _cubeShader.Unbind();
@@ -96,6 +110,15 @@ internal sealed class Graphics3D(
         _depthShader.Bind();
         _depthShader.SetInt("u_DiffuseMap", 0);
         _depthShader.Unbind();
+        _viewNormalShader = shaderFactory.Create(ShaderId.ViewNormal);
+        _viewNormalModelShader = shaderFactory.Create(ShaderId.ViewNormalModel);
+        _viewNormalShader.Bind();
+        _viewNormalShader.SetInt("u_DiffuseMap", 0);
+        _viewNormalShader.Unbind();
+        _viewNormalModelShader.Bind();
+        _viewNormalModelShader.SetInt("u_DiffuseMap", 0);
+        _viewNormalModelShader.Unbind();
+        _ssaoTexture = textureFactory.GetWhiteTexture().GetRendererId();
         _pointDepthShader.Bind();
         _pointDepthShader.SetInt("u_DiffuseMap", 0);
         _pointDepthShader.Unbind();
@@ -116,6 +139,7 @@ internal sealed class Graphics3D(
         _modelShader.SetInt("u_Irradiance", IrradianceSlot);
         _modelShader.SetInt("u_Prefilter", PrefilterSlot);
         _modelShader.SetInt("u_BrdfLut", BrdfLutSlot);
+        _modelShader.SetInt("u_Ssao", SsaoUnit);
         for (var i = 0; i < LightingMath.MaxPointLights; i++)
             _modelShader.SetInt(PointShadowMapUniforms[i], PointShadowSlot + i);
         _modelShader.Unbind();
@@ -399,6 +423,30 @@ internal sealed class Graphics3D(
         _skySource = "";
     }
 
+    public void SetSceneTargetSize(uint width, uint height)
+    {
+        _sceneTargetWidth = width;
+        _sceneTargetHeight = height;
+    }
+
+    public uint SceneTargetWidth => _sceneTargetWidth;
+    public uint SceneTargetHeight => _sceneTargetHeight;
+
+    public void BeginNormalPass(Matrix4x4 view, Matrix4x4 viewProjection)
+    {
+        _normalPass = true;
+        _normalView = view;
+        _viewProjection = viewProjection;
+    }
+
+    public void EndNormalPass() => _normalPass = false;
+
+    public void SetSsao(uint textureId, float strength)
+    {
+        _ssaoTexture = textureId;
+        _ssaoStrength = strength;
+    }
+
     public void BeginScene(in SceneView view)
     {
         _viewProjection = view.ViewProjection;
@@ -418,6 +466,20 @@ internal sealed class Graphics3D(
         if (_shadowPass)
         {
             DrawShadow(_cubeMesh, transform);
+            return;
+        }
+
+        if (_normalPass)
+        {
+            rendererApi.SetDepthTest(true);
+            _viewNormalShader.Bind();
+            _viewNormalShader.SetMat4("u_View", _normalView);
+            _viewNormalShader.SetMat4(ViewProjectionUniform, _viewProjection);
+            BindCommon(_viewNormalShader, transform, color, entityId);
+            _cubeMesh.Bind();
+            rendererApi.DrawIndexed(_cubeMesh.GetVertexArray(), (uint)_cubeMesh.GetIndexCount());
+            RecordDraw(_cubeMesh, instanceCount: 1, isCube: true);
+            _viewNormalShader.Unbind();
             return;
         }
 
@@ -476,6 +538,19 @@ internal sealed class Graphics3D(
 
             ApplySurface(_depthShader, mesh);
             UploadAndDraw(mesh, instances, _depthShader);
+            rendererApi.SetFaceCulling(true);
+            return;
+        }
+
+        if (_normalPass)
+        {
+            rendererApi.SetDepthTest(true);
+            _viewNormalModelShader.Bind();
+            _viewNormalModelShader.SetMat4("u_View", _normalView);
+            _viewNormalModelShader.SetMat4(ViewProjectionUniform, _viewProjection);
+            ApplySurface(_viewNormalModelShader, mesh);
+            UploadAndDraw(mesh, instances, _viewNormalModelShader);
+            _viewNormalModelShader.Unbind();
             rendererApi.SetFaceCulling(true);
             return;
         }
@@ -633,14 +708,20 @@ internal sealed class Graphics3D(
                 rendererApi.BindTextureCube(pointMap.GetDepthAttachmentRendererId(), PointShadowSlot + i);
         }
 
-        var ibl = _irradiance != 0 && _prefilter != 0 && _brdfLut != 0;
+        var useLut = rendererApi.MaxFragmentTextureImageUnits >= 17;
+        var ibl = _irradiance != 0 && _prefilter != 0 && (!useLut || _brdfLut != 0);
         shader.SetInt("u_Ibl", ibl ? 1 : 0);
         if (ibl)
         {
             rendererApi.BindTextureCube(_irradiance, IrradianceSlot);
             rendererApi.BindTextureCube(_prefilter, PrefilterSlot);
-            rendererApi.BindTexture2D(_brdfLut, BrdfLutSlot);
+            if (useLut)
+                rendererApi.BindTexture2D(_brdfLut, BrdfLutSlot);
         }
+
+        var ssao = _ssaoTexture != 0 ? _ssaoTexture : textureFactory.GetWhiteTexture().GetRendererId();
+        rendererApi.BindTexture2D(ssao, useLut ? SsaoSlotWithLut : SsaoSlotWithoutLut);
+        shader.SetFloat("u_SsaoStrength", _ssaoStrength);
 
         shader.Unbind();
     }

@@ -46,11 +46,12 @@ internal static class SceneRenderPipeline
         IGraphics3D graphics3D,
         ITextureFactory textureFactory,
         IModelFactory  modelFactory,
-        in SceneView view)
+        in SceneView view,
+        SsaoPass? ssao = null)
     {
         graphics3D.DrawSkybox(view.SkyViewProjection);
         RenderSpritesAndSubTextures(context, graphics2D, textureFactory, view);
-        Render3D(context, graphics3D, textureFactory, modelFactory, view);
+        Render3D(context, graphics3D, textureFactory, modelFactory, view, ssao);
     }
     
     private static void RenderSpritesAndSubTextures(
@@ -130,7 +131,8 @@ internal static class SceneRenderPipeline
         IGraphics3D graphics3D,
         ITextureFactory textureFactory,
         IModelFactory? modelFactory,
-        in SceneView view)
+        in SceneView view,
+        SsaoPass? ssao = null)
     {
         var perf = new Render3DPerfFrame();
         PrepareActiveVisibilityZones(context, view.ViewPosition);
@@ -282,6 +284,38 @@ internal static class SceneRenderPipeline
 
             PointShadowCache.Replace(PointShadowCasterBuffer, PointShadowLampBuffer);
         }
+
+        var strength = float.IsFinite(view.SsaoStrength) ? System.Math.Clamp(view.SsaoStrength, 0f, 1f) : 0f;
+        var viewMatrix = view.View;
+        var viewProjection = view.ViewProjection;
+        uint occlusion = 0;
+        var run = false;
+        if (ssao is { Available: true }
+            && view.Ssao
+            && view.TargetWidth > 0 && view.TargetHeight > 0
+            && float.IsFinite(view.SsaoRadius) && view.SsaoRadius > 0f
+            && strength > 0f)
+        {
+            run = ssao.TryOcclude(view.TargetWidth, view.TargetHeight, view.Projection, view.SsaoRadius,
+                () =>
+                {
+                    graphics3D.BeginNormalPass(viewMatrix, viewProjection);
+                    try
+                    {
+                        DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, viewProjection);
+                    }
+                    finally
+                    {
+                        graphics3D.EndNormalPass();
+                    }
+                },
+                out occlusion);
+        }
+
+        if (run)
+            graphics3D.SetSsao(occlusion, strength);
+        else
+            graphics3D.SetSsao(textureFactory.GetWhiteTexture()?.GetRendererId() ?? 0, 0f);
 
         graphics3D.BeginScene(view);
         perf.ColorPass = DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, view.ViewProjection);

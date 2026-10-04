@@ -20,6 +20,7 @@ using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
 using Engine.Scene;
 using Engine.Scene.Cameras;
+using Engine.Scene.Systems;
 using ImGuiNET;
 using Input;
 using Math;
@@ -48,6 +49,7 @@ public sealed class EditorViewport(
     IEditorHistory history,
     FxaaPass fxaaPass,
     TonemapPass tonemapPass,
+    SsaoPass ssaoPass,
     SelectionOutlinePass selectionOutlinePass,
     IEditorPreferences editorPreferences)
     : IEditorViewport
@@ -342,6 +344,8 @@ public sealed class EditorViewport(
             editorPreferences.PointShadowPcf,
             editorPreferences.ShadowCascades));
         graphics3D.SetSkybox(sceneContext.ActiveScene?.Skybox);
+        var target = _frameBuffer.GetSpecification();
+        graphics3D.SetSceneTargetSize(target.Width, target.Height);
         _frameBuffer.Bind();
 
         var clearColor = sceneContext.ActiveScene?.BackgroundColor ?? Vector4.One;
@@ -361,12 +365,30 @@ public sealed class EditorViewport(
                     skyView.M41 = 0f;
                     skyView.M42 = 0f;
                     skyView.M43 = 0f;
+                    var ssao = false;
+                    var ssaoRadius = 0.5f;
+                    var ssaoStrength = 1f;
+                    if (CameraQueries.TryGetPrimaryCamera(scene.Context, out var primary))
+                    {
+                        ssao = primary.Ssao;
+                        ssaoRadius = primary.SsaoRadius;
+                        ssaoStrength = primary.SsaoStrength;
+                    }
+
                     var view = new SceneView(
                         viewMatrix * projection,
                         _editorCamera.GetPosition(),
                         PointShadows: false,
-                        SkyViewProjection: skyView * projection);
-                    SceneRenderPipeline.RenderScene(scene.Context, graphics2D, graphics3D, textureFactory, modelFactory, view);
+                        SkyViewProjection: skyView * projection,
+                        View: viewMatrix,
+                        Projection: projection,
+                        TargetWidth: target.Width,
+                        TargetHeight: target.Height,
+                        Ssao: ssao,
+                        SsaoRadius: ssaoRadius,
+                        SsaoStrength: ssaoStrength);
+                    SceneRenderPipeline.RenderScene(
+                        scene.Context, graphics2D, graphics3D, textureFactory, modelFactory, view, ssaoPass);
                     RenderEditor2DOverlays(scene.Context, view);
                 }
                 break;
