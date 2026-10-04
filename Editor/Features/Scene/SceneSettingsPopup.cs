@@ -1,3 +1,5 @@
+using Editor.AssetPicker;
+using Editor.Platform;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Engine.Project;
@@ -128,15 +130,55 @@ public class SceneSettingsPopup(
             scene.BackgroundColor = backgroundColor;
         }
 
-        var skybox = scene.Skybox;
-        if (ImGui.InputText("Skybox", ref skybox, 260))
-        {
-            scene.Skybox = string.IsNullOrWhiteSpace(skybox)
-                ? ""
-                : PathBuilder.ToAssetRelativePath(skybox.Trim());
-        }
+        DrawSkyboxField(scene);
 
         ModalDrawer.EndModal();
+    }
+
+    private static void DrawSkyboxField(IScene scene)
+    {
+        ImGui.AlignTextToFramePadding();
+        ImGui.TextUnformatted("Skybox");
+        ImGui.SameLine();
+
+        var skybox = scene.Skybox;
+        var browse = FilePicker.IsAvailable;
+        if (browse)
+        {
+            var buttonWidth = 70f;
+            ImGui.SetNextItemWidth(MathF.Max(
+                80f,
+                ImGui.GetContentRegionAvail().X - buttonWidth - ImGui.GetStyle().ItemSpacing.X));
+        }
+
+        if (ImGui.InputText("##skybox", ref skybox, 260))
+            scene.Skybox = NormalizeSkybox(skybox);
+
+        if (!browse)
+            return;
+
+        ImGui.SameLine();
+        if (!ImGui.Button("Browse"))
+            return;
+
+        var picked = FilePicker.PickFile("Skybox", AssetKind.Texture.OsFileFilter, SkyboxInitialPath(scene.Skybox));
+        if (!string.IsNullOrEmpty(picked))
+            scene.Skybox = NormalizeSkybox(picked);
+    }
+
+    private static string NormalizeSkybox(string path) =>
+        string.IsNullOrWhiteSpace(path) ? "" : PathBuilder.ToAssetRelativePath(path.Trim());
+
+    private static string? SkyboxInitialPath(string skybox)
+    {
+        try
+        {
+            return string.IsNullOrWhiteSpace(skybox) ? PathBuilder.AssetsPath : PathBuilder.Resolve(skybox);
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
     }
 
     private void RenderNewScenePopup()

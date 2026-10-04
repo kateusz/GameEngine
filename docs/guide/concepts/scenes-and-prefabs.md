@@ -17,7 +17,9 @@ Play needs a project with `assets/scripts/`. No Primary camera → engine picks 
 |--------|----------|
 | New | Ctrl+N |
 | Save | Ctrl+S |
-| Open | Drag `.scene` onto viewport |
+| Open | **Scene → Open…** or drag `.scene` onto viewport |
+
+**Scene → Settings** edits **background color** only. **Project → Settings** edits root `game.config.json` (startup scene path, game title, window size, fullscreen, target FPS, game assembly path).
 
 ## Hierarchy
 

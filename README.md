@@ -8,12 +8,50 @@ A component-based game engine built with C# and .NET 10: visual editor, C# scrip
 
 ### Core engine
 
-- **Entity Component System (ECS)** — data-driven architecture with ordered system execution
-- **Entity hierarchy** — parent/child transforms, cascade destroy, show/hide (`Visible` / `EffectiveVisible`), prefab subtrees, serialized relationships
-- **Physics** — 2D rigid-body simulation with box/circle/edge colliders, raycast and overlap queries, debug visualization
-- **Scripting** — C# `IGameSystem` / `IGameComponent` under `assets/scripts/`, compiled to a GameAssembly and loaded via `ScriptEngine` (recompile/reload before Play and when adding scripts — no IDE file watcher). Systems poll `IKeyboardInput` / `IMouseInput` ([docs](docs/guide/scripting/input.md))
-- **Audio** — OpenAL spatial audio (WAV/Ogg), per-entity sources with optional EFX (reverb, echo, low-pass)
-- **Cross-platform** — Windows and macOS (x64 and ARM64 for publish)
+Runtime lives in **Engine/** on top of the standalone **ECS/** library ([ECS overview](docs/guide/concepts/ecs-overview.md)). **Editor** and **Runtime** share the same application loop, scene graph, and systems; the editor adds ImGui, undo, and tooling ([game loop](docs/architecture/game-loop.md)).
+
+#### ECS, scenes, and components
+
+- **Entities + components** — compose gameplay from built-in types in `SceneComponents/` (transform, 2D/3D renderers, camera, lights, 2D physics, audio, tags) plus game-authored **`IGameComponent`** types
+- **Systems** — `SystemManager` runs engine systems (transform hierarchy, physics, audio, rendering) and registered **`IGameSystem`** instances by **priority** each frame
+- **Scenes** — JSON **`.scene`** files under `assets/scenes/` with **2D / 3D** dimension, background color, and serialized entity/component data ([scenes & prefabs](docs/guide/concepts/scenes-and-prefabs.md))
+- **Edit vs Play** — in the editor, physics and scripts stay off until Play; Play uses the **Primary** camera and the project’s compiled game assembly
+
+#### Hierarchy and prefabs
+
+- **Parent/child tree** — `ParentComponent`, world matrices from roots, reparent/duplicate/destroy subtree APIs
+- **Visibility** — per-entity `Visible` with cascaded **`EffectiveVisible`** for rendering
+- **Prefabs** — **`.prefab`** JSON (v2 entity subtrees) under `assets/prefabs/`; save from the editor and drag onto an entity to apply the subtree
+
+#### Physics (2D)
+
+- **Box2D** — `RigidBody2DComponent` with **box, circle, and edge** colliders; static/kinematic/dynamic bodies
+- **Queries & contacts** — raycast/overlap from systems; contact events exposed to **`IGameSystem`** code ([physics scripting](docs/guide/scripting/physics.md))
+- **Debug draw** — optional collider outlines in the editor viewport
+
+#### Scripting and input
+
+- **Game logic in C#** — `assets/scripts/` compiled to **GameAssembly.dll** (Roslyn in the editor); **`ScriptEngine`** loads assemblies into the running app
+- **Reload** — recompile/reload before **Play** and when creating script assets from the Content Browser (no IDE file watcher)
+- **`IGameSystem`** — frame updates with DI services; **`IGameComponent`** — per-entity data with `[SerializableComponent]` for scene save/load
+- **Input** — keyboard/mouse polling via **`IKeyboardInput`** / **`IMouseInput`** ([input guide](docs/guide/scripting/input.md))
+
+#### Audio
+
+- **OpenAL** — **`AudioSourceComponent`** + **`AudioListenerComponent`** on the primary camera path; **WAV** and **Ogg Vorbis**
+- **EFX** (when supported) — per-source **reverb, echo, low-pass** via `AudioEffectData`
+
+#### Projects and deployment
+
+- **Project layout** — `assets/` (scenes, scripts, models, textures, audio, prefabs) and root **`game.config.json`** (startup scene, window, title, FPS, assembly path)
+- **Standalone player** — **Runtime/** executable for published builds; same scene/system path as Play in the editor without editor UI
+- **Publish** — editor **Project → Export…** builds a self-contained app for the chosen Windows/macOS RID (x64 or ARM64 on the host; API also accepts `win-x86`)
+
+#### Platform and infrastructure
+
+- **Graphics & windowing** — Silk.NET OpenGL **3.3+** behind **`IRendererAPI`** (platform backend stays out of core engine code)
+- **DI & logging** — DryIoc composition root; Serilog (console/file) for engine and editor
+- **OS support** — develop and run on **Windows** and **macOS**
 
 ### Rendering
 

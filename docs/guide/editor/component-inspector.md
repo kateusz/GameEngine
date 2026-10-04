@@ -4,9 +4,15 @@ Reference for every component available in the engine.
 
 ## Overview
 
-The **Properties** panel displays all components attached to the currently selected entity. To add a component, click the **Add Component** button at the bottom of the panel and select from the dropdown. To remove a component, click the **"-"** button on its header.
+The **Properties** panel lists components on the **current selection** (one or many entities). Use **Search** at the top to filter fields by name across the selection.
 
-When no entity is selected, the panel shows scene-level settings (background color). Selected entities can also be saved as prefabs via **Save as Prefab** at the top of the panel.
+- **Add Component** — dropdown of built-in types plus **Game Component** for scripted types.
+- **Remove** — **"-"** on a component header (single selection only; hidden during multi-select).
+- **Save as Prefab** — top of the panel when one entity is selected.
+
+When **nothing** is selected, Properties is empty. Scene **background color** is under **Scene → Settings**. Project window/title/startup scene/FPS live in **Project → Settings** (`game.config.json`).
+
+**Multi-select:** Shift/Ctrl in the hierarchy. Properties shows *Multiple selection (N)*, shared name edit, and components/fields that support bulk edit. Script (`IGameComponent`) blocks appear only if **every** selected entity has that component type.
 
 ---
 
@@ -93,18 +99,19 @@ Draws either a unit cube or a static imported 3D model at the entity's transform
 | Property | Type | Default | Description |
 |---|---|---|---|
 | `Color` | Vector4 (RGBA) | (1, 1, 1, 1) | Tint. White means no tint. |
-| `ModelPath` | string | — | `.glb`, `.gltf`, or `.fbx`. Drag from the Content Browser or use the asset picker. Empty → cube. |
+| `ModelPath` | string | — | `.glb`, `.gltf`, or `.fbx`. Drag from Content Browser, viewport, or asset picker. Empty → cube. First assign on an entity can **import a full hierarchy** (see [Content Browser](content-browser.md)). |
 | `TexturePath` | string | — | Cube albedo only (ignored when `ModelPath` is set). |
 | `TilingFactor` | float | 1.0 | Cube texture repeat (ignored for imported models). |
-| `Metallic` | float | 0 | 0 dielectric, 1 metal. On a model this applies only when Override Material is on. |
-| `Roughness` | float | 0.5 | 0 mirror, 1 fully matte. Same override rule as Metallic. |
-| `AO` | float | 1 | Ambient occlusion factor. Same override rule as Metallic. |
-| `Override Material` | bool | false | Shown when `ModelPath` is set. Replaces imported metallic, roughness, and AO factors. Textures still multiply. |
+| `Metallic` | float | 0 | 0 dielectric, 1 metal. Clamped 0–1. Always used for **unit cubes**. On imported meshes, textures drive shading; these factors tint unless seeded from the asset (below). |
+| `Roughness` | float | 0.5 | 0 mirror, 1 fully matte. Same rules as Metallic. |
+| `AO` | float | 1 | Ambient occlusion factor (not copied from import; editor value always used). |
 | `MeshIndex` | int? | — | When set, draw only that imported submesh index. |
 | `SuppressDraw` | bool | false | Skip drawing this renderer (children may still draw unpacked meshes). |
+| `Pivot` | Vector3 | (0,0,0) | Set by hierarchy import so the entity origin sits on the geometry; usually not edited manually. |
+| `FactorsSeeded` | bool | false | Internal: import copied metallic/roughness once; stops a later draw from overwriting inspector edits. |
 | `VisibilityZoneEntityId` | int | -1 | Optional zone entity id; when set, draws only while the camera is inside that zone. |
 
-Imported models use Cook-Torrance (albedo, normal, metallic-roughness, occlusion). Skinning and animation clips are not imported. Image-based lighting is not supported.
+Imported models use Cook-Torrance (albedo, normal, metallic-roughness, occlusion maps). For an unpacked submesh still at defaults (metallic 0, roughness 0.5), the **first draw** copies metallic and roughness from that submesh. Skinning, animation clips, and image-based lighting are not supported.
 
 **When to use:** 3D props and environments. Pair with a perspective primary camera and optional `AmbientLightComponent` / `DirectionalLightComponent`.
 

@@ -1,29 +1,36 @@
 # Game Engine Developer Guide
 
-This is a C# game engine built on an Entity Component System (ECS) architecture, offering **2D** batched rendering and **basic 3D** static meshes via OpenGL, a visual editor powered by ImGui, and hot-reloadable C# scripting so you can iterate without restarting the application. It is designed to be cross-platform (Windows, macOS) and covers core game development needs: physics simulation, spatial audio, and sprite atlasing.
+C# / .NET 10 ECS game engine: **2D** batched sprites, **3D** forward rendering (PBR, Cook-Torrance lights, directional/point shadows), ImGui **editor**, and C# **scripting** compiled into a GameAssembly (reload without restarting the editor). Cross-platform: **Windows** and **macOS**.
 
 ## Features
 
-- **Entity Component System** — data-oriented architecture with priority-based systems and a clean component model
-- **2D rendering** — OpenGL 3.3+ batched sprite pipeline with framebuffers and a flexible camera system
-- **3D rendering** — static `.glb` / `.gltf` / `.fbx` models, unit cubes, perspective camera, ambient + directional + point lights (Cook-Torrance), shadows, frustum culling, visibility zones
-- **Physics** — rigid-body simulation and collision detection via Box2D
-- **C# scripting with hot reload** — write game logic in C#; changes are compiled and reloaded at runtime without restarting the editor
-- **Audio support** — spatial audio via OpenAL (WAV and Ogg Vorbis)
-- **Sprite atlasing** — `SubTextureRendererComponent` for sprite sheets with manual frame selection via grid coordinates
-- **Visual editor** — ImGui editor with parent/child hierarchy tree, properties panel, content browser, and console
-- **Publishing** — build a standalone executable for the host RID (Windows/macOS x64 or ARM64) from the editor (`GamePublisher`)
+### Runtime
+
+- **Entity Component System** — priority-sorted systems; built-in components in `SceneComponents/` plus game `IGameComponent` / `IGameSystem` types
+- **Scenes** — JSON `.scene` files (`TwoD` / `ThreeD` dimension, entities, components); prefabs under `assets/prefabs/`
+- **2D rendering** — OpenGL 3.3+ batched sprites, orthographic/perspective cameras
+- **3D rendering** — `.glb` / `.gltf` / `.fbx`, runtime `.mesh` siblings, mesh instancing, frustum culling, visibility zones, FXAA in the editor viewport only
+- **Physics** — Box2D 2D rigid bodies, colliders, raycast/overlap, contact events for systems
+- **Audio** — OpenAL spatial audio (WAV/Ogg), optional EFX per source
+- **Scripting** — Roslyn compile in the editor; reload on **Play**, project open, and Content Browser script creation ([Scripting Lifecycle](../architecture/scripting-lifecycle.md)). External IDE saves are **not** watched automatically.
+
+### Editor
+
+- **Hierarchy** — search, component-type filter, multi-select, multi-entity edit, drag-reparent
+- **Viewport** — edit camera, ImGuizmo tools, 3D pick, selection outline (edit mode), drag-drop assets and models
+- **Panels** — Properties (field search), Godot-style **bottom** tabs (Console, Content Browser), **Stats** debug overlay
+- **Command palette** — `Ctrl+Shift+P` (menu actions, jump to entity)
+- **Project → Settings** — `game.config.json` (startup scene, title, window, FPS); **Scene → Settings** — scene background color
+- **Publish** — **Project → Export…** standalone player for host RID (Windows/macOS x64 or ARM64)
+
+See also the repo [README](../../README.md) and [Changelog](../../CHANGELOG.md).
 
 ## Prerequisites
 
-Before building, ensure you have the following installed:
-
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-- A GPU with OpenGL 3.3 or newer support (most discrete and integrated GPUs from the last decade qualify)
+- OpenGL 3.3+ GPU
 
 ## Quick Start
-
-Clone the repository, build the solution, then launch the editor:
 
 ```bash
 git clone https://github.com/kateusz/GameEngine.git
@@ -32,37 +39,38 @@ dotnet build
 cd Editor && dotnet run
 ```
 
-The editor window will open. From there you can create a new project, add entities to a scene, attach components, and run the game directly inside the editor viewport.
+Create a project, add a scene (`Ctrl+N`), attach components, add scripts, press **Play**.
 
-Sample games live under `games/` (Snake, Flappy Bird, Arena Shooter). Open one via **Open Project** and select its `project/` folder.
+**Sample games** under `games/` — open the **game folder** (e.g. `games/Snake/`, `games/FlappyBird/`, `games/ArenaShooter/`) via **Project → Open…**. Each has `game.config.json` and `assets/` at the project root.
 
 ## Where to Go Next
 
 ### Editor
-- [Scene Editor](editor/scene-editor.md) — hierarchy, viewport, and tools
-- [Component Inspector](editor/component-inspector.md) — editing components in Properties
-- [Content Browser](editor/content-browser.md) — assets and drag-and-drop workflow
-- [Shortcuts](editor/shortcuts.md) — keyboard shortcuts reference
+
+- [Scene Editor](editor/scene-editor.md) — hierarchy, viewport, play mode, layout, menus
+- [Component Inspector](editor/component-inspector.md) — built-in components in Properties
+- [Content Browser](editor/content-browser.md) — assets and drag-and-drop
+- [Shortcuts](editor/shortcuts.md) — keyboard reference
 
 ### Scripting
-- [Getting Started](scripting/getting-started.md) — first system and hot reload
-- [Scripting Tiers](scripting/scripting-tiers.md) — components and game systems
-- [Input](scripting/input.md) — keyboard, mouse, and event flow
-- [Physics](scripting/physics.md) — collisions and queries from systems
+
+- [Getting Started](scripting/getting-started.md) — first system and compile/reload
+- [Scripting Tiers](scripting/scripting-tiers.md) — components vs systems
+- [Input](scripting/input.md) — keyboard and mouse in Play mode
+- [Physics](scripting/physics.md) — collisions and queries
 - [API Reference](scripting/api-reference.md) — `IGameSystem` services
 
 ### Concepts
-- [ECS Overview](concepts/ecs-overview.md) — entities, components, and systems
-- [Scenes and Prefabs](concepts/scenes-and-prefabs.md) — scene lifecycle and reuse
-- [Cameras and Rendering](concepts/cameras-and-rendering.md) — cameras, 2D sprites, 3D models, lights
+
+- [ECS Overview](concepts/ecs-overview.md) — entities, components, systems
+- [Scenes and Prefabs](concepts/scenes-and-prefabs.md) — lifecycle and prefab v2
+- [Cameras and Rendering](concepts/cameras-and-rendering.md) — 2D/3D draw rules, lights, shadows
 
 ### Architecture
-- [Architecture overview](../architecture/README.md) — solution structure and system docs
-- [Scene Rendering Pipeline](../architecture/scene-rendering-pipeline.md) — pass ordering, 2D/3D paths, shaders, cameras, framebuffers
-- [Lighting](../architecture/lighting.md) — forward lighting model
-- [Shadows](../architecture/shadows.md) — directional and point shadows
-- [Game Loop](../architecture/game-loop.md) — application lifecycle and frame tick
-- [Scripting Lifecycle](../architecture/scripting-lifecycle.md) — Roslyn compile, assembly reload, editor vs runtime
 
-### Planning
-- Architecture docs under [`docs/architecture/`](../architecture/README.md) — subsystem design references
+- [Architecture overview](../architecture/README.md)
+- [Scene Rendering Pipeline](../architecture/scene-rendering-pipeline.md)
+- [Lighting](../architecture/lighting.md)
+- [Shadows](../architecture/shadows.md)
+- [Game Loop](../architecture/game-loop.md)
+- [Scripting Lifecycle](../architecture/scripting-lifecycle.md)
