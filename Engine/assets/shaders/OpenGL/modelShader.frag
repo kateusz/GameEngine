@@ -33,6 +33,34 @@ uniform vec3 u_PointLightColors[c_MaxPointLights];
 uniform float u_PointLightIntensities[c_MaxPointLights];
 uniform float u_PointLightRanges[c_MaxPointLights];
 
+uniform mat4 u_LightViewProjection;
+uniform sampler2D u_ShadowMap;
+uniform int u_ShadowsEnabled;
+
+const float c_ShadowBias = 0.002;
+
+float DirectionalShadow(vec3 fragPos)
+{
+    if (u_ShadowsEnabled == 0)
+        return 1.0;
+
+    vec4 clipPos = vec4(fragPos, 1.0) * u_LightViewProjection;
+    vec3 ndc = clipPos.xyz / clipPos.w;
+    vec2 uv = ndc.xy * 0.5 + 0.5;
+    float current = ndc.z * 0.5 + 0.5;
+    float shadow = 0.0;
+    vec2 texel = vec2(1.0 / 1024.0);
+    for (int x = -1; x <= 1; ++x)
+    {
+        for (int y = -1; y <= 1; ++y)
+        {
+            float closest = texture(u_ShadowMap, uv + vec2(x, y) * texel).r;
+            shadow += current - c_ShadowBias > closest ? 0.0 : 1.0;
+        }
+    }
+    return shadow / 9.0;
+}
+
 vec3 PointLights(vec3 N, vec3 fragPos, vec3 V, vec3 albedo, vec3 specColor, float shininess)
 {
     vec3 sum = vec3(0.0);
@@ -101,6 +129,7 @@ void main()
     vec3 specular = spec * u_LightColor * specularColor;
     vec3 points = PointLights(norm, v_FragPos, V, diffuseColor, specularColor, u_Shininess);
     
-    o_Color = vec4(ambient + diffuse + specular + points, u_Color.a);
+    float shadow = DirectionalShadow(v_FragPos);
+    o_Color = vec4(ambient + (diffuse + specular) * shadow + points, u_Color.a);
     o_EntityID = u_EntityID;
 }

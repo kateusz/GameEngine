@@ -1,6 +1,7 @@
 using System.Numerics;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
+using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Meshes;
 using Engine.Renderer.Pipeline;
@@ -21,6 +22,7 @@ public class Graphics3DFrameUniformTests
         var shaderFactory = Substitute.For<IShaderFactory>();
         shaderFactory.Create(ShaderId.Cube).Returns(cubeShader);
         shaderFactory.Create(ShaderId.Model).Returns(modelShader);
+        shaderFactory.Create(ShaderId.Depth).Returns(Substitute.For<IShader>());
 
         var cube = InitializedMesh();
         var meshFactory = Substitute.For<IMeshFactory>();
@@ -30,7 +32,8 @@ public class Graphics3DFrameUniformTests
             Substitute.For<IRendererAPI>(),
             shaderFactory,
             meshFactory,
-            Substitute.For<ITextureFactory>());
+            Substitute.For<ITextureFactory>(),
+            Substitute.For<IFrameBufferFactory>());
         graphics.Init();
 
         var vp = Matrix4x4.CreateOrthographic(1, 1, 0.1f, 10f);
@@ -48,7 +51,7 @@ public class Graphics3DFrameUniformTests
         cubeShader.Received().SetFloat("u_AmbientStrength", 0.5f);
         cubeShader.Received().SetFloat3("u_LightDirection", lightDir);
         cubeShader.Received().SetFloat3("u_LightColor", lightColor);
-        cubeShader.DidNotReceive().SetFloat3("u_ViewPosition", Arg.Any<Vector3>());
+        cubeShader.Received().SetFloat3("u_ViewPosition", viewPos);
 
         modelShader.Received().SetMat4("u_ViewProjection", vp);
         modelShader.Received().SetFloat3("u_ViewPosition", viewPos);
@@ -58,8 +61,87 @@ public class Graphics3DFrameUniformTests
         graphics.DrawCube(Matrix4x4.Identity, Vector4.One);
 
         cubeShader.DidNotReceive().SetMat4("u_ViewProjection", Arg.Any<Matrix4x4>());
+        cubeShader.DidNotReceive().SetMat4("u_LightViewProjection", Arg.Any<Matrix4x4>());
         cubeShader.DidNotReceive().SetFloat3("u_AmbientColor", Arg.Any<Vector3>());
         cubeShader.Received().SetMat4("u_Model", Matrix4x4.Identity);
+    }
+
+    [Fact]
+    public void BeginScene_UploadsDirectionalShadowOnce()
+    {
+        var cubeShader = Substitute.For<IShader>();
+        var modelShader = Substitute.For<IShader>();
+        var shaderFactory = Substitute.For<IShaderFactory>();
+        shaderFactory.Create(ShaderId.Cube).Returns(cubeShader);
+        shaderFactory.Create(ShaderId.Model).Returns(modelShader);
+        shaderFactory.Create(ShaderId.Depth).Returns(Substitute.For<IShader>());
+
+        var meshFactory = Substitute.For<IMeshFactory>();
+        var cube = InitializedMesh();
+        meshFactory.CreateCube().Returns(cube);
+
+        var graphics = new Graphics3D(
+            Substitute.For<IRendererAPI>(),
+            shaderFactory,
+            meshFactory,
+            Substitute.For<ITextureFactory>(),
+            Substitute.For<IFrameBufferFactory>());
+        graphics.Init();
+
+        var light = Matrix4x4.CreateOrthographic(2f, 2f, 0.1f, 10f);
+        graphics.SetDirectionalShadow(light, true);
+        graphics.BeginScene(new SceneView(Matrix4x4.Identity, Vector3.Zero));
+
+        cubeShader.Received().SetMat4("u_LightViewProjection", light);
+        cubeShader.Received().SetInt("u_ShadowsEnabled", 1);
+        modelShader.Received().SetMat4("u_LightViewProjection", light);
+        modelShader.Received().SetInt("u_ShadowsEnabled", 1);
+
+        cubeShader.ClearReceivedCalls();
+        graphics.DrawCube(Matrix4x4.Identity, Vector4.One);
+        cubeShader.DidNotReceive().SetMat4("u_LightViewProjection", Arg.Any<Matrix4x4>());
+    }
+
+    [Fact]
+    public void BeginShadowPass_DrawsWithDepthShader()
+    {
+        var cubeShader = Substitute.For<IShader>();
+        var depthShader = Substitute.For<IShader>();
+        var shaderFactory = Substitute.For<IShaderFactory>();
+        shaderFactory.Create(ShaderId.Cube).Returns(cubeShader);
+        shaderFactory.Create(ShaderId.Model).Returns(Substitute.For<IShader>());
+        shaderFactory.Create(ShaderId.Depth).Returns(depthShader);
+
+        var meshFactory = Substitute.For<IMeshFactory>();
+        var cube = InitializedMesh();
+        meshFactory.CreateCube().Returns(cube);
+
+        var shadowMap = Substitute.For<IFrameBuffer>();
+        var frameBuffers = Substitute.For<IFrameBufferFactory>();
+        frameBuffers.Create(Arg.Any<FrameBufferSpecification>()).Returns(shadowMap);
+
+        var graphics = new Graphics3D(
+            Substitute.For<IRendererAPI>(),
+            shaderFactory,
+            meshFactory,
+            Substitute.For<ITextureFactory>(),
+            frameBuffers);
+        graphics.Init();
+
+        var light = Matrix4x4.CreateOrthographic(2f, 2f, 0.1f, 10f);
+        graphics.BeginShadowPass(light);
+
+        shadowMap.Received().Bind();
+        depthShader.Received().SetMat4("u_ViewProjection", light);
+
+        var model = Matrix4x4.CreateTranslation(1f, 2f, 3f);
+        graphics.DrawCube(model, Vector4.One);
+
+        depthShader.Received().SetMat4("u_Model", model);
+        cubeShader.DidNotReceive().SetMat4(Arg.Any<string>(), Arg.Any<Matrix4x4>());
+
+        graphics.EndShadowPass();
+        shadowMap.Received().Unbind();
     }
 
     private static Mesh InitializedMesh()

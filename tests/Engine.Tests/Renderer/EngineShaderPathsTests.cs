@@ -11,6 +11,7 @@ public class EngineShaderPathsTests
     [InlineData(ShaderId.Line, "lineShader")]
     [InlineData(ShaderId.Cube, "cube")]
     [InlineData(ShaderId.Model, "modelShader")]
+    [InlineData(ShaderId.Depth, "depth")]
     public void Resolve_UsesHostOutputOpenGLTree(ShaderId shader, string name)
     {
         var dir = Path.Combine(AppContext.BaseDirectory, "assets", "shaders", "OpenGL");
