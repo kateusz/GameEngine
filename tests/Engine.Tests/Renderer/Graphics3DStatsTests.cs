@@ -39,6 +39,43 @@ public class Graphics3DStatsTests
     }
 
     [Fact]
+    public void DrawMesh_EmissiveMap_AddsTheMapAndLeavesOnlyTheExtraInTheLitPass()
+    {
+        var modelShader = Substitute.For<IShader>();
+        var emissiveShader = Substitute.For<IShader>();
+        var shaderFactory = Substitute.For<IShaderFactory>();
+        shaderFactory.Create(Arg.Any<ShaderId>()).Returns(_ => Substitute.For<IShader>());
+        shaderFactory.Create(ShaderId.Model).Returns(modelShader);
+        shaderFactory.Create(ShaderId.Emissive).Returns(emissiveShader);
+
+        var cube = InitializedMesh();
+        cube.EmissiveFactor = new Vector3(1f, 1f, 1f);
+        cube.EmissiveTexture = Substitute.For<Texture2D>();
+        var meshFactory = Substitute.For<IMeshFactory>();
+        meshFactory.CreateCube().Returns(cube);
+
+        var white = Substitute.For<Texture2D>();
+        var textures = Substitute.For<ITextureFactory>();
+        textures.GetWhiteTexture().Returns(white);
+        textures.GetFlatNormalTexture().Returns(white);
+
+        var renderer = Substitute.For<IRendererAPI>();
+        var graphics = new Graphics3D(
+            renderer, shaderFactory, meshFactory, textures, Substitute.For<IFrameBufferFactory>());
+        graphics.Init();
+        graphics.BeginScene(new SceneView(Matrix4x4.Identity, Vector3.Zero));
+        graphics.ResetStats();
+
+        graphics.DrawMesh(Matrix4x4.Identity, cube, Vector4.One, emissive: new Vector3(1.5f, 1f, 1f));
+
+        modelShader.Received().SetFloat3("u_Emissive", new Vector3(0.5f, 0f, 0f));
+        emissiveShader.Received().SetFloat3("u_Emissive", new Vector3(1f, 1f, 1f));
+        renderer.Received().SetAdditiveBlend(true);
+        renderer.Received().SetBlend(false);
+        graphics.GetStats().DrawCalls.ShouldBe(2u);
+    }
+
+    [Fact]
     public void BeginShadowPass_DrawCube_RecordsDirectionalShadowDraw()
     {
         var graphics = CreateGraphics3D(out _, withShadowMap: true);

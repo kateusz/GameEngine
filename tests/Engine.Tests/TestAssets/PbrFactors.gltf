@@ -10,8 +10,11 @@
       "metallicFactor": 0.85,
       "roughnessFactor": 0.2
     },
-    "emissiveFactor": [ 0.2, 0.0, 2.0 ]
+    "emissiveFactor": [ 0.2, 0.0, 2.0 ],
+    "emissiveTexture": { "index": 0 }
   } ],
+  "textures": [ { "source": 0 } ],
+  "images": [ { "uri": "emissive.png" } ],
   "meshes": [ {
     "primitives": [ {
       "attributes": { "POSITION": 0 },

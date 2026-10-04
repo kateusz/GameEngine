@@ -291,6 +291,8 @@ internal static class RuntimeMeshReader
             return false;
         if (!reader.TryReadVector3(out var emissive) || !IsEmissive(emissive))
             return false;
+        if (!reader.TryReadString(out var emissivePath))
+            return false;
 
         var vertexBytes = (int)vertexCount * RuntimeMeshFormat.VertexLayoutStride;
         if (!reader.TryReadBytes(vertexBytes, out var vertexData))
@@ -318,7 +320,8 @@ internal static class RuntimeMeshReader
             AlphaCutout = (surfaceFlags & RuntimeMeshFormat.SurfaceAlphaCutout) != 0,
             DoubleSided = (surfaceFlags & RuntimeMeshFormat.SurfaceDoubleSided) != 0,
             AlphaCutoff = alphaCutoff,
-            Emissive = emissive
+            Emissive = emissive,
+            EmissivePath = emissivePath
         };
 
         for (var v = 0; v < vertexCount; v++)

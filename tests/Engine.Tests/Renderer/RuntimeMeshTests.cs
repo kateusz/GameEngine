@@ -75,11 +75,13 @@ public class RuntimeMeshTests
     {
         var model = SampleModel();
         model.Submeshes[0].Emissive = new Vector3(1f, 2f, 3f);
+        model.Submeshes[0].EmissivePath = "textures/emissive.png";
         var bytes = RuntimeMeshWriter.Serialize(model, new RuntimeMeshStamp(1, new byte[32],
             RuntimeMeshFormat.ImporterVersion, RuntimeMeshFormat.AssimpPostProcessFlags));
 
         RuntimeMeshReader.TryRead(bytes, out var read).ShouldBeTrue();
         read!.Submeshes[0].Emissive.ShouldBe(new Vector3(1f, 2f, 3f));
+        read.Submeshes[0].EmissivePath.ShouldBe("textures/emissive.png");
     }
 
     [Fact]

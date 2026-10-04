@@ -303,6 +303,15 @@ internal sealed class OpenGLRendererApi : IRendererAPI
         OpenGLDebug.CheckError(SilkNetContext.GL, "SetBlend");
     }
 
+    public void SetAdditiveBlend(bool enabled)
+    {
+        if (enabled)
+            SilkNetContext.GL.BlendFunc(BlendingFactor.One, BlendingFactor.One);
+        else
+            SilkNetContext.GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "SetAdditiveBlend");
+    }
+
     public void SetFaceCulling(bool enabled)
     {
         if (enabled)

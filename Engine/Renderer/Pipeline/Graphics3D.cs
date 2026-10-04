@@ -32,6 +32,7 @@ internal sealed class Graphics3D(
     
     private IShader _cubeShader = null!;
     private IShader _modelShader = null!;
+    private IShader _emissiveShader = null!;
     private IShader _depthShader = null!;
     private IShader _pointDepthShader = null!;
     private IShader _equirectShader = null!;
@@ -118,6 +119,11 @@ internal sealed class Graphics3D(
         for (var i = 0; i < LightingMath.MaxPointLights; i++)
             _modelShader.SetInt(PointShadowMapUniforms[i], PointShadowSlot + i);
         _modelShader.Unbind();
+
+        _emissiveShader = shaderFactory.Create(ShaderId.Emissive);
+        _emissiveShader.Bind();
+        _emissiveShader.SetInt("u_EmissiveMap", 0);
+        _emissiveShader.Unbind();
 
         _irradianceShader = shaderFactory.Create(ShaderId.Irradiance);
         _prefilterShader = shaderFactory.Create(ShaderId.Prefilter);
@@ -482,7 +488,7 @@ internal sealed class Graphics3D(
         _modelShader.SetFloat("u_Metallic", first.Metallic);
         _modelShader.SetFloat("u_Roughness", first.Roughness);
         _modelShader.SetFloat("u_Ao", first.Ao);
-        _modelShader.SetFloat3("u_Emissive", first.Emissive);
+        _modelShader.SetFloat3("u_Emissive", WithoutEmissiveMap(mesh, first.Emissive));
         _modelShader.SetFloat3("u_BaseColor", mesh.BaseColorFactor);
         _modelShader.SetInt("u_HasDiffuseMap", mesh.HasDiffuseMap ? 1 : 0);
         _modelShader.SetInt("u_HasMetallicRoughnessMap", mesh.HasMetallicRoughnessMap ? 1 : 0);
@@ -497,6 +503,48 @@ internal sealed class Graphics3D(
         UploadAndDraw(mesh, instances, _modelShader);
         _modelShader.Unbind();
         rendererApi.SetFaceCulling(true);
+        DrawEmissive(mesh, instances);
+    }
+
+    private void DrawEmissive(Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances)
+    {
+        var factor = mesh.EmissiveFactor;
+        if (mesh.EmissiveTexture == null || (factor.X <= 0f && factor.Y <= 0f && factor.Z <= 0f))
+            return;
+
+        // ponytail: second pass on unit 0. The lit shader already uses 0–15.
+        // Cutout holes can pick up this add; discard with the albedo alpha if that shows up.
+        rendererApi.SetBlend(true);
+        rendererApi.SetAdditiveBlend(true);
+        rendererApi.SetDepthWrite(false);
+        rendererApi.SetFaceCulling(!mesh.DoubleSided);
+        try
+        {
+            _emissiveShader.Bind();
+            _emissiveShader.SetMat4(ViewProjectionUniform, _viewProjection);
+            _emissiveShader.SetFloat3("u_Emissive", factor);
+            mesh.EmissiveTexture.Bind(0);
+            UploadAndDraw(mesh, instances, _emissiveShader);
+        }
+        finally
+        {
+            _emissiveShader.Unbind();
+            rendererApi.SetFaceCulling(true);
+            rendererApi.SetDepthWrite(true);
+            rendererApi.SetAdditiveBlend(false);
+            rendererApi.SetBlend(false);
+        }
+    }
+
+    private static Vector3 WithoutEmissiveMap(Mesh mesh, Vector3 combined)
+    {
+        if (mesh.EmissiveTexture == null)
+            return combined;
+
+        return new Vector3(
+            MathF.Max(0f, combined.X - mesh.EmissiveFactor.X),
+            MathF.Max(0f, combined.Y - mesh.EmissiveFactor.Y),
+            MathF.Max(0f, combined.Z - mesh.EmissiveFactor.Z));
     }
 
     private void UploadAndDraw(Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances, IShader shader)

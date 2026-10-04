@@ -27,6 +27,8 @@ public interface IRendererAPI
     void SetLineWidth(float width);
     void SetDepthTest(bool enabled);
     void SetBlend(bool enabled);
+    /// <summary>One, One for the emissive add. False restores SrcAlpha, OneMinusSrcAlpha.</summary>
+    void SetAdditiveBlend(bool enabled);
     /// <summary>When false, depth buffer is not written (transparent pass).</summary>
     void SetDepthWrite(bool enabled);
     /// <summary>When enabled, back faces are culled. Disable for double-sided materials.</summary>
