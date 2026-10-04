@@ -13,6 +13,8 @@ internal static class EngineShaderPaths
             return (Path.Combine(dir, "skybox.vert"), Path.Combine(dir, "irradiance.frag"));
         if (shader == ShaderId.Prefilter)
             return (Path.Combine(dir, "skybox.vert"), Path.Combine(dir, "prefilter.frag"));
+        if (shader == ShaderId.Tonemap)
+            return (Path.Combine(dir, "fxaa.vert"), Path.Combine(dir, "tonemap.frag"));
 
         var name = shader switch
         {

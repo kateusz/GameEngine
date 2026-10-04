@@ -33,6 +33,15 @@ public class EngineShaderPathsTests
         frag.ShouldBe(Path.Combine(dir, "selectionOutline.frag"));
     }
 
+    [Fact]
+    public void Resolve_Tonemap_ReusesFxaaVertexShader()
+    {
+        var dir = Path.Combine(AppContext.BaseDirectory, "assets", "shaders", "OpenGL");
+        var (vert, frag) = EngineShaderPaths.Resolve(ShaderId.Tonemap);
+        vert.ShouldBe(Path.Combine(dir, "fxaa.vert"));
+        frag.ShouldBe(Path.Combine(dir, "tonemap.frag"));
+    }
+
     [Theory]
     [InlineData(ShaderId.Irradiance, "irradiance.frag")]
     [InlineData(ShaderId.Prefilter, "prefilter.frag")]

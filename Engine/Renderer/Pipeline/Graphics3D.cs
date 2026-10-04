@@ -309,6 +309,7 @@ internal sealed class Graphics3D(
         rendererApi.SetDepthTest(true);
         rendererApi.SetDepthWrite(true);
         rendererApi.SetFaceCulling(false);
+        rendererApi.SetBlend(false);
         try
         {
             shader.Bind();
@@ -332,6 +333,7 @@ internal sealed class Graphics3D(
             shader.Unbind();
             rendererApi.SetFaceCulling(true);
             rendererApi.SetDepthWrite(true);
+            rendererApi.SetBlend(true);
         }
     }
 

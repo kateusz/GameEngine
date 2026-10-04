@@ -47,6 +47,7 @@ public sealed class EditorViewport(
     EditorModelLoadService modelLoadService,
     IEditorHistory history,
     FxaaPass fxaaPass,
+    TonemapPass tonemapPass,
     SelectionOutlinePass selectionOutlinePass,
     IEditorPreferences editorPreferences)
     : IEditorViewport
@@ -121,22 +122,27 @@ public sealed class EditorViewport(
         ResizeFramebufferIfNeeded();
         RenderSceneToFramebuffer(deltaTime);
 
-        var display = editorPreferences.Fxaa ? fxaaPass.Resolve(_frameBuffer) : _frameBuffer;
-        var selected = selection.SelectedEntities;
-        // Play mode keeps selection for hierarchy/properties, but no edit outline overlay
-        if (selected.Count > 0 && sceneContext.State == SceneState.Edit)
+        var ldr = tonemapPass.Resolve(_frameBuffer);
+        if (ldr != null)
         {
-            var ids = selected.Count <= 64 ? stackalloc int[selected.Count] : new int[selected.Count];
-            for (var i = 0; i < selected.Count; i++)
-                ids[i] = selected[i].Id;
-            display = selectionOutlinePass.Resolve(display, _frameBuffer, ids);
-        }
-        var texturePointer = ImGuiNativeTexture.FromColorAttachment(display);
-        ImGui.Image(texturePointer, viewportPanelSize, new Vector2(0, 1), new Vector2(1, 0));
+            var display = editorPreferences.Fxaa ? fxaaPass.Resolve(ldr) : ldr;
+            var selected = selection.SelectedEntities;
+            // Play mode keeps selection for hierarchy/properties, but no edit outline overlay
+            if (selected.Count > 0 && sceneContext.State == SceneState.Edit)
+            {
+                var ids = selected.Count <= 64 ? stackalloc int[selected.Count] : new int[selected.Count];
+                for (var i = 0; i < selected.Count; i++)
+                    ids[i] = selected[i].Id;
+                display = selectionOutlinePass.Resolve(display, _frameBuffer, ids);
+            }
 
-        _viewportBounds[0] = ImGui.GetItemRectMin();
-        _viewportBounds[1] = ImGui.GetItemRectMax();
-        _viewportSize = _viewportBounds[1] - _viewportBounds[0];
+            var texturePointer = ImGuiNativeTexture.FromColorAttachment(display);
+            ImGui.Image(texturePointer, viewportPanelSize, new Vector2(0, 1), new Vector2(1, 0));
+
+            _viewportBounds[0] = ImGui.GetItemRectMin();
+            _viewportBounds[1] = ImGui.GetItemRectMax();
+            _viewportSize = _viewportBounds[1] - _viewportBounds[0];
+        }
 
         PickHoveredEntity();
 

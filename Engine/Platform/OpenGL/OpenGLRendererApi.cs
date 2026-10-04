@@ -125,6 +125,7 @@ internal sealed class OpenGLRendererApi : IRendererAPI
             }
 
             gl.Viewport(0, 0, (uint)LightingMath.BrdfLutSize, (uint)LightingMath.BrdfLutSize);
+            gl.Disable(EnableCap.Blend);
             gl.Clear(ClearBufferMask.ColorBufferBit);
             gl.DrawArrays(PrimitiveType.Triangles, 0, 6);
             OpenGLDebug.CheckError(gl, "BrdfLut draw");
@@ -147,6 +148,7 @@ internal sealed class OpenGLRendererApi : IRendererAPI
                 gl.DeleteFramebuffer(framebuffer);
             if (!kept && texture != 0)
                 gl.DeleteTexture(texture);
+            gl.Enable(EnableCap.Blend);
             gl.BindFramebuffer(FramebufferTarget.Framebuffer, (uint)previousFbo);
             gl.Viewport(viewport[0], viewport[1], (uint)viewport[2], (uint)viewport[3]);
             gl.BindVertexArray(0);

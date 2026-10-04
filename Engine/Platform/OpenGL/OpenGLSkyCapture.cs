@@ -210,11 +210,11 @@ internal sealed class OpenGLSkyCapture : ISkyCapture
                 gl.TexImage2D(
                     TextureTarget.TextureCubeMapPositiveX + face,
                     0,
-                    InternalFormat.Rgb16f,
+                    InternalFormat.Rgba16f,
                     (uint)size,
                     (uint)size,
                     0,
-                    PixelFormat.Rgb,
+                    PixelFormat.Rgba,
                     PixelType.Float,
                     (void*)0);
             }
@@ -233,20 +233,31 @@ internal sealed class OpenGLSkyCapture : ISkyCapture
 
     private static uint CreateEquirect(GL gl, TextureFileDecoder.DecodedHdr decoded)
     {
+        // a sun above the half-float max becomes +Inf in RGBA16F, and Inf turns into NaN in every pass after it
+        var max = (float)Half.MaxValue;
+        var rgba = new float[decoded.Rgb.Length / 3 * 4];
+        for (int i = 0, j = 0; i < decoded.Rgb.Length; i += 3, j += 4)
+        {
+            rgba[j] = MathF.Min(decoded.Rgb[i], max);
+            rgba[j + 1] = MathF.Min(decoded.Rgb[i + 1], max);
+            rgba[j + 2] = MathF.Min(decoded.Rgb[i + 2], max);
+            rgba[j + 3] = 1f;
+        }
+
         var id = gl.GenTexture();
         gl.BindTexture(TextureTarget.Texture2D, id);
         unsafe
         {
-            fixed (float* ptr = decoded.Rgb)
+            fixed (float* ptr = rgba)
             {
                 gl.TexImage2D(
                     TextureTarget.Texture2D,
                     0,
-                    InternalFormat.Rgb16f,
+                    InternalFormat.Rgba16f,
                     (uint)decoded.Width,
                     (uint)decoded.Height,
                     0,
-                    PixelFormat.Rgb,
+                    PixelFormat.Rgba,
                     PixelType.Float,
                     ptr);
             }

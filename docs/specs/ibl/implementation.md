@@ -49,9 +49,9 @@ public static DecodedHdr? DecodeHdr(string path)
 }
 ```
 
-`OpenGLSkyCapture.TryCreate` calls `DecodeHdr` instead of `Decode`. A null result logs once and returns false. A width that is not twice the height logs once and continues. The equirect upload uses `InternalFormat.Rgb16f`, `PixelFormat.Rgb`, and `PixelType.Float`.
+`OpenGLSkyCapture.TryCreate` calls `DecodeHdr` instead of `Decode`. A null result logs once and returns false. A width that is not twice the height logs once and continues. The equirect upload expands to RGBA with alpha 1, clamps every channel to `(float)Half.MaxValue`, and uses `InternalFormat.Rgba16f`, `PixelFormat.Rgba`, and `PixelType.Float`.
 
-**Why:** `ImageResult.FromStream` returns bytes. The radiance load is the float API already in StbImageSharp 2.30.16. Non-finite samples would survive Reinhard as garbage. The lock keeps the flip flag stable against the byte decoder.
+**Why:** `ImageResult.FromStream` returns bytes. The radiance load is the float API already in StbImageSharp 2.30.16. Non-finite samples would survive Reinhard as garbage. A finite sample above 65504 becomes `+Inf` in half float, hence the clamp at upload. The lock keeps the flip flag stable against the byte decoder.
 
 ## 3. Capture object
 
@@ -67,7 +67,7 @@ public interface ISkyCapture : IDisposable
 }
 ```
 
-`TryCreateSkyCapture` still returns the environment id through its existing `out` parameter. All three cubemaps are `RGB16F`, clamp on S, T, and R.
+`TryCreateSkyCapture` still returns the environment id through its existing `out` parameter. All three cubemaps are `RGBA16F`, clamp on S, T, and R. OpenGL 3.3 does not require `RGB16F` to be color-renderable. Blending is off for the capture draws and the lookup draw.
 
 - Environment: 512, base level only at creation. `GenerateEnvironmentMips` runs after the six faces, sets minification to trilinear, and calls `GenerateMipmap`.
 - Irradiance: 32, linear filter, no mips.
@@ -159,13 +159,14 @@ void main()
     vec3 irradiance = vec3(0.0);
     float nrSamples = 0.0;
     const float sampleDelta = 0.025;
+    const float c_SourceLod = 4.0;
     for (float phi = 0.0; phi < 2.0 * PI; phi += sampleDelta)
     {
         for (float theta = 0.0; theta < 0.5 * PI; theta += sampleDelta)
         {
             vec3 tangent = vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
             vec3 sampleVec = tangent.x * right + tangent.y * up + tangent.z * normal;
-            irradiance += textureLod(environmentMap, sampleVec, 0.0).rgb * cos(theta) * sin(theta);
+            irradiance += textureLod(environmentMap, sampleVec, c_SourceLod).rgb * cos(theta) * sin(theta);
             nrSamples++;
         }
     }
@@ -175,7 +176,7 @@ void main()
 }
 ```
 
-**Why:** `textureLod` 0 is the diffuse-chapter sample after the specular chapter has added mips. The `+Z` up matches `ImportanceSampleGGX` so the `+Y` face does not cross a zero tangent. `π` times the average is the value the color shader multiplies by albedo.
+**Why:** An explicit lod is the diffuse-chapter sample after the specular chapter has added mips. Lod 4 texels (about 2.8°) are wider than the 0.025-radian step, so a small sun is averaged instead of hit or missed per texel. The `+Z` up matches `ImportanceSampleGGX` so the `+Y` face does not cross a zero tangent. `π` times the average is the value the color shader multiplies by albedo.
 
 ### Prefilter
 

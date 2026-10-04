@@ -18,13 +18,16 @@ void main()
     vec3 irradiance = vec3(0.0);
     float nrSamples = 0.0;
     const float sampleDelta = 0.025;
+    // texels must be wider than sampleDelta or a sun smaller than one step is hit or missed per texel (blotches);
+    // lod 4 of the 512 environment is 32 per face, about 2.8 degrees
+    const float c_SourceLod = 4.0;
     for (float phi = 0.0; phi < 2.0 * PI; phi += sampleDelta)
     {
         for (float theta = 0.0; theta < 0.5 * PI; theta += sampleDelta)
         {
             vec3 tangent = vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
             vec3 sampleVec = tangent.x * right + tangent.y * up + tangent.z * normal;
-            irradiance += textureLod(environmentMap, sampleVec, 0.0).rgb * cos(theta) * sin(theta);
+            irradiance += textureLod(environmentMap, sampleVec, c_SourceLod).rgb * cos(theta) * sin(theta);
             nrSamples++;
         }
     }
