@@ -29,7 +29,7 @@ Create a task for each item and finish them in order. Stop at item 6.
 
 1. **Read the engine** — `docs/architecture/` and the nearest existing subsystem, then classify the idea
 2. **Ask the engine questions** — one unanswered question per message, in the order below
-3. **Propose 2–3 engine approaches** — recommendation first, then the simplicity filter
+3. **Propose 2–3 engine approaches** — recommended variant with rationale, pros/cons per variant, then the simplicity filter
 4. **Present the design** — in sections, approval after each section
 5. **Write the three docs** — `introduction.md`, `developer-guide.md`, `implementation.md`
 6. **Self-review and ask the user to review** — then stop
@@ -84,18 +84,33 @@ If a question loop stops making progress, ask the user what to lock and continue
 
 ## 3. Approaches
 
-Propose 2–3 approaches that are choices in this architecture. Lead with the recommendation. Typical forks:
+Propose 2–3 approaches that are real choices in this architecture. Typical forks:
 
 - Component + system, or a scripting API
 - Extend `SceneRenderPipeline`, or add a pass
 - Data on a component, or an asset
 - One path shared by 2D and 3D, or a separate path
 
-For each approach give the frame cost, the editor/runtime split, serialization, DryIoc fit, and whether OpenGL stays behind the renderer abstraction.
+Present them in one message using this structure:
+
+### Recommended: [name of approach]
+
+State the recommendation up front. Explain **why** this option wins for this feature (fit with ECS, editor/runtime split, serialization, frame cost, DryIoc, renderer abstraction, and the classification from step 1). Two to four sentences; tie the reasoning to constraints the user already accepted.
+
+### Variant comparison
+
+For **every** approach (including the recommended one), use the same subsections:
+
+**[Approach name]** (mark with **Recommended** on the chosen one)
+
+- **Pros** — what this option does well (bullets)
+- **Cons** — costs, risks, or mismatches with this engine (bullets)
+
+In pros and cons, cover where relevant: frame cost, editor/runtime split, serialization, DryIoc fit, and whether OpenGL stays behind the renderer abstraction.
 
 Apply [Performance](#performance) and [OpenGL standards](#opengl-standards) while comparing. A cheap performance win belongs in the recommendation. A rendering approach that disagrees with established OpenGL practice is not a valid option until that disagreement is explicit.
 
-**Simplicity filter**, before any doc is written: say whether the chosen approach can be a smaller change inside an existing system. If it can, that smaller change is the recommendation.
+**Simplicity filter**, after the comparison: say whether the recommended approach can be a smaller change inside an existing system. If it can, name that smaller change, update the recommendation if needed, and briefly say why the simpler fork still meets the goal.
 
 ## 4. Present the design
 
@@ -169,7 +184,7 @@ Wait. If the user wants changes, edit the docs and run this self-review again. W
 - **One question at a time.** Multiple choice when you can.
 - **Fit this engine.** Extend ECS, the editor/runtime split, the renderer abstraction, Box2D, DryIoc, and Roslyn scripting.
 - **Say what the engine lacks** as soon as you see it, and split the work.
-- **Two or three architectural forks,** recommendation first, then the smaller-change filter.
+- **Two or three architectural forks** — recommended option with why, explicit pros and cons per variant, then the smaller-change filter.
 - **Approve section by section** before writing docs.
 - **Cheap performance, not a perf project.** Propose a gain when it is cheap.
 - **OpenGL the way the references show it.** Match [LearnOpenGL](https://learnopengl.com/). Name any divergence.
