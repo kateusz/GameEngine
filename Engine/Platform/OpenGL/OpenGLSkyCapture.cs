@@ -11,23 +11,29 @@ internal sealed class OpenGLSkyCapture : ISkyCapture
     private static readonly ILogger Logger = Log.ForContext<OpenGLSkyCapture>();
     private static readonly HashSet<string> Warned = new(StringComparer.OrdinalIgnoreCase);
 
-    private readonly uint _cubemap;
+    private readonly uint _environment;
+    private readonly uint _irradiance;
+    private readonly uint _prefilter;
     private readonly uint _equirect;
     private readonly uint _framebuffer;
     private readonly uint _depth;
-    private readonly int _size;
     private readonly int[] _previousViewport = new int[4];
     private int _previousFbo;
     private bool _saved;
     private bool _disposed;
 
-    private OpenGLSkyCapture(uint cubemap, uint equirect, uint framebuffer, uint depth, int size)
+    public uint IrradianceId => _irradiance;
+    public uint PrefilterId => _prefilter;
+
+    private OpenGLSkyCapture(
+        uint environment, uint irradiance, uint prefilter, uint equirect, uint framebuffer, uint depth)
     {
-        _cubemap = cubemap;
+        _environment = environment;
+        _irradiance = irradiance;
+        _prefilter = prefilter;
         _equirect = equirect;
         _framebuffer = framebuffer;
         _depth = depth;
-        _size = size;
     }
 
     public static bool TryCreate(string absolutePath, out uint cubemapId, out ISkyCapture capture)
@@ -35,10 +41,16 @@ internal sealed class OpenGLSkyCapture : ISkyCapture
         cubemapId = 0;
         capture = null!;
 
-        TextureFileDecoder.DecodedImage decoded;
+        TextureFileDecoder.DecodedHdr decoded;
         try
         {
-            decoded = TextureFileDecoder.Decode(absolutePath, sRgb: false);
+            if (TextureFileDecoder.DecodeHdr(absolutePath) is not { } hdr)
+            {
+                WarnOnce(absolutePath + "|fail", "Skybox image failed to load ({Path})", absolutePath);
+                return false;
+            }
+
+            decoded = hdr;
         }
         catch (Exception ex)
         {
@@ -51,10 +63,12 @@ internal sealed class OpenGLSkyCapture : ISkyCapture
 
         var gl = SilkNetContext.GL;
         var previousFbo = gl.GetInteger(GLEnum.FramebufferBinding);
-        uint cubemap = 0, equirect = 0, framebuffer = 0, depth = 0;
+        uint environment = 0, irradiance = 0, prefilter = 0, equirect = 0, framebuffer = 0, depth = 0;
         try
         {
-            cubemap = CreateCubemap(gl, LightingMath.SkyCaptureFaceSize);
+            environment = CreateFloatCubemap(gl, LightingMath.SkyCaptureFaceSize, allocateMips: false);
+            irradiance = CreateFloatCubemap(gl, LightingMath.IrradianceFaceSize, allocateMips: false);
+            prefilter = CreateFloatCubemap(gl, LightingMath.PrefilterFaceSize, allocateMips: true);
             equirect = CreateEquirect(gl, decoded);
             framebuffer = gl.GenFramebuffer();
             depth = gl.GenRenderbuffer();
@@ -74,14 +88,14 @@ internal sealed class OpenGLSkyCapture : ISkyCapture
             gl.BindFramebuffer(FramebufferTarget.Framebuffer, (uint)previousFbo);
             UnbindUnit0(gl);
 
-            cubemapId = cubemap;
-            capture = new OpenGLSkyCapture(cubemap, equirect, framebuffer, depth, LightingMath.SkyCaptureFaceSize);
+            cubemapId = environment;
+            capture = new OpenGLSkyCapture(environment, irradiance, prefilter, equirect, framebuffer, depth);
             return true;
         }
         catch (Exception ex)
         {
             WarnOnce(absolutePath + "|fail", "Skybox cubemap failed ({Path}): {Message}", absolutePath, ex.Message);
-            DeleteAll(gl, cubemap, equirect, framebuffer, depth);
+            DeleteAll(gl, environment, irradiance, prefilter, equirect, framebuffer, depth);
             gl.BindFramebuffer(FramebufferTarget.Framebuffer, (uint)previousFbo);
             UnbindUnit0(gl);
             cubemapId = 0;
@@ -90,9 +104,29 @@ internal sealed class OpenGLSkyCapture : ISkyCapture
         }
     }
 
-    public bool BeginFace(int face)
+    public bool GenerateEnvironmentMips()
     {
-        if (_disposed || (uint)face > 5)
+        if (_disposed || _environment == 0)
+            return false;
+
+        var gl = SilkNetContext.GL;
+        gl.BindFramebuffer(FramebufferTarget.Framebuffer, _framebuffer);
+        gl.FramebufferTexture2D(
+            FramebufferTarget.Framebuffer,
+            FramebufferAttachment.ColorAttachment0,
+            TextureTarget.TextureCubeMapPositiveX + 5,
+            0,
+            0);
+        gl.BindTexture(TextureTarget.TextureCubeMap, _environment);
+        gl.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureMinFilter, (int)GLEnum.LinearMipmapLinear);
+        gl.GenerateMipmap(TextureTarget.TextureCubeMap);
+        OpenGLDebug.CheckError(gl, "SkyCapture GenerateEnvironmentMips");
+        return true;
+    }
+
+    public bool Begin(uint cubemap, int face, int mip, int size)
+    {
+        if (_disposed || cubemap == 0 || (uint)face > 5 || mip < 0 || size <= 0)
             return false;
 
         var gl = SilkNetContext.GL;
@@ -104,21 +138,36 @@ internal sealed class OpenGLSkyCapture : ISkyCapture
         }
 
         gl.ActiveTexture(TextureUnit.Texture0);
-        gl.BindTexture(TextureTarget.TextureCubeMap, 0);
-        gl.BindTexture(TextureTarget.Texture2D, _equirect);
+        if (cubemap == _environment)
+        {
+            gl.BindTexture(TextureTarget.TextureCubeMap, 0);
+            gl.BindTexture(TextureTarget.Texture2D, _equirect);
+        }
+        else
+        {
+            gl.BindTexture(TextureTarget.Texture2D, 0);
+            gl.BindTexture(TextureTarget.TextureCubeMap, _environment);
+        }
+
         gl.BindFramebuffer(FramebufferTarget.Framebuffer, _framebuffer);
+        gl.BindRenderbuffer(RenderbufferTarget.Renderbuffer, _depth);
+        gl.RenderbufferStorage(
+            RenderbufferTarget.Renderbuffer,
+            InternalFormat.DepthComponent24,
+            (uint)size,
+            (uint)size);
         gl.FramebufferTexture2D(
             FramebufferTarget.Framebuffer,
             FramebufferAttachment.ColorAttachment0,
             TextureTarget.TextureCubeMapPositiveX + face,
-            _cubemap,
-            0);
-        OpenGLDebug.CheckError(gl, "SkyCapture BeginFace");
+            cubemap,
+            mip);
+        OpenGLDebug.CheckError(gl, "SkyCapture Begin");
 
         if (gl.CheckFramebufferStatus(FramebufferTarget.Framebuffer) != GLEnum.FramebufferComplete)
             return false;
 
-        gl.Viewport(0, 0, (uint)_size, (uint)_size);
+        gl.Viewport(0, 0, (uint)size, (uint)size);
         gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
         return true;
     }
@@ -150,7 +199,7 @@ internal sealed class OpenGLSkyCapture : ISkyCapture
         OpenGLDebug.CheckError(gl, "SkyCapture Dispose");
     }
 
-    private static uint CreateCubemap(GL gl, int size)
+    private static uint CreateFloatCubemap(GL gl, int size, bool allocateMips)
     {
         var id = gl.GenTexture();
         gl.BindTexture(TextureTarget.TextureCubeMap, id);
@@ -161,41 +210,44 @@ internal sealed class OpenGLSkyCapture : ISkyCapture
                 gl.TexImage2D(
                     TextureTarget.TextureCubeMapPositiveX + face,
                     0,
-                    InternalFormat.Rgba8,
+                    InternalFormat.Rgb16f,
                     (uint)size,
                     (uint)size,
                     0,
-                    PixelFormat.Rgba,
-                    PixelType.UnsignedByte,
+                    PixelFormat.Rgb,
+                    PixelType.Float,
                     (void*)0);
             }
         }
 
-        gl.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
+        var min = allocateMips ? GLEnum.LinearMipmapLinear : GLEnum.Linear;
+        gl.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureMinFilter, (int)min);
         gl.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
         gl.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
         gl.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
         gl.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureWrapR, (int)GLEnum.ClampToEdge);
+        if (allocateMips)
+            gl.GenerateMipmap(TextureTarget.TextureCubeMap);
         return id;
     }
 
-    private static uint CreateEquirect(GL gl, TextureFileDecoder.DecodedImage decoded)
+    private static uint CreateEquirect(GL gl, TextureFileDecoder.DecodedHdr decoded)
     {
         var id = gl.GenTexture();
         gl.BindTexture(TextureTarget.Texture2D, id);
         unsafe
         {
-            fixed (byte* ptr = decoded.Data)
+            fixed (float* ptr = decoded.Rgb)
             {
                 gl.TexImage2D(
                     TextureTarget.Texture2D,
                     0,
-                    decoded.InternalFormat,
+                    InternalFormat.Rgb16f,
                     (uint)decoded.Width,
                     (uint)decoded.Height,
                     0,
-                    decoded.DataFormat,
-                    PixelType.UnsignedByte,
+                    PixelFormat.Rgb,
+                    PixelType.Float,
                     ptr);
             }
         }
@@ -214,12 +266,17 @@ internal sealed class OpenGLSkyCapture : ISkyCapture
         gl.BindTexture(TextureTarget.TextureCubeMap, 0);
     }
 
-    private static void DeleteAll(GL gl, uint cubemap, uint equirect, uint framebuffer, uint depth)
+    private static void DeleteAll(
+        GL gl, uint environment, uint irradiance, uint prefilter, uint equirect, uint framebuffer, uint depth)
     {
         if (equirect != 0)
             gl.DeleteTexture(equirect);
-        if (cubemap != 0)
-            gl.DeleteTexture(cubemap);
+        if (environment != 0)
+            gl.DeleteTexture(environment);
+        if (irradiance != 0)
+            gl.DeleteTexture(irradiance);
+        if (prefilter != 0)
+            gl.DeleteTexture(prefilter);
         if (depth != 0)
             gl.DeleteRenderbuffer(depth);
         if (framebuffer != 0)

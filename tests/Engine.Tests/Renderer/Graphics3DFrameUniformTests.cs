@@ -21,6 +21,7 @@ public class Graphics3DFrameUniformTests
         var cubeShader = Substitute.For<IShader>();
         var modelShader = Substitute.For<IShader>();
         var shaderFactory = Substitute.For<IShaderFactory>();
+        shaderFactory.Create(Arg.Any<ShaderId>()).Returns(Substitute.For<IShader>());
         shaderFactory.Create(ShaderId.Cube).Returns(cubeShader);
         shaderFactory.Create(ShaderId.Model).Returns(modelShader);
         shaderFactory.Create(ShaderId.Depth).Returns(Substitute.For<IShader>());
@@ -30,8 +31,9 @@ public class Graphics3DFrameUniformTests
         var meshFactory = Substitute.For<IMeshFactory>();
         meshFactory.CreateCube().Returns(cube);
 
+        var renderer = Substitute.For<IRendererAPI>();
         var graphics = new Graphics3D(
-            Substitute.For<IRendererAPI>(),
+            renderer,
             shaderFactory,
             meshFactory,
             Substitute.For<ITextureFactory>(),
@@ -54,6 +56,10 @@ public class Graphics3DFrameUniformTests
         cubeShader.Received().SetFloat3("u_LightDirection", lightDir);
         cubeShader.Received().SetFloat3("u_LightColor", lightColor);
         cubeShader.Received().SetFloat3("u_ViewPosition", viewPos);
+        cubeShader.Received().SetInt("u_Ibl", 0);
+        renderer.DidNotReceive().BindTextureCube(Arg.Any<uint>(), 13);
+        renderer.DidNotReceive().BindTextureCube(Arg.Any<uint>(), 14);
+        renderer.DidNotReceive().BindTexture2D(Arg.Any<uint>(), 15);
 
         modelShader.Received().SetMat4("u_ViewProjection", vp);
         modelShader.Received().SetFloat3("u_ViewPosition", viewPos);
@@ -74,6 +80,7 @@ public class Graphics3DFrameUniformTests
         var cubeShader = Substitute.For<IShader>();
         var modelShader = Substitute.For<IShader>();
         var shaderFactory = Substitute.For<IShaderFactory>();
+        shaderFactory.Create(Arg.Any<ShaderId>()).Returns(Substitute.For<IShader>());
         shaderFactory.Create(ShaderId.Cube).Returns(cubeShader);
         shaderFactory.Create(ShaderId.Model).Returns(modelShader);
         shaderFactory.Create(ShaderId.Depth).Returns(Substitute.For<IShader>());
@@ -111,6 +118,7 @@ public class Graphics3DFrameUniformTests
         var cubeShader = Substitute.For<IShader>();
         var depthShader = Substitute.For<IShader>();
         var shaderFactory = Substitute.For<IShaderFactory>();
+        shaderFactory.Create(Arg.Any<ShaderId>()).Returns(Substitute.For<IShader>());
         shaderFactory.Create(ShaderId.Cube).Returns(cubeShader);
         shaderFactory.Create(ShaderId.Model).Returns(Substitute.For<IShader>());
         shaderFactory.Create(ShaderId.Depth).Returns(depthShader);
@@ -154,6 +162,7 @@ public class Graphics3DFrameUniformTests
         var depthShader = Substitute.For<IShader>();
         var pointDepthShader = Substitute.For<IShader>();
         var shaderFactory = Substitute.For<IShaderFactory>();
+        shaderFactory.Create(Arg.Any<ShaderId>()).Returns(Substitute.For<IShader>());
         shaderFactory.Create(ShaderId.Cube).Returns(Substitute.For<IShader>());
         shaderFactory.Create(ShaderId.Model).Returns(Substitute.For<IShader>());
         shaderFactory.Create(ShaderId.Depth).Returns(depthShader);

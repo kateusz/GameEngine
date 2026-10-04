@@ -13,6 +13,7 @@ public class EngineShaderPathsTests
     [InlineData(ShaderId.Model, "modelShader")]
     [InlineData(ShaderId.Depth, "depth")]
     [InlineData(ShaderId.Fxaa, "fxaa")]
+    [InlineData(ShaderId.BrdfLut, "brdfLut")]
     public void Resolve_UsesHostOutputOpenGLTree(ShaderId shader, string name)
     {
         var dir = Path.Combine(AppContext.BaseDirectory, "assets", "shaders", "OpenGL");
@@ -30,5 +31,16 @@ public class EngineShaderPathsTests
         var (vert, frag) = EngineShaderPaths.Resolve(ShaderId.SelectionOutline);
         vert.ShouldBe(Path.Combine(dir, "fxaa.vert"));
         frag.ShouldBe(Path.Combine(dir, "selectionOutline.frag"));
+    }
+
+    [Theory]
+    [InlineData(ShaderId.Irradiance, "irradiance.frag")]
+    [InlineData(ShaderId.Prefilter, "prefilter.frag")]
+    public void Resolve_IblConvolution_ReusesSkyboxVertexShader(ShaderId shader, string fragment)
+    {
+        var dir = Path.Combine(AppContext.BaseDirectory, "assets", "shaders", "OpenGL");
+        var (vert, frag) = EngineShaderPaths.Resolve(shader);
+        vert.ShouldBe(Path.Combine(dir, "skybox.vert"));
+        frag.ShouldBe(Path.Combine(dir, fragment));
     }
 }

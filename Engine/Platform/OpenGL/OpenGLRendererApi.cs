@@ -3,12 +3,15 @@ using Engine.Platform.SilkNet;
 using Engine.Renderer;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Textures;
+using Serilog;
 using Silk.NET.OpenGL;
 
 namespace Engine.Platform.OpenGL;
 
 internal sealed class OpenGLRendererApi : IRendererAPI
 {
+    private static readonly ILogger Logger = Log.ForContext<OpenGLRendererApi>();
+    private static bool _brdfLutWarned;
     private readonly HashSet<uint> _meshInstanceLayoutVaos = [];
     public void SetClearColor(Vector4 color)
     {
@@ -42,6 +45,121 @@ internal sealed class OpenGLRendererApi : IRendererAPI
 
     public bool TryCreateSkyCapture(string absolutePath, out uint cubemapId, out ISkyCapture capture) =>
         OpenGLSkyCapture.TryCreate(absolutePath, out cubemapId, out capture);
+
+    public bool TryCreateBrdfLut(out uint textureId)
+    {
+        textureId = 0;
+        var gl = SilkNetContext.GL;
+        var previousFbo = gl.GetInteger(GLEnum.FramebufferBinding);
+        var viewport = new int[4];
+        gl.GetInteger(GLEnum.Viewport, viewport);
+
+        uint texture = 0, framebuffer = 0, vao = 0, vbo = 0;
+        var kept = false;
+        try
+        {
+            texture = gl.GenTexture();
+            gl.BindTexture(TextureTarget.Texture2D, texture);
+            unsafe
+            {
+                gl.TexImage2D(
+                    TextureTarget.Texture2D,
+                    0,
+                    InternalFormat.RG16f,
+                    (uint)LightingMath.BrdfLutSize,
+                    (uint)LightingMath.BrdfLutSize,
+                    0,
+                    PixelFormat.RG,
+                    PixelType.Float,
+                    (void*)0);
+            }
+
+            gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
+            gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
+            gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
+            gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
+
+            framebuffer = gl.GenFramebuffer();
+            gl.BindFramebuffer(FramebufferTarget.Framebuffer, framebuffer);
+            gl.FramebufferTexture2D(
+                FramebufferTarget.Framebuffer,
+                FramebufferAttachment.ColorAttachment0,
+                TextureTarget.Texture2D,
+                texture,
+                0);
+            OpenGLDebug.CheckError(gl, "BrdfLut create");
+            if (gl.CheckFramebufferStatus(FramebufferTarget.Framebuffer) != GLEnum.FramebufferComplete)
+            {
+                WarnBrdfLutOnce("BRDF lookup framebuffer is incomplete");
+                return false;
+            }
+
+            ReadOnlySpan<float> vertices =
+            [
+                -1f, -1f, 0f, 0f,
+                1f, -1f, 1f, 0f,
+                1f, 1f, 1f, 1f,
+                -1f, -1f, 0f, 0f,
+                1f, 1f, 1f, 1f,
+                -1f, 1f, 0f, 1f
+            ];
+            vao = gl.GenVertexArray();
+            vbo = gl.GenBuffer();
+            gl.BindVertexArray(vao);
+            gl.BindBuffer(BufferTargetARB.ArrayBuffer, vbo);
+            unsafe
+            {
+                fixed (float* ptr = vertices)
+                {
+                    gl.BufferData(
+                        BufferTargetARB.ArrayBuffer,
+                        (nuint)(vertices.Length * sizeof(float)),
+                        ptr,
+                        BufferUsageARB.StaticDraw);
+                }
+
+                gl.EnableVertexAttribArray(0);
+                gl.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), (void*)0);
+                gl.EnableVertexAttribArray(1);
+                gl.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+            }
+
+            gl.Viewport(0, 0, (uint)LightingMath.BrdfLutSize, (uint)LightingMath.BrdfLutSize);
+            gl.Clear(ClearBufferMask.ColorBufferBit);
+            gl.DrawArrays(PrimitiveType.Triangles, 0, 6);
+            OpenGLDebug.CheckError(gl, "BrdfLut draw");
+            textureId = texture;
+            kept = true;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            WarnBrdfLutOnce("BRDF lookup failed to create: " + ex.Message);
+            return false;
+        }
+        finally
+        {
+            if (vbo != 0)
+                gl.DeleteBuffer(vbo);
+            if (vao != 0)
+                gl.DeleteVertexArray(vao);
+            if (framebuffer != 0)
+                gl.DeleteFramebuffer(framebuffer);
+            if (!kept && texture != 0)
+                gl.DeleteTexture(texture);
+            gl.BindFramebuffer(FramebufferTarget.Framebuffer, (uint)previousFbo);
+            gl.Viewport(viewport[0], viewport[1], (uint)viewport[2], (uint)viewport[3]);
+            gl.BindVertexArray(0);
+        }
+    }
+
+    private static void WarnBrdfLutOnce(string message)
+    {
+        if (_brdfLutWarned)
+            return;
+        _brdfLutWarned = true;
+        Logger.Warning(message);
+    }
 
     public void DeleteTexture(uint textureId)
     {

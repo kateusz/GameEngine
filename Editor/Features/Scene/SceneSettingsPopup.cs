@@ -161,7 +161,8 @@ public class SceneSettingsPopup(
         if (!ImGui.Button("Browse"))
             return;
 
-        var picked = FilePicker.PickFile("Skybox", AssetKind.Texture.OsFileFilter, SkyboxInitialPath(scene.Skybox));
+        var picked = FilePicker.PickFile(
+            "Skybox", AssetKind.BuildOsFilter("HDR environment", [".hdr"]), SkyboxInitialPath(scene.Skybox));
         if (!string.IsNullOrEmpty(picked))
             scene.Skybox = NormalizeSkybox(picked);
     }

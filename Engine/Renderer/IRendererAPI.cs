@@ -11,6 +11,7 @@ public interface IRendererAPI
     void BindTexture2D(uint textureId, int slot = 0);
     void BindTextureCube(uint textureId, int slot = 0);
     bool TryCreateSkyCapture(string absolutePath, out uint cubemapId, out ISkyCapture capture);
+    bool TryCreateBrdfLut(out uint textureId);
     void DeleteTexture(uint textureId);
     void BindDefaultFramebuffer();
     void SetBoundTexture2DFilterLinear();

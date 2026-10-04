@@ -208,6 +208,43 @@ public class PublishedAssetValidatorTests : IDisposable
         result.Success.ShouldBeTrue();
     }
 
+    [Fact]
+    public void ValidateAssetReferences_SucceedsWhenSkyboxIsHdr()
+    {
+        var assets = CreateAssetsLayout();
+        Directory.CreateDirectory(Path.Combine(assets, "sky"));
+        File.WriteAllText(Path.Combine(assets, "sky", "day.hdr"), "hdr");
+        WriteScene(assets, """
+            {
+              "Skybox": "sky/day.hdr",
+              "Entities": []
+            }
+            """);
+
+        var result = PublishedAssetValidator.ValidateAssetReferences(assets);
+
+        result.Success.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ValidateAssetReferences_FailsWhenSkyboxIsNotHdr()
+    {
+        var assets = CreateAssetsLayout();
+        Directory.CreateDirectory(Path.Combine(assets, "sky"));
+        File.WriteAllText(Path.Combine(assets, "sky", "day.png"), "png");
+        WriteScene(assets, """
+            {
+              "Skybox": "sky/day.png",
+              "Entities": []
+            }
+            """);
+
+        var result = PublishedAssetValidator.ValidateAssetReferences(assets);
+
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage.ShouldNotBeNull().ShouldContain(".hdr");
+    }
+
     private string CreateAssetsLayout()
     {
         var assets = Path.Combine(_tempRoot, "assets");

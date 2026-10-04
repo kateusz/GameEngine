@@ -16,6 +16,30 @@ internal static class TextureFileDecoder
         ".dds", ".tga"
     };
 
+    internal readonly record struct DecodedHdr(float[] Rgb, int Width, int Height);
+
+    public static DecodedHdr? DecodeHdr(string path)
+    {
+        if (!File.Exists(path) || !path.EndsWith(".hdr", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        lock (DecodeLock)
+        {
+            StbImage.stbi_set_flip_vertically_on_load(StbiFlipVerticallyEnabled);
+            using var stream = File.OpenRead(path);
+            var image = ImageResultFloat.FromStream(stream, ColorComponents.RedGreenBlue);
+            if (image.Width <= 0 || image.Height <= 0 || image.Data is not { Length: > 0 })
+                return null;
+            foreach (var sample in image.Data)
+            {
+                if (!float.IsFinite(sample))
+                    return null;
+            }
+
+            return new DecodedHdr(image.Data, image.Width, image.Height);
+        }
+    }
+
     internal readonly record struct DecodedImage(
         byte[] Data,
         int Width,

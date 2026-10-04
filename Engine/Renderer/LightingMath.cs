@@ -26,6 +26,10 @@ internal static class LightingMath
     private const float ShadowUpParallel = 0.99f;
     public const int SkyCaptureFaceSize = 512;
     public const float SkyCaptureFar = 10f;
+    public const int IrradianceFaceSize = 32;
+    public const int PrefilterFaceSize = 128;
+    public const int PrefilterMipCount = 5;
+    public const int BrdfLutSize = 512;
     public const float EquirectU = 0.1591f;
     public const float EquirectV = 0.3183f;
 
