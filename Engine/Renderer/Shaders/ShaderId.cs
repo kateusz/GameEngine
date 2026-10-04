@@ -14,5 +14,6 @@ public enum ShaderId
     Skybox,
     Irradiance,
     Prefilter,
-    BrdfLut
+    BrdfLut,
+    Tonemap
 }

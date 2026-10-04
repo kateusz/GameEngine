@@ -22,7 +22,8 @@ public class GameLayer(
     IGameWindow gameWindow,
     GameConfiguration gameConfig,
     Func<IEnumerable<IGameSystem>> resolveGameSystems,
-    FxaaPass fxaaPass)
+    FxaaPass fxaaPass,
+    TonemapPass tonemapPass)
     : ILayer
 {
     private static readonly ILogger Logger = Log.ForContext<GameLayer>();
@@ -76,13 +77,30 @@ public class GameLayer(
 
         var size = gameWindow.ClientSize;
         var scale = gameWindow.ContentScale;
-        fxaaPass.Present((uint)(size.X * scale), (uint)(size.Y * scale), () =>
+        var hdr = fxaaPass.DrawScene((uint)(size.X * scale), (uint)(size.Y * scale), () =>
         {
             graphics3D.SetSkybox(scene.Skybox);
             graphics2D.SetClearColor(scene.BackgroundColor);
             graphics2D.Clear();
             scene.OnUpdateRuntime(timeSpan);
         });
+        if (hdr == null)
+            return;
+
+        if (fxaaPass.Available)
+        {
+            var ldr = tonemapPass.Resolve(hdr);
+            if (ldr == null)
+                return;
+
+            var ldrSize = ldr.GetSpecification();
+            fxaaPass.Apply(ldr.GetColorAttachmentRendererId(), ldrSize.Width, ldrSize.Height, dest: null);
+        }
+        else
+        {
+            var hdrSize = hdr.GetSpecification();
+            tonemapPass.Draw(hdr.GetColorAttachmentRendererId(), hdrSize.Width, hdrSize.Height, dest: null);
+        }
     }
 
     public void HandleInputEvent(InputEvent windowEvent) { }

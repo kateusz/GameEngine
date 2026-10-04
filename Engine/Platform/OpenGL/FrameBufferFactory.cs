@@ -9,19 +9,24 @@ internal sealed class FrameBufferFactory : IFrameBufferFactory
 {
     public IFrameBuffer Create()
     {
-        var frameBufferSpec = new FrameBufferSpecification(
+        return Create(SceneTarget(
             DisplayConfig.DefaultEditorViewportWidth,
-            DisplayConfig.DefaultEditorViewportHeight)
+            DisplayConfig.DefaultEditorViewportHeight));
+    }
+
+    internal static FrameBufferSpecification SceneTarget(uint width, uint height) =>
+        new(width, height)
         {
             AttachmentsSpec = new FrameBufferAttachmentSpecification([
-                new FrameBufferTextureSpecification(FrameBufferTextureFormat.RGBA8),
+                new FrameBufferTextureSpecification(FrameBufferTextureFormat.RGBA16F)
+                {
+                    Filter = FrameBufferTextureFilter.Linear,
+                    Wrap = FrameBufferTextureWrap.ClampToEdge
+                },
                 new FrameBufferTextureSpecification(FrameBufferTextureFormat.RED_INTEGER),
                 new FrameBufferTextureSpecification(FrameBufferTextureFormat.Depth),
             ])
         };
-
-        return Create(frameBufferSpec);
-    }
 
     public IFrameBuffer Create(FrameBufferSpecification specification)
     {

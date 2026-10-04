@@ -205,12 +205,6 @@ vec3 ImageBasedLight(vec3 N, vec3 V, vec3 albedo, float metallic, float roughnes
     return (kD * diffuse + prefiltered * (F * brdf.x + brdf.y)) * ao;
 }
 
-vec3 Encode(vec3 color)
-{
-    color = color / (color + vec3(1.0));
-    return pow(color, vec3(1.0 / 2.2));
-}
-
 void main()
 {
     vec3 norm = u_HasNormalMap != 0
@@ -237,6 +231,6 @@ void main()
     vec3 ambient = u_Ibl != 0
         ? ImageBasedLight(norm, V, albedo, metallic, roughness, ao)
         : u_AmbientStrength * u_AmbientColor * albedo * ao;
-    o_Color = vec4(Encode(ambient + sun + lamps), u_Color.a);
+    o_Color = vec4(ambient + sun + lamps, u_Color.a);
     o_EntityID = v_EntityID;
 }

@@ -26,9 +26,9 @@ sequenceDiagram
 |------|------------------------|
 | Scene field | `Skybox`, a string. Empty means no environment |
 | JSON key | `Skybox`. Absent on load means empty. The value is a `.hdr` path |
-| Environment size | 512 per face, `RGB16F`, mip chain, trilinear minification |
-| Irradiance size | 32 per face, `RGB16F`, no mips, linear filter |
-| Prefilter | Base 128, five mips, `RGB16F`, trilinear. Roughness of mip `i` is `i / 4` |
+| Environment size | 512 per face, `RGBA16F`, mip chain, trilinear minification |
+| Irradiance size | 32 per face, `RGBA16F`, no mips, linear filter |
+| Prefilter | Base 128, five mips, `RGBA16F`, trilinear. Roughness of mip `i` is `i / 4` |
 | Lookup | 512², `RG16F`, linear, clamp. Built once per process |
 | Sample step | 0.025 radians across the irradiance hemisphere |
 | Sample count | 1024 Hammersley samples in the prefilter and in the lookup |
@@ -55,9 +55,9 @@ Publish already requires a non-empty `Skybox` to be a file under `assets/`. It a
 
 The decoder lock already used for 8-bit images also covers this load, including the vertical flip flag. The load asks for three float channels. A missing file, a non-radiance extension, a decode error, or a non-finite sample fails the capture. A picture whose width is not twice its height logs once and still captures.
 
-The equirect texture is `RGB16F`, clamp to edge, linear filter, no mips. It is deleted when the capture object is disposed.
+The equirect texture is `RGBA16F`, clamp to edge, linear filter, no mips. Every channel is clamped to 65504, the largest half float, before upload. It is deleted when the capture object is disposed.
 
-**Why:** The radiance file is already linear. Decoding it as display bytes would clamp every highlight to one before the blur. The flip flag is process-global, so the new load has to share the lock the byte decoder already holds.
+**Why:** The radiance file is already linear. Decoding it as display bytes would clamp every highlight to one before the blur. The flip flag is process-global, so the new load has to share the lock the byte decoder already holds. A photographed sun can exceed 65504 (San Giuseppe Bridge peaks at 98304 red). Half float stores that as `+Inf`, mip generation and both blurs spread it, and Reinhard turns it into NaN. A yellow sun overflows red and green but not blue, so the scene turned pure blue. The clamp drops 7% of that file's red flux.
 
 ### 3. Capture three cubemaps when the path changes
 
@@ -67,7 +67,7 @@ Draw order:
 
 1. Six environment faces at 512. The fragment writes the equirect sample unchanged.
 2. Mipmaps on that cubemap, then trilinear minification.
-3. Six irradiance faces at 32. Each sample of the environment uses lod 0.
+3. Six irradiance faces at 32. Each sample of the environment uses lod 4.
 4. Prefilter mips 0 through 4, six faces each, viewport halved per mip. Each sample of the environment uses the lod from the step below.
 
 Irradiance builds its tangent frame with the same rule as the specular sampler: a world up of `+Z` unless the normal is nearly parallel to `Z`, in which case the up is `+X`. The hemisphere step is 0.025 radians. The stored texel is `π` times the weighted average, which cancels the Lambert `1/π` later.
@@ -86,7 +86,7 @@ Seamless cubemap sampling stays enabled for the whole process. It is not toggled
 
 On success the equirect, the capture framebuffer, and the depth buffer go away. The three cubemap ids stay with the graphics layer. On any failed face, `SetSkybox` deletes the new ids and the previous trio stays.
 
-**Why:** One file is the authoring input. Doing the blurs at path-change time leaves the frame with three texture fetches. Lod 0 on the irradiance reads is required once the environment has mips: a discontinuous sample direction would otherwise select a high mip. The `+Y` face of the chapter's irradiance frame crosses a zero tangent; the specular chapter's frame does not, and both blurs share it. The `π` in the irradiance texel is the chapter's cancellation, so the color shader multiplies albedo and does not divide by `π` again.
+**Why:** One file is the authoring input. Doing the blurs at path-change time leaves the frame with three texture fetches. An explicit lod on the irradiance reads is required once the environment has mips: a discontinuous sample direction would otherwise select an arbitrary mip. Lod 4 is 32 texels per face, about 2.8°, twice the 0.025-radian step. At lod 0 a sun smaller than one step is hit or missed per output texel. On San Giuseppe Bridge, irradiance across the sun's face was off by up to 438% at lod 0 and by up to 12% at lod 4, against the exact cosine integral. The `+Y` face of the chapter's irradiance frame crosses a zero tangent; the specular chapter's frame does not, and both blurs share it. The `π` in the irradiance texel is the chapter's cancellation, so the color shader multiplies albedo and does not divide by `π` again.
 
 ### 4. Build the lookup once
 

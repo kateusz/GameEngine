@@ -47,13 +47,10 @@ public sealed class FxaaPass(
         }
     }
 
-    public void Present(uint width, uint height, Action draw)
+    public IFrameBuffer? DrawScene(uint width, uint height, Action draw)
     {
-        if (width == 0 || height == 0 || !Ready() || !Ensure(ref _scene, width, height, depth: true))
-        {
-            draw();
-            return;
-        }
+        if (width == 0 || height == 0 || !Ensure(ref _scene, width, height, depth: true))
+            return null;
 
         _scene!.Bind();
         try
@@ -65,7 +62,7 @@ public sealed class FxaaPass(
             _scene.Unbind();
         }
 
-        Apply(_scene.GetColorAttachmentRendererId(), width, height, dest: null);
+        return _scene;
     }
 
     public IFrameBuffer Resolve(IFrameBuffer source)
@@ -160,7 +157,9 @@ public sealed class FxaaPass(
 
     private static FrameBufferSpecification Target(uint width, uint height, bool depth)
     {
-        FrameBufferTextureSpecification color = new(FrameBufferTextureFormat.RGBA8)
+        FrameBufferTextureSpecification color = new(depth
+            ? FrameBufferTextureFormat.RGBA16F
+            : FrameBufferTextureFormat.RGBA8)
         {
             Filter = FrameBufferTextureFilter.Linear,
             Wrap = FrameBufferTextureWrap.ClampToEdge
