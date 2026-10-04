@@ -34,18 +34,14 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
         Invalidate();
     }
 
-    /// <summary>
-    /// Gets the renderer ID of the first color attachment.
-    /// </summary>
-    /// <returns>The OpenGL texture ID of the first color attachment, or 0 if there are no color attachments (e.g., depth-only framebuffers).</returns>
-    public override uint GetColorAttachmentRendererId()
+    public override uint GetColorAttachmentRendererId(int index = 0)
     {
-        if (_colorAttachments == null || _colorAttachments.Length == 0)
+        if (_colorAttachments == null || index < 0 || index >= _colorAttachments.Length)
         {
             Debug.WriteLine("Warning: Attempted to get color attachment from framebuffer with no color attachments");
             return 0;
         }
-        return _colorAttachments[0];
+        return _colorAttachments[index];
     }
 
     public override uint GetDepthAttachmentRendererId() => _depthAttachment;
@@ -355,8 +351,13 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
         gl.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
         gl.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
         gl.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureWrapR, (int)GLEnum.ClampToEdge);
-        gl.FramebufferTexture(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, id, 0);
-        OpenGLDebug.CheckError(gl, "FramebufferTexture (point shadow cubemap)");
+        gl.FramebufferTexture2D(
+            FramebufferTarget.Framebuffer,
+            FramebufferAttachment.DepthAttachment,
+            TextureTarget.TextureCubeMapPositiveX,
+            id,
+            0);
+        OpenGLDebug.CheckError(gl, "FramebufferTexture2D (point shadow cubemap +X)");
     }
 
     private static unsafe void AttachShadowDepthTexture(

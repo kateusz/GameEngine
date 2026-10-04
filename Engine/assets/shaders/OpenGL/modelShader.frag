@@ -10,7 +10,6 @@ in mat3 v_TBN;
 flat in int v_EntityID;
 
 uniform vec4 u_Color;
-uniform int  u_EntityID;
 uniform vec3 u_AmbientColor;
 uniform float u_AmbientStrength;
 uniform vec3 u_LightDirection;
@@ -37,6 +36,9 @@ uniform vec3 u_PointLightPositions[c_MaxPointLights];
 uniform vec3 u_PointLightColors[c_MaxPointLights];
 uniform float u_PointLightIntensities[c_MaxPointLights];
 uniform float u_PointLightRanges[c_MaxPointLights];
+
+uniform int u_PointShadowsEnabled[c_MaxPointLights];
+uniform samplerCube u_PointShadowMaps[c_MaxPointLights];
 
 uniform mat4 u_LightViewProjection;
 uniform sampler2D u_ShadowMap;
@@ -78,6 +80,37 @@ float DirectionalShadow(vec3 fragPos)
         }
     }
     return shadow;
+}
+
+const float c_PointShadowBias = 0.05;
+
+float PointShadow(int i, vec3 fragPos)
+{
+    if (u_PointShadowsEnabled[i] == 0)
+        return 1.0;
+
+    vec3 toFrag = fragPos - u_PointLightPositions[i];
+    float dist = length(toFrag);
+    float range = u_PointLightRanges[i];
+    float current = dist / range;
+    float bias = c_PointShadowBias / range;
+    vec3 direction = toFrag / dist;
+    vec3 helper = abs(direction.y) > 0.99 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
+    vec3 tangent = normalize(cross(helper, direction));
+    vec3 bitangent = cross(direction, tangent);
+    float step = dist * 3.14159265 / 512.0;
+    float shadow = 0.0;
+    for (int x = -1; x <= 1; ++x)
+    {
+        for (int y = -1; y <= 1; ++y)
+        {
+            vec3 sampleDir = toFrag + (tangent * float(x) + bitangent * float(y)) * step;
+            float closest = texture(u_PointShadowMaps[i], sampleDir).r;
+            shadow += current - bias > closest ? 0.0 : 1.0;
+        }
+    }
+
+    return shadow / 9.0;
 }
 
 vec3 FresnelSchlick(float cosTheta, vec3 F0)
@@ -142,7 +175,8 @@ vec3 PointLights(vec3 N, vec3 V, vec3 fragPos, vec3 albedo, float metallic, floa
 
         float remaining = 1.0 - dist / u_PointLightRanges[i];
         radiance *= remaining * remaining;
-        sum += CookTorrance(N, V, toLight / dist, radiance, albedo, metallic, roughness);
+        sum += CookTorrance(N, V, toLight / dist, radiance, albedo, metallic, roughness)
+            * PointShadow(i, fragPos);
     }
     return sum;
 }
@@ -176,5 +210,5 @@ void main()
     vec3 lamps = PointLights(norm, V, v_FragPos, albedo, metallic, roughness);
     vec3 ambient = u_AmbientStrength * u_AmbientColor * albedo * ao;
     o_Color = vec4(Encode(ambient + sun + lamps), u_Color.a);
-    o_EntityID = u_EntityID;
+    o_EntityID = v_EntityID;
 }

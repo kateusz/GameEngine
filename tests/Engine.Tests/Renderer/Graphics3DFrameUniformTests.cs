@@ -23,6 +23,7 @@ public class Graphics3DFrameUniformTests
         shaderFactory.Create(ShaderId.Cube).Returns(cubeShader);
         shaderFactory.Create(ShaderId.Model).Returns(modelShader);
         shaderFactory.Create(ShaderId.Depth).Returns(Substitute.For<IShader>());
+        shaderFactory.Create(ShaderId.PointDepth).Returns(Substitute.For<IShader>());
 
         var cube = InitializedMesh();
         var meshFactory = Substitute.For<IMeshFactory>();
@@ -75,6 +76,7 @@ public class Graphics3DFrameUniformTests
         shaderFactory.Create(ShaderId.Cube).Returns(cubeShader);
         shaderFactory.Create(ShaderId.Model).Returns(modelShader);
         shaderFactory.Create(ShaderId.Depth).Returns(Substitute.For<IShader>());
+        shaderFactory.Create(ShaderId.PointDepth).Returns(Substitute.For<IShader>());
 
         var meshFactory = Substitute.For<IMeshFactory>();
         var cube = InitializedMesh();
@@ -111,6 +113,7 @@ public class Graphics3DFrameUniformTests
         shaderFactory.Create(ShaderId.Cube).Returns(cubeShader);
         shaderFactory.Create(ShaderId.Model).Returns(Substitute.For<IShader>());
         shaderFactory.Create(ShaderId.Depth).Returns(depthShader);
+        shaderFactory.Create(ShaderId.PointDepth).Returns(Substitute.For<IShader>());
 
         var meshFactory = Substitute.For<IMeshFactory>();
         var cube = InitializedMesh();

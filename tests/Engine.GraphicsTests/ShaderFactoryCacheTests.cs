@@ -45,4 +45,18 @@ public class ShaderFactoryCacheTests(HeadlessGraphicsContextFixture fixture)
             File.Delete(vert);
         }
     }
+
+    [GraphicsFact]
+    public void Create_PointDepthShader_Compiles()
+    {
+        _ = fixture;
+        var vert = Path.Combine(AppContext.BaseDirectory, "assets", "shaders", "OpenGL", "pointDepth.vert");
+        var frag = Path.Combine(AppContext.BaseDirectory, "assets", "shaders", "OpenGL", "pointDepth.frag");
+        var factory = new ShaderFactory();
+        var shader = factory.Create(vert, frag);
+        var id = ((OpenGLShader)shader).RendererId;
+        id.ShouldNotBe(0u);
+        GlBufferQueries.IsProgramAlive(id).ShouldBeTrue();
+        factory.Dispose();
+    }
 }

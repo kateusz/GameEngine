@@ -94,6 +94,53 @@ public class LightingMathTests
         }
     }
 
+    [Fact]
+    public void TryBuildPointShadowFaces_PointOnPositiveX_IsOnlyInThatFace()
+    {
+        var position = new Vector3(2f, 3f, 4f);
+        Span<Matrix4x4> faces = stackalloc Matrix4x4[6];
+        LightingMath.TryBuildPointShadowFaces(position, 10f, faces).ShouldBeTrue();
+
+        var onAxis = position + new Vector3(1f, 0f, 0f);
+        LightingMath.PointShadowFaceContains(faces[0], onAxis).ShouldBeTrue();
+        for (var i = 1; i < 6; i++)
+            LightingMath.PointShadowFaceContains(faces[i], onAxis).ShouldBeFalse();
+
+        var pastRange = position + new Vector3(11f, 0f, 0f);
+        for (var i = 0; i < 6; i++)
+            LightingMath.PointShadowFaceContains(faces[i], pastRange).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void TryBuildPointShadowFaces_RangeAtNear_ReturnsFalse()
+    {
+        Span<Matrix4x4> faces = stackalloc Matrix4x4[6];
+        LightingMath.TryBuildPointShadowFaces(Vector3.Zero, LightingMath.PointShadowNear, faces).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void PointShadowSphereHits_UnitCubeAtOrigin_HitsRange10()
+    {
+        LightingMath.PointShadowSphereHits(Vector3.Zero, 10f, Matrix4x4.Identity, Aabb.UnitCube)
+            .ShouldBeTrue();
+    }
+
+    [Fact]
+    public void PointShadowSphereHits_CubeTranslatedBy30_MissesRange10()
+    {
+        LightingMath.PointShadowSphereHits(
+                Vector3.Zero, 10f, Matrix4x4.CreateTranslation(30f, 0f, 0f), Aabb.UnitCube)
+            .ShouldBeFalse();
+    }
+
+    [Fact]
+    public void PointShadowSphereHits_JustInsideRangeOnX_Hits()
+    {
+        LightingMath.PointShadowSphereHits(
+                Vector3.Zero, 10f, Matrix4x4.CreateTranslation(9f, 0f, 0f), Aabb.UnitCube)
+            .ShouldBeTrue();
+    }
+
     private static Matrix4x4 EditorViewProjection(float yaw, float pitch, float distance)
     {
         var projection = Matrix4x4.CreatePerspectiveFieldOfView(

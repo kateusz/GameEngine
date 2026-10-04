@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using ECS;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
@@ -17,8 +18,10 @@ using Shouldly;
 namespace Engine.Tests.Scene;
 
 [Trait("Category", "Unit")]
+[Collection("PointShadowCache")]
 public class SceneRenderPipelineShadowTests
 {
+    public SceneRenderPipelineShadowTests() => PointShadowCache.Clear();
     [Fact]
     public void RenderScene_NoDirectionalLight_SkipsShadowPass()
     {
@@ -72,6 +75,258 @@ public class SceneRenderPipelineShadowTests
         graphics.CubeDraws.ShouldBe(2);
         graphics.Shadows.ShouldBe([(Matrix4x4.Identity, false), (expected, true)]);
         graphics.Order.ShouldBe(["shadow-off", "begin-shadow", "cube", "end-shadow", "shadow-on", "begin-scene", "cube"]);
+    }
+
+    [Fact]
+    public void RenderScene_SecondFrameWithStaticWorld_UsesCachedPointShadow()
+    {
+        var context = ContextWithCastingLampAndCube();
+
+        var graphics = new RecordingGraphics3D();
+        var view = new SceneView(ViewProjection(new Vector3(0f, 2f, 5f)));
+        SceneRenderPipeline.RenderScene(
+            context, Substitute.For<IGraphics2D>(), graphics,
+            Substitute.For<ITextureFactory>(), Substitute.For<IModelFactory>(), view);
+
+        graphics.PointShadowFaces.Count.ShouldBe(6);
+        graphics.CachedPointShadowUses.ShouldBeEmpty();
+
+        graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context, Substitute.For<IGraphics2D>(), graphics,
+            Substitute.For<ITextureFactory>(), Substitute.For<IModelFactory>(), view);
+
+        graphics.PointShadowFaces.ShouldBeEmpty();
+        graphics.CachedPointShadowUses.ShouldBe([2]);
+        graphics.EndPointShadowFaces.ShouldBe(0);
+    }
+
+    [Fact]
+    public void RenderScene_MovedCube_InvalidatesPointShadowCache()
+    {
+        var context = ContextWithCastingLampAndCube();
+        var view = new SceneView(ViewProjection(new Vector3(0f, 2f, 5f)));
+        var graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context, Substitute.For<IGraphics2D>(), graphics,
+            Substitute.For<ITextureFactory>(), Substitute.For<IModelFactory>(), view);
+        graphics.PointShadowFaces.Count.ShouldBe(6);
+
+        foreach (var (entity, transform) in context.View<TransformComponent>())
+        {
+            if (entity.Id != 1)
+                continue;
+            transform.SetWorldTransform(Matrix4x4.CreateTranslation(1f, 0f, 0f));
+            break;
+        }
+
+        graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context, Substitute.For<IGraphics2D>(), graphics,
+            Substitute.For<ITextureFactory>(), Substitute.For<IModelFactory>(), view);
+
+        graphics.PointShadowFaces.Count.ShouldBe(6);
+        graphics.CachedPointShadowUses.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void RenderScene_EditViewThenPlayView_RedrawsPointShadows()
+    {
+        var context = ContextWithCastingLampAndCube();
+        var playView = new SceneView(ViewProjection(new Vector3(0f, 2f, 5f)));
+        var editView = new SceneView(ViewProjection(new Vector3(0f, 2f, 5f)), PointShadows: false);
+
+        var graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context, Substitute.For<IGraphics2D>(), graphics,
+            Substitute.For<ITextureFactory>(), Substitute.For<IModelFactory>(), playView);
+        graphics.PointShadowFaces.Count.ShouldBe(6);
+
+        graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context, Substitute.For<IGraphics2D>(), graphics,
+            Substitute.For<ITextureFactory>(), Substitute.For<IModelFactory>(), editView);
+        graphics.PointShadowFaces.ShouldBeEmpty();
+
+        graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context, Substitute.For<IGraphics2D>(), graphics,
+            Substitute.For<ITextureFactory>(), Substitute.For<IModelFactory>(), playView);
+        graphics.PointShadowFaces.Count.ShouldBe(6);
+    }
+
+    [Fact]
+    public void RenderScene_FarLamp_StaysCachedUntilNear()
+    {
+        var context = new Context();
+        var cube = new Entity(1, "cube");
+        cube.AddComponent(new TransformComponent());
+        cube.AddComponent(new ModelRendererComponent());
+        context.Register(cube);
+
+        var lamp = new Entity(2, "lamp");
+        var lampTransform = new TransformComponent();
+        lampTransform.SetWorldTransform(Matrix4x4.CreateTranslation(LightingMath.PointShadowDistance + 1f, 0f, 0f));
+        lamp.AddComponent(lampTransform);
+        lamp.AddComponent(new PointLightComponent { Range = 10f, CastsShadow = true });
+        context.Register(lamp);
+
+        var view = new SceneView(ViewProjection(Vector3.Zero), Vector3.Zero);
+        var graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context, Substitute.For<IGraphics2D>(), graphics,
+            Substitute.For<ITextureFactory>(), Substitute.For<IModelFactory>(), view);
+        graphics.PointShadowFaces.ShouldBeEmpty();
+
+        foreach (var (entity, transform) in context.View<TransformComponent>())
+        {
+            if (entity.Id != 1)
+                continue;
+            transform.SetWorldTransform(Matrix4x4.CreateTranslation(1f, 0f, 0f));
+            break;
+        }
+        graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context, Substitute.For<IGraphics2D>(), graphics,
+            Substitute.For<ITextureFactory>(), Substitute.For<IModelFactory>(), view);
+        graphics.PointShadowFaces.ShouldBeEmpty();
+
+        lampTransform.SetWorldTransform(Matrix4x4.Identity);
+        graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context, Substitute.For<IGraphics2D>(), graphics,
+            Substitute.For<ITextureFactory>(), Substitute.For<IModelFactory>(), view);
+        graphics.PointShadowFaces.Count.ShouldBe(6);
+    }
+
+    private static Context ContextWithCastingLampAndCube()
+    {
+        var context = new Context();
+        var cube = new Entity(1, "cube");
+        cube.AddComponent(new TransformComponent());
+        cube.AddComponent(new ModelRendererComponent());
+        context.Register(cube);
+
+        var lamp = new Entity(2, "lamp");
+        lamp.AddComponent(new TransformComponent());
+        lamp.AddComponent(new PointLightComponent
+        {
+            Range = 10f,
+            Intensity = 1f,
+            Color = Vector4.One,
+            CastsShadow = true
+        });
+        context.Register(lamp);
+        return context;
+    }
+
+    [Fact]
+    public void RenderScene_OnePointLight_DrawsSixShadowFaces()
+    {
+        var context = ContextWithCastingLampAndCube();
+
+        var graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context,
+            Substitute.For<IGraphics2D>(),
+            graphics,
+            Substitute.For<ITextureFactory>(),
+            Substitute.For<IModelFactory>(),
+            new SceneView(ViewProjection(new Vector3(0f, 2f, 5f))));
+
+        graphics.PointShadowFaces.Count.ShouldBe(6);
+        graphics.EndPointShadowFaces.ShouldBe(6);
+        graphics.CubeDraws.ShouldBe(7);
+        graphics.Order.Count(o => o == "begin-point-shadow").ShouldBe(6);
+        graphics.Order[^2].ShouldBe("begin-scene");
+        graphics.Order[^1].ShouldBe("cube");
+    }
+
+    [Fact]
+    public void RenderScene_EditView_SkipsPointShadowFaces()
+    {
+        var context = new Context();
+        var lamp = new Entity(1, "lamp");
+        lamp.AddComponent(new TransformComponent());
+        lamp.AddComponent(new PointLightComponent { Range = 10f, CastsShadow = true });
+        context.Register(lamp);
+
+        var graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context,
+            Substitute.For<IGraphics2D>(),
+            graphics,
+            Substitute.For<ITextureFactory>(),
+            Substitute.For<IModelFactory>(),
+            new SceneView(ViewProjection(new Vector3(0f, 2f, 5f)), PointShadows: false));
+
+        graphics.PointShadowFaces.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void RenderScene_PointLight_DefaultDoesNotCast()
+    {
+        var context = new Context();
+        var lamp = new Entity(1, "lamp");
+        lamp.AddComponent(new TransformComponent());
+        lamp.AddComponent(new PointLightComponent { Range = 10f });
+        context.Register(lamp);
+
+        var graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context,
+            Substitute.For<IGraphics2D>(),
+            graphics,
+            Substitute.For<ITextureFactory>(),
+            Substitute.For<IModelFactory>(),
+            new SceneView(ViewProjection(new Vector3(0f, 2f, 5f))));
+
+        graphics.PointShadowFaces.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void RenderScene_PointLightBeyondShadowDistance_SkipsFaces()
+    {
+        var context = new Context();
+        var lamp = new Entity(1, "lamp");
+        var transform = new TransformComponent();
+        transform.SetWorldTransform(Matrix4x4.CreateTranslation(LightingMath.PointShadowDistance + 1f, 0f, 0f));
+        lamp.AddComponent(transform);
+        lamp.AddComponent(new PointLightComponent { Range = 10f, CastsShadow = true });
+        context.Register(lamp);
+
+        var graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context,
+            Substitute.For<IGraphics2D>(),
+            graphics,
+            Substitute.For<ITextureFactory>(),
+            Substitute.For<IModelFactory>(),
+            new SceneView(ViewProjection(Vector3.Zero), Vector3.Zero));
+
+        graphics.PointShadowFaces.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void RenderScene_PointLightAtNearRange_SkipsShadowFaces()
+    {
+        var context = new Context();
+        var lamp = new Entity(1, "lamp");
+        lamp.AddComponent(new TransformComponent());
+        lamp.AddComponent(new PointLightComponent { Range = LightingMath.PointShadowNear });
+        context.Register(lamp);
+
+        var graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context,
+            Substitute.For<IGraphics2D>(),
+            graphics,
+            Substitute.For<ITextureFactory>(),
+            Substitute.For<IModelFactory>(),
+            new SceneView(ViewProjection(new Vector3(0f, 2f, 5f))));
+
+        graphics.PointShadowFaces.ShouldBeEmpty();
+        graphics.EndPointShadowFaces.ShouldBe(0);
     }
 
     [Fact]
@@ -228,7 +483,8 @@ public class SceneRenderPipelineShadowTests
 
         var graphics = RenderCube(
             Matrix4x4.CreateTranslation(Unproject(inverseLight, 0.95f, 0f, 0.5f)),
-            viewProjection);
+            viewProjection,
+            new SceneView(viewProjection, eye, DirectionalShadowCasterMaxDistance: 0f));
 
         graphics.CubeDraws.ShouldBe(1);
         graphics.Order.ShouldBe(["shadow-off", "begin-shadow", "cube", "end-shadow", "shadow-on", "begin-scene"]);
@@ -263,7 +519,78 @@ public class SceneRenderPipelineShadowTests
         model.Dispose();
     }
 
-    private static RecordingGraphics3D RenderCube(Matrix4x4 world, Matrix4x4 viewProjection)
+    [Fact]
+    public void RenderScene_SameMesh_DrawsOneInstanceBatch()
+    {
+        var mesh = new Mesh("part");
+        var model = new Model(@"C:\prop.glb", [mesh]);
+        var models = Substitute.For<IModelFactory>();
+        models.Create(Arg.Any<string>()).Returns(model);
+
+        var context = new Context();
+        RegisterProp(context, 1, overrideMaterial: false);
+        RegisterProp(context, 2, overrideMaterial: false);
+
+        var graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context,
+            Substitute.For<IGraphics2D>(),
+            graphics,
+            Substitute.For<ITextureFactory>(),
+            models,
+            new SceneView(ViewProjection(new Vector3(0f, 2f, 5f))));
+
+        graphics.MeshInstanceCounts.ShouldBe([2]);
+        model.Dispose();
+    }
+
+    [Fact]
+    public void RenderScene_DifferentFactors_SplitsInstanceBatches()
+    {
+        var mesh = new Mesh("part") { MetallicFactor = 0.3f, RoughnessFactor = 0.6f };
+        var model = new Model(@"C:\prop.glb", [mesh]);
+        var models = Substitute.For<IModelFactory>();
+        models.Create(Arg.Any<string>()).Returns(model);
+
+        var context = new Context();
+        RegisterProp(context, 1, overrideMaterial: false);
+        RegisterProp(context, 2, overrideMaterial: true);
+
+        var graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context,
+            Substitute.For<IGraphics2D>(),
+            graphics,
+            Substitute.For<ITextureFactory>(),
+            models,
+            new SceneView(ViewProjection(new Vector3(0f, 2f, 5f))));
+
+        graphics.MeshInstanceCounts.Count.ShouldBe(2);
+        graphics.MeshInstanceCounts.Sum().ShouldBe(2);
+        model.Dispose();
+    }
+
+    [Fact]
+    public void PackInstance_TransposesSoAttributeColumnsMatchUniformUpload()
+    {
+        var packed = Graphics3D.PackInstance(new MeshDrawInstance
+        {
+            Transform = Matrix4x4.CreateTranslation(3f, 4f, 5f),
+            EntityId = 7
+        });
+
+        Unsafe.SizeOf<MeshInstanceData>().ShouldBe(144);
+        packed.EntityId.ShouldBe(7);
+        packed.Model.M14.ShouldBe(3f);
+        packed.Model.M24.ShouldBe(4f);
+        packed.Model.M34.ShouldBe(5f);
+        packed.Model.M41.ShouldBe(0f);
+    }
+
+    private static RecordingGraphics3D RenderCube(
+        Matrix4x4 world,
+        Matrix4x4 viewProjection,
+        SceneView? view = null)
     {
         var context = SceneWithSun();
         var cube = new Entity(1, "cube");
@@ -280,7 +607,7 @@ public class SceneRenderPipelineShadowTests
             graphics,
             Substitute.For<ITextureFactory>(),
             Substitute.For<IModelFactory>(),
-            new SceneView(viewProjection));
+            view ?? new SceneView(viewProjection));
         return graphics;
     }
 
@@ -325,6 +652,21 @@ public class SceneRenderPipelineShadowTests
         return mesh;
     }
 
+    private static void RegisterProp(Context context, int id, bool overrideMaterial)
+    {
+        var entity = new Entity(id, "prop");
+        entity.AddComponent(new TransformComponent());
+        entity.AddComponent(new ModelRendererComponent
+        {
+            ModelPath = @"C:\prop.glb",
+            Metallic = 1f,
+            Roughness = 0f,
+            Ao = 0f,
+            OverrideMaterial = overrideMaterial
+        });
+        context.Register(entity);
+    }
+
     private static Matrix4x4 ViewProjection(Vector3 eye)
     {
         var forward = Vector3.Normalize(new Vector3(0f, -0.3f, -1f));
@@ -345,6 +687,7 @@ public class SceneRenderPipelineShadowTests
         public int BeginScenes { get; private set; }
         public int CubeDraws { get; private set; }
         public int MeshDraws { get; private set; }
+        public List<int> MeshInstanceCounts { get; } = [];
         public List<(float Metallic, float Roughness, float Ao)> CubeFactors { get; } = [];
         public List<(float Metallic, float Roughness, float Ao)> MeshFactors { get; } = [];
 
@@ -366,6 +709,32 @@ public class SceneRenderPipelineShadowTests
             Order.Add("end-shadow");
         }
 
+        public List<Matrix4x4> PointShadowFaces { get; } = [];
+        public List<int> CachedPointShadowUses { get; } = [];
+        public int EndPointShadowFaces { get; private set; }
+
+        public bool BeginPointShadowFace(
+            int lightIndex, int entityId, int face,
+            Matrix4x4 viewProjection, Vector3 lightPosition, float range)
+        {
+            PointShadowFaces.Add(viewProjection);
+            Order.Add("begin-point-shadow");
+            return true;
+        }
+
+        public bool UseCachedPointShadow(int lightIndex, int entityId)
+        {
+            CachedPointShadowUses.Add(entityId);
+            Order.Add("use-cached-point-shadow");
+            return true;
+        }
+
+        public void EndPointShadowFace()
+        {
+            EndPointShadowFaces++;
+            Order.Add("end-point-shadow");
+        }
+
         public void BeginScene(in SceneView view)
         {
             BeginScenes++;
@@ -385,9 +754,26 @@ public class SceneRenderPipelineShadowTests
         public void DrawMesh(Matrix4x4 transform, Mesh mesh, Vector4 tint, int entityId = -1,
             float metallic = 0f, float roughness = 0.5f, float ao = 1f)
         {
+            DrawMeshInstances(mesh, [new MeshDrawInstance
+            {
+                Transform = transform,
+                EntityId = entityId,
+                Tint = tint,
+                Metallic = metallic,
+                Roughness = roughness,
+                Ao = ao
+            }]);
+        }
+
+        public void DrawMeshInstances(Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances)
+        {
             MeshDraws++;
-            MeshFactors.Add((metallic, roughness, ao));
-            Order.Add("mesh");
+            MeshInstanceCounts.Add(instances.Length);
+            foreach (var instance in instances)
+            {
+                MeshFactors.Add((instance.Metallic, instance.Roughness, instance.Ao));
+                Order.Add("mesh");
+            }
         }
 
         public void SetAmbientLight(Vector3 color, float strength) { }

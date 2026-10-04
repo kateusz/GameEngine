@@ -64,6 +64,14 @@
       <Link>assets\shaders\OpenGL\depth.frag</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="..\..\Engine\assets\shaders\OpenGL\pointDepth.vert">
+      <Link>assets\shaders\OpenGL\pointDepth.vert</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\Engine\assets\shaders\OpenGL\pointDepth.frag">
+      <Link>assets\shaders\OpenGL\pointDepth.frag</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>
