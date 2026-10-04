@@ -2,7 +2,7 @@
 
 See [Scripting Tiers](scripting-tiers.md) for components vs systems.
 
-Game logic is C# under `assets/scripts/`. The editor compiles it to `GameAssembly_{guid}.dll` under `.engine/` (`GameAssemblyCompiler.GetNextEditorBuildPath`). Recompile on project open, Content Browser create/edit, and **Play**. External `.cs` saves are not watched — [Scripting Lifecycle](../../architecture/scripting-lifecycle.md).
+Game logic is C# under `assets/scripts/`. The editor compiles it to `GameAssembly_{guid}.dll` under `.engine/` (`GameAssemblyCompiler.GetNextEditorBuildPath`). Recompile on project open, Content Browser **Add Component** / **Add System**, and **Play**. Saving `.cs` files in an external IDE does **not** auto-reload until you trigger a compile (e.g. press Play) — [Scripting Lifecycle](../../architecture/scripting-lifecycle.md).
 
 ## Create a system
 

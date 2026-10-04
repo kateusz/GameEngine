@@ -45,13 +45,17 @@ Import keeps the Assimp / runtime-mesh node graph (transforms are not baked into
 
 Opaque 3D draws are **frustum-culled**. Optional **visibility zones**: add `VisibilityZoneComponent` (local AABB) on a zone entity; set `ModelRendererComponent.VisibilityZoneEntityId` to that entity’s id so the mesh only draws while the camera is inside the zone.
 
-**Supported today:** triangle meshes, albedo, normal, metallic-roughness, and occlusion maps, Cook-Torrance direct lighting, mesh instancing, directional/point shadows. **Not supported:** image-based lighting, skinning, animation clips, transparent mesh sort.
+**Supported today:** triangle meshes, albedo, normal, metallic-roughness, and occlusion maps, Cook-Torrance direct lighting, mesh instancing, directional/point shadows. **Not supported:** image-based lighting, skinning, animation clips, transparent mesh sort, spot lights.
 
 Put models under `assets/models/`.
 
+### Importing models in the editor
+
+Dropping a `.glb` / `.gltf` / `.fbx` on the viewport or assigning a model on `ModelRendererComponent` can **spawn a hierarchy** (meshes as child entities, optional lights as entities with `PointLightComponent` / `DirectionalLightComponent`). Assimp imports **point** and **directional** lights from the file; **spot** lights are skipped. Add `AmbientLightComponent` manually if the scene needs ambient fill.
+
 ## Lights
 
-3D shading combines ambient, directional, and point lights (Cook-Torrance direct lighting; no image-based lighting). The frame uses the first ambient light, the first directional light, and the first eight point lights it visits. Lights stored on an imported model are not used unless those components exist.
+3D shading combines ambient, directional, and point lights (Cook-Torrance direct lighting; no image-based lighting). The frame uses the first ambient light, the first directional light, and the first eight point lights it visits. Only entities with light **components** contribute — either placed by hand or created by model import.
 
 | Component | Limit | Notes |
 |-----------|-------|--------|

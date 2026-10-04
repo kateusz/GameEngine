@@ -2,6 +2,8 @@
 
 ## Overview
 
+The Content Browser lives in the **bottom panel** tab bar under the viewport ([Scene Editor](scene-editor.md#bottom-panel)). Folder tree on the left, asset grid on the right.
+
 To navigate into a folder from the grid, double-click it. When you are inside a subdirectory, a back arrow button (`<-`) appears at the top of the panel — click it to move up to the parent directory. You cannot navigate above the root `assets` directory.
 
 ## Supported Asset Types
@@ -24,10 +26,11 @@ All drop targets accept only files with matching extensions — dropping an inco
 
 | Drag source | Drop target | Result |
 |-------------|-------------|--------|
-| `.png` / `.jpg` texture | SpriteRendererComponent texture field | Assigns the texture (drag-drop or asset picker) |
-| `.glb` / `.gltf` / `.fbx` | ModelRendererComponent model field | Assigns the static mesh |
-| `.wav` / `.ogg` audio file | AudioSourceComponent audio clip field | Assigns the audio clip |
-| `.prefab` prefab file | Scene Hierarchy panel (onto existing entity) | Applies prefab data to that entity |
+| `.png` / `.jpg` texture | Viewport or Sprite/SubTexture texture field | Creates or assigns sprite rendering |
+| `.glb` / `.gltf` / `.fbx` | Viewport | Spawns imported **entity hierarchy** (meshes + point/directional lights where supported) |
+| `.glb` / `.gltf` / `.fbx` | ModelRendererComponent model field | Imports hierarchy on that entity (undoable) or bulk-assigns path in multi-select |
+| `.wav` / `.ogg` audio file | Viewport or AudioSource clip field | Assigns audio |
+| `.prefab` prefab file | Scene Hierarchy (onto existing entity) | Applies prefab v2 subtree to that entity |
 | `.scene` scene file | Viewport | Opens the scene |
 
 The Content Browser passes the asset's path relative to the `assets` directory as the drag-and-drop payload. Drop targets resolve the full path by combining this relative path with the project's assets root.

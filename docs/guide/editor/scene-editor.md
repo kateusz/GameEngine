@@ -1,23 +1,42 @@
 # Scene Editor
 
+Docked ImGui layout: **Scene Hierarchy** and **Properties** beside the **viewport**, with a thin **bottom tab bar** (Console, Content Browser) under the viewport column.
+
+## Menus
+
+| Menu | Common actions |
+|------|----------------|
+| **Project** | New / Open / Close; recent projects; **Settings** (`game.config.json`); **Export…** (publish) |
+| **Scene** | New / Open / Save / Close; **Settings** (scene background color) |
+| **View** | Command palette, reset camera, toggle **rulers**, toggle **Show Debug** (Stats panel) |
+| **Editor** | **Settings** — follow viewport selection in hierarchy, collider debug, FPS counter, FXAA, autosave interval |
+| **Help** | Keyboard shortcuts dialog |
+
+**Command palette** (`Ctrl+Shift+P`) — run menu commands and **jump to entity** by name.
+
+---
 
 ## Scene Hierarchy Panel
 
-The Scene Hierarchy panel shows entities in a **parent/child tree**. Root entities appear at the top level; children are indented under their parent.
+Parent/child **entity tree** with:
 
-- **Select an entity** by clicking its name.
-- **Search** using the filter box at the top — matching entities stay visible with ancestors expanded.
-- **Drag and drop** an entity onto another to reparent; drop on empty space to promote to root.
-- **Right-click** on empty space in the panel to open the context menu:
-  - **Create Empty Entity** — adds a new empty entity to the scene.
-- **Right-click** a selected entity to **Delete Entity**, or press `Del`.
-- **Duplicate** the selected entity with `Ctrl+D`.
+- **Search** (pinned at top) — filter by name; ancestors of matches stay expanded.
+- **Component-type filter** — show only entities that have selected component types.
+- **Select** — click; **Shift** range; **Ctrl** toggle multi-select.
+- **Drag-and-drop** — reparent one or many selected entities; drop on empty space to move to root.
+- **+** menu / context menus — create empty entity, duplicate (`Ctrl+D`), delete (`Del`).
+- **Scroll to selected** — after a **viewport pick** when **Editor → Settings → Follow viewport selection in Scene Hierarchy** is on (default), or when the command palette jumps to an entity.
+- **Visible** — per-entity flag on `TransformComponent` (cascades to `EffectiveVisible`).
+
+Clicking an entity in the hierarchy **frames** the edit camera on that entity’s world position (viewport pick selects without reframing).
 
 ---
 
 ## Viewport
 
-The viewport is the main visual canvas where you see and interact with your scene.
+### Scene dimension
+
+The viewport toolbar includes **2D** / **3D** toggles for the active scene’s `Dimension`. **3D** scenes can show a ground grid when the grid toggle is on.
 
 ### Navigation
 
@@ -33,69 +52,82 @@ The viewport is the main visual canvas where you see and interact with your scen
 | Pan (Alt) | Alt + middle mouse drag |
 | Slide | Left + right mouse drag |
 | Zoom (wheel) | Scroll wheel |
-| Reset camera | Ctrl+R or View → Reset Camera |
-| Select entity | Left-click on entity (Select mode, or while using Move/Scale/Rotate tools) |
+| Reset camera | `Ctrl+R` or **View → Reset Camera** |
+| Select entity | Left-click (Select mode or while using Move/Scale/Rotate) |
 
-### Gizmo Tools
+### Gizmo tools
 
-Gizmo tools control how you interact with selected entities directly in the viewport. Switch between them using keyboard shortcuts.
+| Tool | Shortcut | Notes |
+|------|----------|--------|
+| Select | `Shift+Q` | Pick without moving |
+| Move | `Shift+W` | ImGuizmo translate |
+| Scale | `Shift+R` | ImGuizmo scale |
+| Rotate | *(toolbar only)* | ImGuizmo rotate (Z ring in 2D workflow) |
+| Ruler | `Shift+E` | Measure; `Escape` clears |
 
-| Tool | Shortcut | Behavior |
-|------|----------|----------|
-| Select | `Shift+Q` | Click entities to select them without moving them. |
-| Move | `Shift+W` | Drag the directional arrows to translate the entity's position. |
-| Scale | `Shift+R` | Drag the handles to resize the entity. |
-| Rotate | *(toolbar only)* | Drag the Z-axis ring to rotate the entity. |
-| Ruler | `Shift+E` | Click and drag to measure distances in the viewport. Press `Escape` to clear the measurement. |
+**Grid** — 2D overlay and (in 3D scenes) 3D grid: toggle on the **viewport toolbar**, not the View menu.
 
-The toolbar also provides a **2D Grid** toggle. Grid and ruler visibility can be changed from the **View** menu.
+**Rulers** — top/left edges; toggle **View → Show Rulers**.
 
----
+**Edit-only overlays** — selection outline (hidden in Play mode), optional visibility-zone wireframes, optional collider bounds (**Editor → Settings**).
 
-## Play / Stop Controls
+### Drag and drop
 
-The toolbar at the top of the editor provides controls for entering and exiting runtime mode. **Ctrl+Shift+P** opens the **Command Palette** to search and run editor commands.
-
-- **Play** - Starts the simulation. Physics begins, scripts execute, and the game camera takes over the viewport. Requires an open project with an `assets/scripts/` directory. Scripts are recompiled before play starts.
-- **Stop** - Ends the simulation and returns to edit mode. The scene is reloaded from the last **saved** file on disk, reverting any changes that occurred during play.
-- **Restart** - Stops the current simulation and immediately starts it again. Requires the scene to have been saved at least once.
-
-**Important:** Play snapshots the current editor state (including unsaved edits) into a temporary file. Stop reloads the saved scene path on disk — not the pre-play in-memory state. Save your scene (`Ctrl+S`) before pressing Play if you want Stop to return to that version.
+Drop **textures**, **audio**, **prefabs**, and **3D models** into the viewport. Models spawn an imported entity hierarchy (meshes and supported lights). See [Content Browser](content-browser.md).
 
 ---
 
-## Scene Operations
+## Multi-select and Properties
+
+With multiple entities selected, **Properties** edits fields in bulk where values match (mixed values show blank controls). Component remove buttons are hidden. Details: [Component Inspector](component-inspector.md#overview).
+
+---
+
+## Play / Stop
+
+Toolbar **Play / Stop / Restart**:
+
+- **Play** — recompiles scripts, then runs physics and `IGameSystem` / components using the **Primary** `CameraComponent`. Requires `assets/scripts/`.
+- **Stop** — reloads the last **saved** `.scene` from disk (runtime edits discarded unless you saved).
+- **Restart** — stop and play again; needs a saved scene path.
+
+Play snapshots unsaved in-memory state for the session; **Stop** still reloads the on-disk file. **Ctrl+S** before Play if Stop should return to what you see.
+
+---
+
+## Scene operations
 
 | Action | Shortcut |
 |--------|----------|
 | New scene | `Ctrl+N` |
 | Save scene | `Ctrl+S` |
+| Open scene | **Scene → Open…** or drag `.scene` onto viewport |
 
-`Ctrl+N` opens a name/settings popup for the new scene. It does not prompt to save the current scene first — save manually if needed.
-
----
-
-## Other Panels
-
-### Console
-
-The Console panel displays output from `Console.WriteLine()` calls inside your scripts as well as internal engine log messages. It is the primary tool for debugging script behavior and tracking runtime events. Messages are color-coded by severity: info, warning, and error.
-
-### Stats
-
-The **Stats** panel (open via **View → Show Stats**) reports rendering workload metrics including draw call counts and vertex counts per frame. When **Show FPS Counter** is enabled in Editor Settings, frame time and FPS are also shown in this panel.
+`Ctrl+N` does not prompt to save the current scene.
 
 ---
 
-## Viewport Grid and Rulers
+## Bottom panel
 
-The viewport renders a background grid that spans the world coordinate space. The grid provides a consistent visual reference for positioning and aligning entities.
-
-Rulers run along the top and left edges of the viewport and display coordinate positions corresponding to the current camera view. As you pan and zoom, the rulers update to reflect the visible coordinate range.
+Tabs under the viewport: **Console** and **Content Browser**. Click a tab to expand or collapse the panel (Godot-style). Console: script `Console.WriteLine`, engine logs, filters, search, auto-scroll.
 
 ---
 
-## Next Steps
+## Stats (debug)
 
-- [Component Inspector](component-inspector.md) - view and edit the components attached to a selected entity.
-- [Keyboard Shortcuts](shortcuts.md) - a complete reference of all editor keyboard shortcuts.
+**View → Show Debug** opens the **Stats** window: 2D or 3D renderer metrics (draw calls, vertices, culling counts in 3D), editor camera info, and optional FPS/frame history when **Show FPS Counter** is enabled in **Editor → Settings**.
+
+---
+
+## Publish
+
+**Project → Export…** builds a standalone **Runtime** executable for the chosen RID (defaults to host: Windows/macOS x64 or ARM64). Output includes `game.config.json` and packaged assets. See [Scenes and Prefabs](../concepts/scenes-and-prefabs.md) for player behavior.
+
+---
+
+## Next steps
+
+- [Component Inspector](component-inspector.md)
+- [Content Browser](content-browser.md)
+- [Keyboard Shortcuts](shortcuts.md)
+- [Cameras and Rendering](../concepts/cameras-and-rendering.md)
