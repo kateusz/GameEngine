@@ -9,5 +9,7 @@ public enum ShaderId
     Depth,
     PointDepth,
     Fxaa,
-    SelectionOutline
+    SelectionOutline,
+    EquirectToCube,
+    Skybox
 }

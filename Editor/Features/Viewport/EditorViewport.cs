@@ -324,6 +324,7 @@ public sealed class EditorViewport(
     {
         graphics2D.ResetStats();
         graphics3D.ResetStats();
+        graphics3D.SetSkybox(sceneContext.ActiveScene?.Skybox);
         _frameBuffer.Bind();
 
         var clearColor = sceneContext.ActiveScene?.BackgroundColor ?? Vector4.One;
@@ -337,10 +338,17 @@ public sealed class EditorViewport(
                 if (sceneContext.ActiveScene is { } scene)
                 {
                     scene.UpdateWorldTransforms();
+                    var viewMatrix = _editorCamera.GetViewMatrix();
+                    var projection = _editorCamera.GetProjectionMatrix();
+                    var skyView = viewMatrix;
+                    skyView.M41 = 0f;
+                    skyView.M42 = 0f;
+                    skyView.M43 = 0f;
                     var view = new SceneView(
-                        _editorCamera.GetViewProjectionMatrix(),
+                        viewMatrix * projection,
                         _editorCamera.GetPosition(),
-                        PointShadows: false);
+                        PointShadows: false,
+                        SkyViewProjection: skyView * projection);
                     SceneRenderPipeline.RenderScene(scene.Context, graphics2D, graphics3D, textureFactory, modelFactory, view);
                     RenderEditor2DOverlays(scene.Context, view);
                 }

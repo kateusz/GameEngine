@@ -175,6 +175,39 @@ public class PublishedAssetValidatorTests : IDisposable
         result.Success.ShouldBeTrue();
     }
 
+    [Fact]
+    public void ValidateAssetReferences_FailsWhenSkyboxMissing()
+    {
+        var assets = CreateAssetsLayout();
+        WriteScene(assets, """
+            {
+              "Skybox": "sky/missing.png",
+              "Entities": []
+            }
+            """);
+
+        var result = PublishedAssetValidator.ValidateAssetReferences(assets);
+
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage.ShouldNotBeNull().ShouldContain("sky/missing.png");
+    }
+
+    [Fact]
+    public void ValidateAssetReferences_IgnoresEmptySkybox()
+    {
+        var assets = CreateAssetsLayout();
+        WriteScene(assets, """
+            {
+              "Skybox": "",
+              "Entities": []
+            }
+            """);
+
+        var result = PublishedAssetValidator.ValidateAssetReferences(assets);
+
+        result.Success.ShouldBeTrue();
+    }
+
     private string CreateAssetsLayout()
     {
         var assets = Path.Combine(_tempRoot, "assets");

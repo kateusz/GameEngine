@@ -22,9 +22,15 @@ public static class CameraViews
             return false;
         }
 
+        var projection = camera.GetProjectionMatrix();
+        var skyView = viewMatrix;
+        skyView.M41 = 0f;
+        skyView.M42 = 0f;
+        skyView.M43 = 0f;
         view = new SceneView(
-            viewMatrix * camera.GetProjectionMatrix(),
-            new Vector3(transform.M41, transform.M42, transform.M43));
+            viewMatrix * projection,
+            new Vector3(transform.M41, transform.M42, transform.M43),
+            SkyViewProjection: skyView * projection);
         return true;
     }
 }

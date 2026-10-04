@@ -19,6 +19,7 @@ internal sealed class SceneSerializer(
     private const string ComponentsKey = "Components";
     private const string NameKey = "Name";
     private const string IdKey = "Id";
+    private const string SkyboxKey = "Skybox";
 
     private readonly JsonSerializerOptions _options = serializerOptions.Options;
 
@@ -53,6 +54,9 @@ internal sealed class SceneSerializer(
             [DimensionKey] = JsonSerializer.SerializeToNode(scene.Dimension, _options),
             [EntitiesKey] = new JsonArray()
         };
+        
+        if (!string.IsNullOrWhiteSpace(scene.Skybox))
+            jsonObj[SkyboxKey] = scene.Skybox;
 
         var jsonEntities = GetJsonArray(jsonObj, EntitiesKey);
         foreach (var entity in scene.Entities)
@@ -103,6 +107,14 @@ internal sealed class SceneSerializer(
     {
         if (jsonObj.TryGetPropertyValue(BackgroundColorKey, out var backgroundColorNode) && backgroundColorNode != null)
             scene.BackgroundColor = backgroundColorNode.Deserialize<Vector4>(_options)!;
+        
+        scene.Skybox = "";
+        if (jsonObj.TryGetPropertyValue(SkyboxKey, out var skyboxNode) && skyboxNode != null)
+        {
+            var text = skyboxNode.Deserialize<string>(_options);
+            if (!string.IsNullOrWhiteSpace(text))
+                scene.Skybox = text;
+        }
 
         if (jsonObj.TryGetPropertyValue(DimensionKey, out var dimensionNode) && dimensionNode != null)
             scene.Dimension = dimensionNode.Deserialize<SceneDimension>(_options)!;

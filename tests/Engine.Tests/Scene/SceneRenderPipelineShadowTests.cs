@@ -41,6 +41,27 @@ public class SceneRenderPipelineShadowTests
     }
 
     [Fact]
+    public void RenderScene_DrawsSkyBeforeSprites()
+    {
+        var graphics = new RecordingGraphics3D();
+        var graphics2D = Substitute.For<IGraphics2D>();
+        graphics2D.When(g => g.BeginScene(Arg.Any<SceneView>())).Do(_ => graphics.Order.Add("begin-2d"));
+
+        SceneRenderPipeline.RenderScene(
+            new Context(),
+            graphics2D,
+            graphics,
+            Substitute.For<ITextureFactory>(),
+            Substitute.For<IModelFactory>(),
+            new SceneView(ViewProjection(new Vector3(0f, 2f, 5f))));
+
+        var sky = graphics.Order.IndexOf("sky");
+        var sprites = graphics.Order.IndexOf("begin-2d");
+        sky.ShouldBeGreaterThanOrEqualTo(0);
+        sprites.ShouldBeGreaterThan(sky);
+    }
+
+    [Fact]
     public void RenderScene_DirectionalLight_DirectionalShadowsDisabled_SkipsShadowPass()
     {
         var context = new Context();
@@ -101,7 +122,7 @@ public class SceneRenderPipelineShadowTests
         graphics.EndShadowPasses.ShouldBe(1);
         graphics.CubeDraws.ShouldBe(2);
         graphics.Shadows.ShouldBe([(Matrix4x4.Identity, false), (expected, true)]);
-        graphics.Order.ShouldBe(["shadow-off", "begin-shadow", "cube", "end-shadow", "shadow-on", "begin-scene", "cube"]);
+        graphics.Order.ShouldBe(["sky", "shadow-off", "begin-shadow", "cube", "end-shadow", "shadow-on", "begin-scene", "cube"]);
     }
 
     [Fact]
@@ -525,7 +546,7 @@ public class SceneRenderPipelineShadowTests
         var graphics = RenderCube(Matrix4x4.CreateTranslation(eye + forward * 80f), ViewProjection(eye));
 
         graphics.CubeDraws.ShouldBe(1);
-        graphics.Order.ShouldBe(["shadow-off", "begin-shadow", "end-shadow", "shadow-on", "begin-scene", "cube"]);
+        graphics.Order.ShouldBe(["sky", "shadow-off", "begin-shadow", "end-shadow", "shadow-on", "begin-scene", "cube"]);
     }
 
     [Fact]
@@ -543,7 +564,7 @@ public class SceneRenderPipelineShadowTests
             new SceneView(viewProjection, eye, DirectionalShadowCasterMaxDistance: 0f));
 
         graphics.CubeDraws.ShouldBe(1);
-        graphics.Order.ShouldBe(["shadow-off", "begin-shadow", "cube", "end-shadow", "shadow-on", "begin-scene"]);
+        graphics.Order.ShouldBe(["sky", "shadow-off", "begin-shadow", "cube", "end-shadow", "shadow-on", "begin-scene"]);
     }
 
     [Fact]
@@ -571,7 +592,7 @@ public class SceneRenderPipelineShadowTests
             new SceneView(ViewProjection(new Vector3(0f, 2f, 5f))));
 
         graphics.MeshDraws.ShouldBe(2);
-        graphics.Order.ShouldBe(["shadow-off", "begin-shadow", "mesh", "end-shadow", "shadow-on", "begin-scene", "mesh"]);
+        graphics.Order.ShouldBe(["sky", "shadow-off", "begin-shadow", "mesh", "end-shadow", "shadow-on", "begin-scene", "mesh"]);
         model.Dispose();
     }
 
@@ -795,6 +816,10 @@ public class SceneRenderPipelineShadowTests
             BeginScenes++;
             Order.Add("begin-scene");
         }
+
+        public void SetSkybox(string? path) { }
+
+        public void DrawSkybox(Matrix4x4 skyViewProjection) => Order.Add("sky");
 
         public void EndScene() { }
 

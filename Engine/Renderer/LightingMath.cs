@@ -24,6 +24,10 @@ internal static class LightingMath
     public const int PointShadowFaceCount = 6;
     private const float ShadowExtentEpsilon = 1e-4f;
     private const float ShadowUpParallel = 0.99f;
+    public const int SkyCaptureFaceSize = 512;
+    public const float SkyCaptureFar = 10f;
+    public const float EquirectU = 0.1591f;
+    public const float EquirectV = 0.3183f;
 
     private static readonly Vector3[] PointShadowDirections =
     [
@@ -129,6 +133,15 @@ internal static class LightingMath
 
         lightViewProjection = lightView * BuildLightOrtho(min, max);
         return true;
+    }
+    
+    public static Vector2 EquirectUv(Vector3 direction)
+    {
+        var d = Vector3.Normalize(direction);
+        var x = d.X == 0f ? 0f : d.X;
+        var z = d.Z == 0f ? 0f : d.Z;
+        var uv = new Vector2(MathF.Atan2(z, x), MathF.Asin(d.Y));
+        return uv * new Vector2(EquirectU, EquirectV) + new Vector2(0.5f, 0.5f);
     }
 
     private static void SnapAxis(ref float min, ref float max)

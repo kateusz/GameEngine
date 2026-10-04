@@ -34,5 +34,7 @@ internal sealed class MeshDrawRecordingGraphics3D : IGraphics3D
     public void ResetStats() { }
     public Engine.Renderer.Statistics GetStats() => new();
     public void Init() { }
+    public void SetSkybox(string? path) { }
+    public void DrawSkybox(Matrix4x4 skyViewProjection) { }
     public void Dispose() { }
 }

@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
+using Engine.Project;
 using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Meshes;
 using Engine.Renderer.Shaders;
@@ -30,6 +31,8 @@ internal sealed class Graphics3D(
     private IShader _modelShader = null!;
     private IShader _depthShader = null!;
     private IShader _pointDepthShader = null!;
+    private IShader _equirectShader = null!;
+    private IShader _skyShader = null!;
     private Mesh _cubeMesh = null!;
     private IFrameBuffer? _shadowMap;
     private readonly Dictionary<int, IFrameBuffer> _pointShadowMapsByEntity = new();
@@ -55,6 +58,12 @@ internal sealed class Graphics3D(
     private Statistics _stats = new();
     private bool _disposed;
 
+    // ponytail: scale 4 puts a face at 2 units. PerspectiveNear >= 2 clips the sky.
+    // Upgrade path: scale from that camera's near and far.
+    private const float SkyScale = 4f;
+    private uint _skyCubemap;
+    private string _skySource = "";
+
     public void Init()
     {
         _cubeShader = shaderFactory.Create(ShaderId.Cube);
@@ -75,6 +84,14 @@ internal sealed class Graphics3D(
         _pointDepthShader.Bind();
         _pointDepthShader.SetInt("u_DiffuseMap", 0);
         _pointDepthShader.Unbind();
+        _equirectShader = shaderFactory.Create(ShaderId.EquirectToCube);
+        _skyShader = shaderFactory.Create(ShaderId.Skybox);
+        _equirectShader.Bind();
+        _equirectShader.SetInt("u_Equirect", 0);
+        _equirectShader.Unbind();
+        _skyShader.Bind();
+        _skyShader.SetInt("u_Skybox", 0);
+        _skyShader.Unbind();
         _modelShader.Bind();
         _modelShader.SetInt("u_DiffuseMap", 0);
         _modelShader.SetInt("u_MetallicRoughnessMap", 1);
@@ -168,6 +185,108 @@ internal sealed class Graphics3D(
         rendererApi.SetCullFrontFaces(false);
         _pointShadowPass = false;
         _shadowPass = false;
+    }
+
+    public void SetSkybox(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            ClearSky();
+            return;
+        }
+
+        if (string.Equals(path, _skySource, StringComparison.Ordinal))
+            return;
+
+        var full = Path.IsPathRooted(path) ? Path.GetFullPath(path) : PathBuilder.Resolve(path);
+        if (!rendererApi.TryCreateSkyCapture(full, out var cubemapId, out var capture))
+        {
+            _skySource = path;
+            return;
+        }
+
+        var kept = false;
+        using (capture)
+        {
+            Span<Matrix4x4> faces = stackalloc Matrix4x4[LightingMath.PointShadowFaceCount];
+            if (LightingMath.TryBuildPointShadowFaces(Vector3.Zero, LightingMath.SkyCaptureFar, faces)
+                && DrawCapture(capture, faces))
+            {
+                ClearSky();
+                _skyCubemap = cubemapId;
+                _skySource = path;
+                kept = true;
+            }
+        }
+
+        if (kept)
+            return;
+
+        rendererApi.DeleteTexture(cubemapId);
+        _skySource = path;
+    }
+
+    public void DrawSkybox(Matrix4x4 skyViewProjection)
+    {
+        if (_skyCubemap == 0)
+            return;
+
+        rendererApi.SetDepthTest(true);
+        rendererApi.SetDepthWrite(false);
+        rendererApi.SetFaceCulling(false);
+        try
+        {
+            _skyShader.Bind();
+            _skyShader.SetMat4(ViewProjectionUniform, skyViewProjection);
+            _skyShader.SetFloat("u_Scale", SkyScale);
+            rendererApi.BindTextureCube(_skyCubemap, 0);
+            _cubeMesh.Bind();
+            rendererApi.DrawIndexed(_cubeMesh.GetVertexArray(), (uint)_cubeMesh.GetIndexCount());
+        }
+        finally
+        {
+            rendererApi.BindTextureCube(0, 0);
+            _skyShader.Unbind();
+            rendererApi.SetFaceCulling(true);
+            rendererApi.SetDepthWrite(true);
+        }
+    }
+
+    private bool DrawCapture(ISkyCapture capture, ReadOnlySpan<Matrix4x4> faces)
+    {
+        rendererApi.SetDepthTest(true);
+        rendererApi.SetDepthWrite(true);
+        rendererApi.SetFaceCulling(false);
+        try
+        {
+            _equirectShader.Bind();
+            _equirectShader.SetFloat("u_Scale", 1f);
+            _cubeMesh.Bind();
+            for (var i = 0; i < faces.Length; i++)
+            {
+                if (!capture.BeginFace(i))
+                    return false;
+
+                _equirectShader.SetMat4(ViewProjectionUniform, faces[i]);
+                rendererApi.DrawIndexed(_cubeMesh.GetVertexArray(), (uint)_cubeMesh.GetIndexCount());
+            }
+
+            return true;
+        }
+        finally
+        {
+            _equirectShader.Unbind();
+            rendererApi.SetFaceCulling(true);
+            rendererApi.SetDepthWrite(true);
+        }
+    }
+
+    private void ClearSky()
+    {
+        if (_skyCubemap != 0)
+            rendererApi.DeleteTexture(_skyCubemap);
+        _skyCubemap = 0;
+        _skySource = "";
     }
 
     public void BeginScene(in SceneView view)
@@ -482,6 +601,7 @@ internal sealed class Graphics3D(
 
         _shadowMap?.Dispose();
         _shadowMap = null;
+        ClearSky();
         foreach (var map in _pointShadowMapsByEntity.Values)
             map.Dispose();
         _pointShadowMapsByEntity.Clear();
@@ -491,6 +611,8 @@ internal sealed class Graphics3D(
         _modelShader = null!;
         _depthShader = null!;
         _pointDepthShader = null!;
+        _equirectShader = null!;
+        _skyShader = null!;
         _cubeMesh = null!;
 
         _disposed = true;

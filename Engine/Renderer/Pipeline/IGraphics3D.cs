@@ -28,6 +28,8 @@ public interface IGraphics3D : IGraphics
         Matrix4x4 viewProjection, Vector3 lightPosition, float range);
     bool UseCachedPointShadow(int lightIndex, int entityId);
     void EndPointShadowFace();
+    void SetSkybox(string? path);
+    void DrawSkybox(Matrix4x4 skyViewProjection);
     void ResetStats();
     Statistics GetStats();
 }

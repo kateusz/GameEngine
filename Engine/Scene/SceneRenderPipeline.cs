@@ -48,6 +48,7 @@ internal static class SceneRenderPipeline
         IModelFactory  modelFactory,
         in SceneView view)
     {
+        graphics3D.DrawSkybox(view.SkyViewProjection);
         RenderSpritesAndSubTextures(context, graphics2D, textureFactory, view);
         Render3D(context, graphics3D, textureFactory, modelFactory, view);
     }

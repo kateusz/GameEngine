@@ -19,8 +19,6 @@ internal sealed class Scene : IScene
     private bool _disposed;
     private readonly SystemManager _systemManager;
     private readonly PhysicsContactQueue _physicsContactQueue;
-    private readonly IPhysicsQueries _physicsQueries;
-    private readonly ICameraQueries _cameraQueries;
 
     // parent Id → ordered child entities (insertion order). Roots are entities with no ParentComponent / null ParentId.
     private readonly Dictionary<int, List<Entity>> _childrenIndex = new();
@@ -39,17 +37,17 @@ internal sealed class Scene : IScene
         _systemManager = systemManager;
         PhysicsBodies = physicsRuntimeBodyStore;
         _physicsContactQueue = physicsContactQueue;
-        _physicsQueries = physicsQueries;
-        _cameraQueries = cameraQueries;
+        PhysicsQueries = physicsQueries;
+        CameraQueries = cameraQueries;
 
         _systemManager.RegisterSystem(new TransformHierarchySystem(UpdateWorldTransforms));
     }
 
     public IPhysicsContacts PhysicsContacts => _physicsContactQueue;
 
-    public IPhysicsQueries PhysicsQueries => _physicsQueries;
+    public IPhysicsQueries PhysicsQueries { get; }
 
-    public ICameraQueries CameraQueries => _cameraQueries;
+    public ICameraQueries CameraQueries { get; }
 
     internal PhysicsRuntimeBodyStore PhysicsBodies { get; }
 
@@ -62,6 +60,8 @@ internal sealed class Scene : IScene
     public SceneDimension Dimension { get; set; } = SceneDimension.TwoD;
 
     public IEnumerable<Entity> Entities => Context.Entities;
+    
+    public string Skybox { get; set; } = "";
 
     public Entity CreateEntity(string name)
     {

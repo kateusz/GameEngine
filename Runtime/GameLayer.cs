@@ -14,6 +14,7 @@ namespace Runtime;
 
 public class GameLayer(
     IGraphics2D graphics2D,
+    IGraphics3D graphics3D,
     ISceneContext sceneContext,
     SceneFactory sceneFactory,
     ISceneSerializer sceneSerializer,
@@ -77,6 +78,7 @@ public class GameLayer(
         var scale = gameWindow.ContentScale;
         fxaaPass.Present((uint)(size.X * scale), (uint)(size.Y * scale), () =>
         {
+            graphics3D.SetSkybox(scene.Skybox);
             graphics2D.SetClearColor(scene.BackgroundColor);
             graphics2D.Clear();
             scene.OnUpdateRuntime(timeSpan);

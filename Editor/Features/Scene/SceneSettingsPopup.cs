@@ -128,6 +128,14 @@ public class SceneSettingsPopup(
             scene.BackgroundColor = backgroundColor;
         }
 
+        var skybox = scene.Skybox;
+        if (ImGui.InputText("Skybox", ref skybox, 260))
+        {
+            scene.Skybox = string.IsNullOrWhiteSpace(skybox)
+                ? ""
+                : PathBuilder.ToAssetRelativePath(skybox.Trim());
+        }
+
         ModalDrawer.EndModal();
     }
 
