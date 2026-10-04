@@ -1,6 +1,9 @@
-﻿using Engine.Renderer.Buffers;
+﻿using Engine.Core.DI;
+using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Meshes;
+using Engine.Renderer.Models.RuntimeMesh;
+using Engine.Renderer.Textures;
 using Serilog;
 
 namespace Engine.Renderer.Models;
@@ -19,10 +22,16 @@ internal class ModelFactory : IModelFactory
 
     public ModelFactory(
         AssimpModelImporter importer,
+        ITextureFactory textureFactory,
+        EngineHostOptions hostOptions,
         IVertexArrayFactory vertexArrayFactory,
         IVertexBufferFactory vertexBufferFactory,
         IIndexBufferFactory indexBufferFactory)
-        : this(importer.Import, vertexArrayFactory, vertexBufferFactory, indexBufferFactory)
+        : this(
+            path => LoadFromRuntimeMesh(path, importer, textureFactory, hostOptions.CookRuntimeMeshesFromSource),
+            vertexArrayFactory,
+            vertexBufferFactory,
+            indexBufferFactory)
     {
     }
 
@@ -62,12 +71,6 @@ internal class ModelFactory : IModelFactory
 
     private Model? TryLoadModel(string normalizedPath)
     {
-        if (!File.Exists(normalizedPath))
-        {
-            Logger.Warning("Model file not found: {Path}", normalizedPath);
-            return null;
-        }
-
         try
         {
             var (submeshes, sceneGraph) = _import(normalizedPath);
@@ -126,6 +129,63 @@ internal class ModelFactory : IModelFactory
             Logger.Error(ex, "Failed to load model: {Path}", normalizedPath);
             return null;
         }
+    }
+
+    private static (IReadOnlyList<Mesh> Submeshes, ModelSceneNode? SceneGraph) LoadFromRuntimeMesh(
+        string normalizedPath,
+        AssimpModelImporter importer,
+        ITextureFactory textureFactory,
+        bool cookFromSource)
+    {
+        if (!RuntimeMeshPaths.IsModelSourceExtension(normalizedPath))
+        {
+            Logger.Warning("Unsupported model source extension: {Path}", normalizedPath);
+            return ([], null);
+        }
+
+        if (cookFromSource)
+        {
+            if (!File.Exists(normalizedPath))
+            {
+                Logger.Warning("Model source file not found: {Path}", normalizedPath);
+                return ([], null);
+            }
+
+            if (!EnsureRuntimeMeshUpToDate(normalizedPath, importer))
+                return ([], null);
+        }
+
+        var siblingPath = RuntimeMeshPaths.SiblingPath(normalizedPath);
+        if (!File.Exists(siblingPath))
+        {
+            Logger.Warning("Runtime mesh file not found: {Path}", siblingPath);
+            return ([], null);
+        }
+
+        var bytes = File.ReadAllBytes(siblingPath);
+        if (!RuntimeMeshReader.TryRead(bytes, out var source) || source == null)
+        {
+            Logger.Warning("Failed to read runtime mesh: {Path}", siblingPath);
+            return ([], null);
+        }
+
+        return SourceModelMaterializer.ToMeshes(source, normalizedPath, textureFactory);
+    }
+
+    private static bool EnsureRuntimeMeshUpToDate(string sourcePath, AssimpModelImporter importer)
+    {
+        var siblingPath = RuntimeMeshPaths.SiblingPath(sourcePath);
+        var stamp = RuntimeMeshStamp.FromFile(sourcePath);
+        if (File.Exists(siblingPath)
+            && RuntimeMeshReader.TryReadStamp(File.ReadAllBytes(siblingPath), out var fileStamp)
+            && fileStamp.Matches(stamp))
+            return true;
+
+        var imported = importer.ImportSource(sourcePath);
+        if (imported == null || imported.Submeshes.Count == 0)
+            return false;
+
+        return RuntimeMeshWriter.TryWrite(siblingPath, imported, stamp);
     }
 
     public void Clear()
