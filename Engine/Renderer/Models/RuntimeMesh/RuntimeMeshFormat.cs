@@ -21,6 +21,7 @@ internal static class RuntimeMeshFormat
     public const uint ImporterVersion = 1;
     public const int VertexLayoutStride = 56;
     public const int MaxMeshCount = 4096;
+    public const int MeshDecodeParallelThreshold = 32;
     public const int MaxNodeCount = 8192;
     public const int MaxLightCount = 256;
     public const int MaxStringBytes = 4096;
