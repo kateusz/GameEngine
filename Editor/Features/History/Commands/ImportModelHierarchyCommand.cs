@@ -52,7 +52,8 @@ public sealed class ImportModelHierarchyCommand(
             return true;
         }
 
-        ModelHierarchySpawner.SpawnChildren(scene, root, graph, relativeModelPath, component.Color);
+        ModelHierarchySpawner.SpawnChildren(
+            scene, root, graph, relativeModelPath, component.Color, model.Submeshes);
         return true;
     }
 

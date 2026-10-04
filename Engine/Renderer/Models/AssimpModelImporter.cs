@@ -298,8 +298,22 @@ internal sealed class AssimpModelImporter : IDisposable
             _byName.Values.SelectMany(queue => queue).ToList();
     }
 
-    private static Matrix4x4 ToEngineMatrix(Matrix4x4 assimpMatrix) =>
-        Matrix4x4.Transpose(assimpMatrix);
+    internal static Matrix4x4 ToEngineMatrix(Matrix4x4 assimpMatrix)
+    {
+        var rowTranslation = new Vector3(assimpMatrix.M41, assimpMatrix.M42, assimpMatrix.M43);
+        var colTranslation = new Vector3(assimpMatrix.M14, assimpMatrix.M24, assimpMatrix.M34);
+
+        // Silk.NET already matches System.Numerics (translation in row 4). Transposing broke GLB imports.
+        if (rowTranslation.LengthSquared() > 1e-6f || colTranslation.LengthSquared() <= 1e-6f)
+            return assimpMatrix;
+
+        // Raw Assimp aiMatrix4x4 layout: translation in column 4.
+        return new Matrix4x4(
+            assimpMatrix.M11, assimpMatrix.M12, assimpMatrix.M13, 0f,
+            assimpMatrix.M21, assimpMatrix.M22, assimpMatrix.M23, 0f,
+            assimpMatrix.M31, assimpMatrix.M32, assimpMatrix.M33, 0f,
+            colTranslation.X, colTranslation.Y, colTranslation.Z, assimpMatrix.M44);
+    }
 
     private static unsafe SourceSubmesh? ExtractSourceSubmesh(AssimpMesh* aiMesh)
     {

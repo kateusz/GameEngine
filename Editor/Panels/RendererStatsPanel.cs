@@ -9,7 +9,7 @@ public class RendererStatsPanel(ISceneContext sceneContext, IGraphics2D graphics
 {
     public bool IsVisible { get; set; } = true;
 
-    public void Draw(string hoveredEntityName, Vector3 cameraPosition, float cameraRotation, Action? renderPerformanceMonitor)
+    public void Draw(string hoveredEntityName, Vector3 cameraPosition, Vector3 focalPoint, float cameraRotation, Action? renderPerformanceMonitor)
     {
         if (!IsVisible)
             return;
@@ -24,6 +24,7 @@ public class RendererStatsPanel(ISceneContext sceneContext, IGraphics2D graphics
         
         ImGui.Text("Editor Camera:");
         ImGui.Text($"Position: ({cameraPosition.X:F2}, {cameraPosition.Y:F2}, {cameraPosition.Z:F2})");
+        ImGui.Text($"Focal: ({focalPoint.X:F2}, {focalPoint.Y:F2}, {focalPoint.Z:F2})");
         ImGui.Text($"Rotation: {cameraRotation:F1}°");
 
         ImGui.Separator();

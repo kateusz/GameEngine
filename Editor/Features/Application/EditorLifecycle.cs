@@ -3,7 +3,6 @@ using Editor.Features.History;
 using Editor.Features.Scripting;
 using Editor.Features.Project;
 using Editor.Features.Scene;
-using Editor.Features.Selection;
 using Editor.Features.Settings;
 using Editor.Features.Viewport;
 using Editor.Input;
@@ -12,7 +11,6 @@ using Engine.Core;
 using Engine.Project;
 using Engine.Renderer.Models;
 using Engine.Scene;
-using SceneComponents;
 using Serilog;
 
 namespace Editor.Features.Application;
@@ -27,7 +25,6 @@ public class EditorLifecycle(
     GameScriptWorkspace scriptWorkspace,
     ShortcutManager shortcutManager,
     EditorShortcutRegistrar shortcutRegistrar,
-    IEditorSelection selection,
     IEditorHistory history,
     IEditorViewport editorViewport,
     SceneHierarchyPanel sceneHierarchyPanel,
@@ -39,7 +36,6 @@ public class EditorLifecycle(
     private static readonly ILogger Logger = Log.ForContext<EditorLifecycle>();
 
     private Action<IScene> _sceneChangedHandler = null!;
-    private Action<Entity?, SelectionSource> _selectionChangedHandler = null!;
     private Action _projectOpenedHandler = null!;
     private Action _projectClosingHandler = null!;
     private Action _projectClosedHandler = null!;
@@ -77,10 +73,7 @@ public class EditorLifecycle(
             sceneHierarchyPanel.SetScene(newScene);
             history.Clear();
         };
-        _selectionChangedHandler = OnSelectionChanged;
-
         sceneContext.SceneChanged += _sceneChangedHandler;
-        selection.SelectionChanged += _selectionChangedHandler;
 
         editorViewport.Initialize();
 
@@ -106,20 +99,10 @@ public class EditorLifecycle(
         projectManager.ProjectOpened -= _projectOpenedHandler;
         projectManager.ProjectClosed -= _projectClosedHandler;
         sceneContext.SceneChanged -= _sceneChangedHandler;
-        selection.SelectionChanged -= _selectionChangedHandler;
-
         sceneContext.ActiveScene?.Dispose();
         editorViewport.Dispose();
         contentBrowserPanel.Dispose();
         consolePanel?.Dispose();
     }
 
-    private void OnSelectionChanged(Entity? entity, SelectionSource source)
-    {
-        if (source != SelectionSource.Hierarchy || entity is null)
-            return;
-
-        if (entity.TryGetComponent<TransformComponent>(out var transformComponent))
-            editorViewport.Camera.FocalPoint = transformComponent.Translation;
-    }
 }

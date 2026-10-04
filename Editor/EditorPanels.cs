@@ -25,7 +25,7 @@ public class EditorPanels(
 
         var hoveredEntityName = hoveredEntity?.Name ?? "None";
         var camPos = camera.GetPosition();
-        rendererStatsPanel.Draw(hoveredEntityName, camPos, camera.Yaw,
+        rendererStatsPanel.Draw(hoveredEntityName, camPos, camera.FocalPoint, camera.Yaw,
             performanceMonitor.RenderUI);
     }
 }

@@ -1,5 +1,6 @@
 using System.Numerics;
 using ECS;
+using Engine.Renderer.Meshes;
 using Engine.Renderer.Models;
 using Engine.Scene;
 using Math;
@@ -19,15 +20,16 @@ public static class ModelHierarchySpawner
         Entity root,
         ModelSceneNode graphRoot,
         string modelPath,
-        Vector4 color)
+        Vector4 color,
+        IReadOnlyList<Mesh>? submeshes = null)
     {
         if (graphRoot.MeshIndices.Count == 1)
-            SetRenderer(root, modelPath, color, graphRoot.MeshIndices[0]);
+            SetRenderer(root, modelPath, color, graphRoot.MeshIndices[0], submeshes);
         else
-            SpawnMeshChildren(scene, root, graphRoot.Name, graphRoot.MeshIndices, modelPath, color);
+            SpawnMeshChildren(scene, root, graphRoot.Name, graphRoot.MeshIndices, modelPath, color, submeshes);
 
         foreach (var child in graphRoot.Children)
-            SpawnNode(scene, root, child, modelPath, color);
+            SpawnNode(scene, root, child, modelPath, color, submeshes);
 
         if (graphRoot.Light is not null)
         {
@@ -47,7 +49,8 @@ public static class ModelHierarchySpawner
         Entity parent,
         ModelSceneNode node,
         string modelPath,
-        Vector4 color)
+        Vector4 color,
+        IReadOnlyList<Mesh>? submeshes)
     {
         if (node.MeshIndices.Count == 0 && node.Children.Count == 0 && node.Light is null)
             return;
@@ -56,20 +59,20 @@ public static class ModelHierarchySpawner
         {
             var leaf = CreateEntity(scene, parent, node.Name, node.LocalTransform);
             if (node.MeshIndices.Count == 1)
-                SetRenderer(leaf, modelPath, color, node.MeshIndices[0]);
+                SetRenderer(leaf, modelPath, color, node.MeshIndices[0], submeshes);
             AddLight(leaf, node.Light);
             return;
         }
 
         var host = CreateEntity(scene, parent, node.Name, node.LocalTransform);
         if (node.MeshIndices.Count == 1)
-            SetRenderer(host, modelPath, color, node.MeshIndices[0]);
+            SetRenderer(host, modelPath, color, node.MeshIndices[0], submeshes);
         else if (node.MeshIndices.Count > 1)
-            SpawnMeshChildren(scene, host, node.Name, node.MeshIndices, modelPath, color);
+            SpawnMeshChildren(scene, host, node.Name, node.MeshIndices, modelPath, color, submeshes);
         AddLight(host, node.Light);
 
         foreach (var child in node.Children)
-            SpawnNode(scene, host, child, modelPath, color);
+            SpawnNode(scene, host, child, modelPath, color, submeshes);
     }
 
     public static void SpawnPackedLights(IScene scene, Entity root, ModelSceneNode graphRoot)
@@ -143,12 +146,13 @@ public static class ModelHierarchySpawner
         string nodeName,
         IReadOnlyList<int> meshIndices,
         string modelPath,
-        Vector4 color)
+        Vector4 color,
+        IReadOnlyList<Mesh>? submeshes)
     {
         for (var i = 0; i < meshIndices.Count; i++)
         {
             var meshEntity = CreateEntity(scene, parent, $"{nodeName}_mesh{i}", Matrix4x4.Identity);
-            SetRenderer(meshEntity, modelPath, color, meshIndices[i]);
+            SetRenderer(meshEntity, modelPath, color, meshIndices[i], submeshes);
         }
     }
 
@@ -158,6 +162,7 @@ public static class ModelHierarchySpawner
         if (!entity.TryGetComponent<TransformComponent>(out var transform))
             return;
 
+        localTransform = NormalizeNodeMatrix(localTransform);
         if (localTransform == Matrix4x4.Identity)
             return;
 
@@ -169,6 +174,20 @@ public static class ModelHierarchySpawner
         transform.Scale = scale;
     }
 
+    /// <summary>
+    /// Cooked runtime meshes from importer v1 stored Assimp matrices transposed, so translation
+    /// landed in column 4 and decompose read it as zero.
+    /// </summary>
+    internal static Matrix4x4 NormalizeNodeMatrix(Matrix4x4 matrix)
+    {
+        var row = new Vector3(matrix.M41, matrix.M42, matrix.M43);
+        var column = new Vector3(matrix.M14, matrix.M24, matrix.M34);
+        if (row.LengthSquared() <= 1e-8f && column.LengthSquared() > 1e-8f)
+            return Matrix4x4.Transpose(matrix);
+
+        return matrix;
+    }
+
     private static Entity CreateEntity(IScene scene, Entity parent, string name, Matrix4x4 localTransform)
     {
         var entity = scene.CreateEntity(name);
@@ -178,23 +197,51 @@ public static class ModelHierarchySpawner
         return entity;
     }
 
-    private static void SetRenderer(Entity entity, string modelPath, Vector4 color, int meshIndex)
+    private static void SetRenderer(
+        Entity entity,
+        string modelPath,
+        Vector4 color,
+        int meshIndex,
+        IReadOnlyList<Mesh>? submeshes)
     {
         EnsureTransform(entity);
 
-        if (entity.TryGetComponent<ModelRendererComponent>(out var renderer))
+        ModelRendererComponent renderer;
+        if (entity.TryGetComponent<ModelRendererComponent>(out var existing))
         {
+            renderer = existing;
             renderer.ModelPath = modelPath;
             renderer.MeshIndex = meshIndex;
             renderer.Color = color;
-            return;
+        }
+        else
+        {
+            renderer = new ModelRendererComponent(color)
+            {
+                ModelPath = modelPath,
+                MeshIndex = meshIndex
+            };
+            entity.AddComponent(renderer);
         }
 
-        entity.AddComponent(new ModelRendererComponent(color)
-        {
-            ModelPath = modelPath,
-            MeshIndex = meshIndex
-        });
+        var pivot = MeshCenter(submeshes, meshIndex);
+        renderer.Pivot = pivot;
+        if (pivot == Vector3.Zero || !entity.TryGetComponent<TransformComponent>(out var transform))
+            return;
+
+        ApplyLocalTransform(entity, Matrix4x4.CreateTranslation(pivot) * transform.GetTransform());
+    }
+
+    private static Vector3 MeshCenter(IReadOnlyList<Mesh>? submeshes, int meshIndex)
+    {
+        if (submeshes == null || (uint)meshIndex >= (uint)submeshes.Count)
+            return Vector3.Zero;
+
+        if (submeshes[meshIndex].Bounds is not { } bounds)
+            return Vector3.Zero;
+
+        var center = (bounds.Min + bounds.Max) * 0.5f;
+        return center.LengthSquared() <= 1e-8f ? Vector3.Zero : center;
     }
 
     private static void EnsureTransform(Entity entity)
