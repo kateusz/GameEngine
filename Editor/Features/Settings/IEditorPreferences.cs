@@ -28,6 +28,13 @@ public interface IEditorPreferences : IDisposable
     /// </summary>
     bool Fxaa { get; set; }
 
+    int SunShadowResolution { get; set; }
+    int PointShadowResolution { get; set; }
+    float ShadowDistance { get; set; }
+    int ShadowPcf { get; set; }
+    bool PointShadowPcf { get; set; }
+    int ShadowCascades { get; set; }
+
     /// <summary>
     /// Scene autosave interval in seconds. 0 disables autosave.
     /// </summary>

@@ -27,7 +27,11 @@ internal sealed class MeshDrawRecordingGraphics3D : IGraphics3D
     public void SetPointLights(ReadOnlySpan<PointLightData> lights) { }
     public void SetDirectionalShadow(Matrix4x4 lightViewProjection, bool enabled) { }
     public void BeginShadowPass(Matrix4x4 lightViewProjection) { }
+    public void BeginShadowCascade(Matrix4x4 lightViewProjection, int cascade) { }
     public void EndShadowPass() { }
+    public void SetFarDirectionalShadow(Matrix4x4 lightViewProjection) { }
+    public void SetShadowQuality(ShadowQuality quality) => ShadowQuality = quality.Sanitized();
+    public ShadowQuality ShadowQuality { get; private set; } = new();
     public bool BeginPointShadowFace(int lightIndex, int entityId, int face, Matrix4x4 viewProjection,
         Vector3 lightPosition, float range) => false;
     public void EndPointShadowFace() { }

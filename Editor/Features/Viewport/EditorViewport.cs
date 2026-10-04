@@ -151,6 +151,10 @@ public sealed class EditorViewport(
             IsSceneOrModelDrop,
             OnSceneOrModelDropped);
 
+        if (ImGui.IsWindowFocused() && ImGui.IsKeyPressed(ImGuiKey.Escape)
+            && sceneContext.State == SceneState.Edit)
+            selection.Select(null, SelectionSource.Viewport);
+
         if (ImGui.IsWindowHovered())
             HandleViewportInput();
 
@@ -330,6 +334,13 @@ public sealed class EditorViewport(
     {
         graphics2D.ResetStats();
         graphics3D.ResetStats();
+        graphics3D.SetShadowQuality(new ShadowQuality(
+            editorPreferences.SunShadowResolution,
+            editorPreferences.PointShadowResolution,
+            editorPreferences.ShadowDistance,
+            editorPreferences.ShadowPcf,
+            editorPreferences.PointShadowPcf,
+            editorPreferences.ShadowCascades));
         graphics3D.SetSkybox(sceneContext.ActiveScene?.Skybox);
         _frameBuffer.Bind();
 

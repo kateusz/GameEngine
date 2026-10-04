@@ -151,21 +151,43 @@ internal static class SceneRenderPipeline
         }
 
         var shadowCasterMax = view.DirectionalShadowCasterMaxDistance;
+        var fitDistance = graphics3D.ShadowQuality.Distance;
+        if (shadowCasterMax > 0f)
+            shadowCasterMax = System.Math.Min(shadowCasterMax, fitDistance);
         var shadowCasterMaxSq = shadowCasterMax > 0f ? shadowCasterMax * shadowCasterMax : 0f;
         var shadowCasterView = view.ViewPosition;
+        var sunResolution = graphics3D.ShadowQuality.DirectionalResolution;
+        var cascades = graphics3D.ShadowQuality.Cascades;
 
         graphics3D.SetDirectionalShadow(Matrix4x4.Identity, false);
         if (view.DirectionalShadows &&
             lightColor != Vector3.Zero &&
-            LightingMath.TryFitDirectionalShadow(view.ViewProjection, lightDirection, out var lightViewProjection))
+            LightingMath.TryFitDirectionalShadow(
+                view.ViewProjection, lightDirection, out var lightViewProjection, fitDistance, sunResolution))
         {
             perf.DirectionalShadow = true;
-            graphics3D.BeginShadowPass(lightViewProjection);
+            var nearSplit = fitDistance * 0.25f;
+            Matrix4x4 nearProjection = default;
+            var hasNear = cascades > 1 && nearSplit >= 1f &&
+                          LightingMath.TryFitDirectionalShadow(
+                              view.ViewProjection, lightDirection, out nearProjection, nearSplit, sunResolution);
+            var near = hasNear ? nearProjection : lightViewProjection;
+            graphics3D.BeginShadowCascade(near, 0);
             perf.DirectionalShadowPass = DrawOpaque3D(
-                context, graphics3D, textureFactory, modelFactory, lightViewProjection,
+                context, graphics3D, textureFactory, modelFactory, near,
                 shadowCasterMaxSq, shadowCasterView);
             graphics3D.EndShadowPass();
-            graphics3D.SetDirectionalShadow(lightViewProjection, true);
+            if (hasNear)
+            {
+                graphics3D.BeginShadowCascade(lightViewProjection, 1);
+                perf.DirectionalShadowPass = Accumulate(perf.DirectionalShadowPass, DrawOpaque3D(
+                    context, graphics3D, textureFactory, modelFactory, lightViewProjection,
+                    shadowCasterMaxSq, shadowCasterView));
+                graphics3D.EndShadowPass();
+            }
+
+            graphics3D.SetDirectionalShadow(near, true);
+            graphics3D.SetFarDirectionalShadow(lightViewProjection);
         }
         else if (view.DirectionalShadows && lightColor != Vector3.Zero && !_shadowFitWarned)
         {
