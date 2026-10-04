@@ -185,6 +185,15 @@ internal sealed class OpenGLShader : IShader
     private static uint LoadShader(ShaderType type, string path)
     {
         var src = File.ReadAllText(path);
+        const string include = "#include \"";
+        var at = src.IndexOf(include, StringComparison.Ordinal);
+        if (at >= 0)
+        {
+            var nameAt = at + include.Length;
+            var end = src.IndexOf('"', nameAt);
+            var included = File.ReadAllText(Path.Combine(Path.GetDirectoryName(path)!, src[nameAt..end]));
+            src = src.Remove(at, end - at + 1).Insert(at, included);
+        }
 
         var handle = SilkNetContext.GL.CreateShader(type);
         OpenGLDebug.CheckError(SilkNetContext.GL, $"CreateShader({type})");

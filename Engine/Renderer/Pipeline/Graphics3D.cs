@@ -48,7 +48,9 @@ internal sealed class Graphics3D(
     private bool _pointShadowPass;
     private IFrameBuffer? _activePointMap;
     private Matrix4x4 _lightViewProjection = Matrix4x4.Identity;
+    private Matrix4x4 _farLightViewProjection = Matrix4x4.Identity;
     private bool _shadowsEnabled;
+    private ShadowQuality _quality = new();
 
     private Matrix4x4 _viewProjection = Matrix4x4.Identity;
     private Vector3 _viewPosition;
@@ -131,20 +133,58 @@ internal sealed class Graphics3D(
         _brdfShader.Unbind();
     }
 
+    public ShadowQuality ShadowQuality => _quality;
+
+    public void SetShadowQuality(ShadowQuality quality)
+    {
+        var next = quality.Sanitized();
+        var sunChanged = next.DirectionalResolution != _quality.DirectionalResolution
+                         || next.Cascades != _quality.Cascades;
+        var pointChanged = next.PointResolution != _quality.PointResolution;
+        _quality = next;
+        if (sunChanged && _shadowMap != null)
+        {
+            _shadowMap.Dispose();
+            _shadowMap = null;
+        }
+
+        if (!pointChanged)
+            return;
+
+        foreach (var map in _pointShadowMapsByEntity.Values)
+            map.Dispose();
+        _pointShadowMapsByEntity.Clear();
+    }
+
+    public void SetFarDirectionalShadow(Matrix4x4 lightViewProjection) =>
+        _farLightViewProjection = lightViewProjection;
+
     public void SetDirectionalShadow(Matrix4x4 lightViewProjection, bool enabled)
     {
         _lightViewProjection = lightViewProjection;
         _shadowsEnabled = enabled;
     }
 
-    public void BeginShadowPass(Matrix4x4 lightViewProjection)
+    public void BeginShadowPass(Matrix4x4 lightViewProjection) =>
+        BeginShadowCascade(lightViewProjection, 0);
+
+    public void BeginShadowCascade(Matrix4x4 lightViewProjection, int cascade)
     {
         _shadowPass = true;
         var map = ShadowMap();
         map.Bind();
+        var res = (uint)_quality.DirectionalResolution;
+        if (cascade == 0)
+        {
+            rendererApi.SetViewport(0, 0, res * (uint)_quality.Cascades, res);
+            rendererApi.SetDepthTest(true);
+            rendererApi.SetDepthWrite(true);
+            rendererApi.Clear();
+        }
+
+        rendererApi.SetViewport((int)(cascade * res), 0, res, res);
         rendererApi.SetDepthTest(true);
         rendererApi.SetDepthWrite(true);
-        rendererApi.Clear();
         _depthShader.Bind();
         _depthShader.SetMat4(ViewProjectionUniform, lightViewProjection);
     }
@@ -527,7 +567,14 @@ internal sealed class Graphics3D(
             shader.SetFloat(PointRangeUniforms[i], _pointLights[i].Range);
         }
         shader.SetMat4("u_LightViewProjection", _lightViewProjection);
+        shader.SetMat4("u_FarLightViewProjection", _farLightViewProjection);
         shader.SetInt("u_ShadowsEnabled", _shadowsEnabled ? 1 : 0);
+        shader.SetInt("u_CascadeCount", _quality.Cascades);
+        shader.SetFloat("u_CascadeSplit", _quality.Distance * 0.25f);
+        shader.SetInt("u_ShadowPcf", _quality.PcfTaps);
+        shader.SetFloat("u_ShadowMapSize", _quality.DirectionalResolution);
+        shader.SetInt("u_PointPcf", _quality.PointPcf ? _quality.PcfTaps : 1);
+        shader.SetFloat("u_PointMapSize", _quality.PointResolution);
         if (_shadowsEnabled && _shadowMap != null)
             rendererApi.BindTexture2D(_shadowMap.GetDepthAttachmentRendererId(), ShadowMapSlot);
         for (var i = 0; i < LightingMath.MaxPointLights; i++)
@@ -602,7 +649,7 @@ internal sealed class Graphics3D(
         if (_pointShadowMapsByEntity.TryGetValue(entityId, out var existing))
             return existing;
 
-        var size = (uint)LightingMath.PointShadowFaceResolution;
+        var size = (uint)_quality.PointResolution;
         var spec = new FrameBufferSpecification(size, size)
         {
             AttachmentsSpec = new FrameBufferAttachmentSpecification([
@@ -619,8 +666,9 @@ internal sealed class Graphics3D(
         if (_shadowMap != null)
             return _shadowMap;
 
-        var size = (uint)LightingMath.ShadowMapResolution;
-        var spec = new FrameBufferSpecification(size, size)
+        var tile = (uint)_quality.DirectionalResolution;
+        var size = tile * (uint)_quality.Cascades;
+        var spec = new FrameBufferSpecification(size, tile)
         {
             AttachmentsSpec = new FrameBufferAttachmentSpecification([
                 new FrameBufferTextureSpecification(FrameBufferTextureFormat.DepthComponent)

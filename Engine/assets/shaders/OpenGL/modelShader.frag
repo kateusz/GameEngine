@@ -47,40 +47,12 @@ uniform float u_PointLightRanges[c_MaxPointLights];
 uniform int u_PointShadowsEnabled[c_MaxPointLights];
 uniform samplerCubeShadow u_PointShadowMaps[c_MaxPointLights];
 
-uniform mat4 u_LightViewProjection;
-uniform sampler2DShadow u_ShadowMap;
-uniform int u_ShadowsEnabled;
+#include "shadow.glsl"
 
-const float c_ShadowBias = 0.002;
 const float PI = 3.14159265359;
 const float c_MinRoughness = 0.045;
 const float c_DielectricF0 = 0.04;
 const float c_SpecularEpsilon = 0.0001;
-
-float DirectionalShadow(vec3 fragPos)
-{
-    if (u_ShadowsEnabled == 0)
-        return 1.0;
-
-    vec4 clipPos = vec4(fragPos, 1.0) * u_LightViewProjection;
-    vec3 ndc = clipPos.xyz / clipPos.w;
-    vec2 uv = ndc.xy * 0.5 + 0.5;
-    float current = ndc.z * 0.5 + 0.5;
-    return texture(u_ShadowMap, vec3(uv, current - c_ShadowBias));
-}
-
-const float c_PointShadowBias = 0.05;
-
-float PointShadow(int i, vec3 fragPos)
-{
-    if (u_PointShadowsEnabled[i] == 0)
-        return 1.0;
-
-    vec3 toFrag = fragPos - u_PointLightPositions[i];
-    float range = u_PointLightRanges[i];
-    float current = length(toFrag) / range;
-    return texture(u_PointShadowMaps[i], vec4(toFrag, current - c_PointShadowBias / range));
-}
 
 vec3 FresnelSchlick(float cosTheta, vec3 F0)
 {

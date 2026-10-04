@@ -89,7 +89,9 @@ internal static class LightingMath
     public static bool TryFitDirectionalShadow(
         Matrix4x4 cameraViewProjection,
         Vector3 lightDirection,
-        out Matrix4x4 lightViewProjection)
+        out Matrix4x4 lightViewProjection,
+        float maxDepth = ShadowDistance,
+        int resolution = ShadowMapResolution)
     {
         lightViewProjection = Matrix4x4.Identity;
         if (!Matrix4x4.Invert(cameraViewProjection, out var inverseViewProjection))
@@ -111,9 +113,10 @@ internal static class LightingMath
             return false;
 
         var depth = Vector3.Distance(nearCenter, farCenter);
-        if (depth > ShadowDistance)
+        var fitDepth = maxDepth > 0f ? maxDepth : ShadowDistance;
+        if (depth > fitDepth)
         {
-            var keep = ShadowDistance / depth;
+            var keep = fitDepth / depth;
             for (var i = 0; i < 4; i++)
                 corners[i + 4] = corners[i] + (corners[i + 4] - corners[i]) * keep;
         }
@@ -136,8 +139,9 @@ internal static class LightingMath
         if (max.X - min.X <= ShadowExtentEpsilon || max.Y - min.Y <= ShadowExtentEpsilon)
             return false;
 
-        SnapAxis(ref min.X, ref max.X);
-        SnapAxis(ref min.Y, ref max.Y);
+        var snapResolution = resolution > 0 ? resolution : ShadowMapResolution;
+        SnapAxis(ref min.X, ref max.X, snapResolution);
+        SnapAxis(ref min.Y, ref max.Y, snapResolution);
 
         lightViewProjection = lightView * BuildLightOrtho(min, max);
         return true;
@@ -152,10 +156,10 @@ internal static class LightingMath
         return uv * new Vector2(EquirectU, EquirectV) + new Vector2(0.5f, 0.5f);
     }
 
-    private static void SnapAxis(ref float min, ref float max)
+    private static void SnapAxis(ref float min, ref float max, int resolution)
     {
         var size = max - min;
-        var texel = size / ShadowMapResolution;
+        var texel = size / resolution;
         var center = MathF.Floor(((min + max) * 0.5f) / texel) * texel;
         var half = size * 0.5f;
         min = center - half;

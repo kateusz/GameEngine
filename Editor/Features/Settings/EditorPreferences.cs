@@ -24,6 +24,12 @@ public class EditorPreferences : IEditorPreferences
     public bool ShowColliderBounds { get; set; }
     public bool ShowFPS { get; set; } = true;
     public bool Fxaa { get; set; } = true;
+    public int SunShadowResolution { get; set; } = 1024;
+    public int PointShadowResolution { get; set; } = 512;
+    public float ShadowDistance { get; set; } = 50f;
+    public int ShadowPcf { get; set; } = 1;
+    public bool PointShadowPcf { get; set; }
+    public int ShadowCascades { get; set; } = 1;
 
     // Autosave: 0 = off
     public int AutosaveIntervalSeconds { get; set; } = 60;

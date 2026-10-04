@@ -22,8 +22,12 @@ public interface IGraphics3D : IGraphics
     void SetDirectionalLight(Vector3 direction, Vector3 color);
     void SetPointLights(ReadOnlySpan<PointLightData> lights);
     void BeginShadowPass(Matrix4x4 lightViewProjection);
+    void BeginShadowCascade(Matrix4x4 lightViewProjection, int cascade);
     void EndShadowPass();
     void SetDirectionalShadow(Matrix4x4 lightViewProjection, bool enabled);
+    void SetFarDirectionalShadow(Matrix4x4 lightViewProjection);
+    void SetShadowQuality(ShadowQuality quality);
+    ShadowQuality ShadowQuality { get; }
     bool BeginPointShadowFace(
         int lightIndex, int entityId, int face,
         Matrix4x4 viewProjection, Vector3 lightPosition, float range);

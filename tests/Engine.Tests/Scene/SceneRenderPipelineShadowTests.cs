@@ -836,11 +836,20 @@ public class SceneRenderPipelineShadowTests
             Order.Add(enabled ? "shadow-on" : "shadow-off");
         }
 
-        public void BeginShadowPass(Matrix4x4 lightViewProjection)
+        public void BeginShadowPass(Matrix4x4 lightViewProjection) =>
+            BeginShadowCascade(lightViewProjection, 0);
+
+        public void BeginShadowCascade(Matrix4x4 lightViewProjection, int cascade)
         {
             ShadowPasses.Add(lightViewProjection);
             Order.Add("begin-shadow");
         }
+
+        public void SetFarDirectionalShadow(Matrix4x4 lightViewProjection) { }
+
+        public void SetShadowQuality(ShadowQuality quality) => ShadowQuality = quality.Sanitized();
+
+        public ShadowQuality ShadowQuality { get; private set; } = new();
 
         public void EndShadowPass()
         {
