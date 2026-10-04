@@ -53,15 +53,46 @@ public class TonemapPassTests
         renderer.DidNotReceive().DrawArrays(Arg.Any<IVertexArray>(), Arg.Any<uint>());
     }
 
+    [Fact]
+    public void Resolve_FullSize_BlursTenTimesThenTonemaps_AndCreatesBloomShadersOnce()
+    {
+        var blur = Substitute.For<IShader>();
+        var pass = NewPass(out var renderer, out var shaders, out var targets, blur);
+        var scene = Scene(32, 24);
+
+        pass.Resolve(scene);
+        pass.Resolve(scene);
+
+        shaders.Received(1).Create(ShaderId.BloomExtract);
+        shaders.Received(1).Create(ShaderId.BloomBlur);
+        renderer.Received(24).DrawArrays(Arg.Any<IVertexArray>(), 3);
+        blur.Received().SetInt("u_Horizontal", 1);
+        blur.Received().SetInt("u_Horizontal", 0);
+        targets.Received().Create(Arg.Is<FrameBufferSpecification>(spec => spec.Width == 32 && spec.Height == 24));
+    }
+
     private static TonemapPass NewPass(
-        out IRendererAPI renderer, out IShaderFactory shaders, out IFrameBufferFactory targets)
+        out IRendererAPI renderer,
+        out IShaderFactory shaders,
+        out IFrameBufferFactory targets,
+        IShader? blur = null)
     {
         renderer = Substitute.For<IRendererAPI>();
         shaders = Substitute.For<IShaderFactory>();
         shaders.Create(ShaderId.Tonemap).Returns(Substitute.For<IShader>());
+        shaders.Create(ShaderId.BloomExtract).Returns(Substitute.For<IShader>());
+        shaders.Create(ShaderId.BloomBlur).Returns(blur ?? Substitute.For<IShader>());
         var arrays = Substitute.For<IVertexArrayFactory>();
         arrays.Create().Returns(Substitute.For<IVertexArray>());
         targets = Substitute.For<IFrameBufferFactory>();
+        targets.Create(Arg.Any<FrameBufferSpecification>()).Returns(call =>
+        {
+            var spec = call.Arg<FrameBufferSpecification>();
+            var buffer = Substitute.For<IFrameBuffer>();
+            buffer.GetSpecification().Returns(spec);
+            buffer.GetColorAttachmentRendererId().Returns(1u);
+            return buffer;
+        });
         return new TonemapPass(renderer, shaders, arrays, targets);
     }
 

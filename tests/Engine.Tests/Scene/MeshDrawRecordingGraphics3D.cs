@@ -15,10 +15,13 @@ internal sealed class MeshDrawRecordingGraphics3D : IGraphics3D
     public void EndScene() { }
     public void DrawCube(Matrix4x4 transform, Vector4 color, int entityId = -1,
         Engine.Renderer.Textures.Texture2D? texture = null, float tilingFactor = 1.0f,
-        float metallic = 0f, float roughness = 0.5f, float ao = 1f) { }
+        float metallic = 0f, float roughness = 0.5f, float ao = 1f, Vector3 emissive = default) { }
     public void DrawMesh(Matrix4x4 transform, Engine.Renderer.Meshes.Mesh mesh, Vector4 tint, int entityId = -1,
-        float metallic = 0f, float roughness = 0.5f, float ao = 1f) =>
-        DrawMeshInstances(mesh, [new MeshDrawInstance { Transform = transform, EntityId = entityId, Tint = tint }]);
+        float metallic = 0f, float roughness = 0.5f, float ao = 1f, Vector3 emissive = default) =>
+        DrawMeshInstances(mesh, [new MeshDrawInstance
+        {
+            Transform = transform, EntityId = entityId, Tint = tint, Emissive = emissive
+        }]);
     public void SetAmbientLight(Vector3 color, float strength) { }
     public void SetDirectionalLight(Vector3 direction, Vector3 color) { }
     public void SetPointLights(ReadOnlySpan<PointLightData> lights) { }

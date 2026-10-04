@@ -1,4 +1,5 @@
 using System.Numerics;
+using Engine.Renderer;
 
 namespace Engine.Renderer.Models.RuntimeMesh;
 
@@ -288,6 +289,8 @@ internal static class RuntimeMeshReader
             return false;
         if (!reader.TryReadSingle(out var alphaCutoff) || !IsFactor(alphaCutoff))
             return false;
+        if (!reader.TryReadVector3(out var emissive) || !IsEmissive(emissive))
+            return false;
 
         var vertexBytes = (int)vertexCount * RuntimeMeshFormat.VertexLayoutStride;
         if (!reader.TryReadBytes(vertexBytes, out var vertexData))
@@ -314,7 +317,8 @@ internal static class RuntimeMeshReader
             OcclusionPath = occlusion,
             AlphaCutout = (surfaceFlags & RuntimeMeshFormat.SurfaceAlphaCutout) != 0,
             DoubleSided = (surfaceFlags & RuntimeMeshFormat.SurfaceDoubleSided) != 0,
-            AlphaCutoff = alphaCutoff
+            AlphaCutoff = alphaCutoff,
+            Emissive = emissive
         };
 
         for (var v = 0; v < vertexCount; v++)
@@ -514,6 +518,12 @@ internal static class RuntimeMeshReader
     }
 
     private static bool IsFactor(float value) => float.IsFinite(value) && value >= 0f && value <= 1f;
+
+    private static bool IsEmissive(Vector3 value) =>
+        IsEmissiveChannel(value.X) && IsEmissiveChannel(value.Y) && IsEmissiveChannel(value.Z);
+
+    private static bool IsEmissiveChannel(float value) =>
+        float.IsFinite(value) && value >= 0f && value <= LightingMath.MaxEmissive;
 
     private static bool IsFinite(Vector2 value) =>
         float.IsFinite(value.X) && float.IsFinite(value.Y);

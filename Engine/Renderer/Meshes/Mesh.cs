@@ -49,6 +49,7 @@ public class Mesh : IDisposable
     public float MetallicFactor { get; set; }
     public float RoughnessFactor { get; set; } = 0.5f;
     public Vector3 BaseColorFactor { get; set; } = Vector3.One;
+    public Vector3 EmissiveFactor { get; set; }
     public bool AlphaCutout { get; set; }
     public bool DoubleSided { get; set; }
     public float AlphaCutoff { get; set; } = 0.5f;

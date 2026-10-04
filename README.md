@@ -242,6 +242,10 @@ Twin-stick arena — WASD move, mouse aim, hold LMB to shoot (hitscan raycast), 
 
 Open `assets/scenes/arena.scene`, then press Play. **R** restarts after game over.
 
+### Lighting Showcase
+
+3D room (20×16 m) with a grid of cubes (matte, metal, rough PBR). Demonstrates **ambient**, **directional** (sun shadows), and **eight point lights** with varied **range** and color (three with cubemap shadows — engine max is 8 point lights). No gameplay scripts — open the scene in the editor viewport or press Play. [`games/LightingShowcase/`](games/LightingShowcase/)
+
 ## Documentation
 
 - [Changelog](CHANGELOG.md) — release notes (latest: **0.10.0**)

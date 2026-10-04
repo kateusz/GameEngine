@@ -20,6 +20,7 @@ uniform int u_UseTexture;
 uniform float u_Metallic;
 uniform float u_Roughness;
 uniform float u_Ao;
+uniform vec3 u_Emissive;
 uniform int u_Ibl;
 uniform samplerCube u_Irradiance;
 uniform samplerCube u_Prefilter;
@@ -35,10 +36,10 @@ uniform float u_PointLightIntensities[c_MaxPointLights];
 uniform float u_PointLightRanges[c_MaxPointLights];
 
 uniform int u_PointShadowsEnabled[c_MaxPointLights];
-uniform samplerCube u_PointShadowMaps[c_MaxPointLights];
+uniform samplerCubeShadow u_PointShadowMaps[c_MaxPointLights];
 
 uniform mat4 u_LightViewProjection;
-uniform sampler2D u_ShadowMap;
+uniform sampler2DShadow u_ShadowMap;
 uniform int u_ShadowsEnabled;
 
 const float c_ShadowBias = 0.002;
@@ -56,27 +57,7 @@ float DirectionalShadow(vec3 fragPos)
     vec3 ndc = clipPos.xyz / clipPos.w;
     vec2 uv = ndc.xy * 0.5 + 0.5;
     float current = ndc.z * 0.5 + 0.5;
-
-    // bilinear PCF; integer-offset PCF is constant per texel → stairs
-    vec2 mapSize = vec2(textureSize(u_ShadowMap, 0));
-    vec2 texelSize = 1.0 / mapSize;
-    vec2 texelUv = uv * mapSize - 0.5;
-    vec2 f = fract(texelUv);
-    vec2 origin = (floor(texelUv) + 0.5) * texelSize;
-
-    float shadow = 0.0;
-    for (int x = 0; x <= 1; ++x)
-    {
-        for (int y = 0; y <= 1; ++y)
-        {
-            float closest = texture(u_ShadowMap, origin + vec2(x, y) * texelSize).r;
-            float lit = current - c_ShadowBias > closest ? 0.0 : 1.0;
-            float wx = x == 0 ? 1.0 - f.x : f.x;
-            float wy = y == 0 ? 1.0 - f.y : f.y;
-            shadow += lit * wx * wy;
-        }
-    }
-    return shadow;
+    return texture(u_ShadowMap, vec3(uv, current - c_ShadowBias));
 }
 
 const float c_PointShadowBias = 0.05;
@@ -87,27 +68,9 @@ float PointShadow(int i, vec3 fragPos)
         return 1.0;
 
     vec3 toFrag = fragPos - u_PointLightPositions[i];
-    float dist = length(toFrag);
     float range = u_PointLightRanges[i];
-    float current = dist / range;
-    float bias = c_PointShadowBias / range;
-    vec3 direction = toFrag / dist;
-    vec3 helper = abs(direction.y) > 0.99 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
-    vec3 tangent = normalize(cross(helper, direction));
-    vec3 bitangent = cross(direction, tangent);
-    float step = dist * 3.14159265 / 512.0;
-    float shadow = 0.0;
-    for (int x = -1; x <= 1; ++x)
-    {
-        for (int y = -1; y <= 1; ++y)
-        {
-            vec3 sampleDir = toFrag + (tangent * float(x) + bitangent * float(y)) * step;
-            float closest = texture(u_PointShadowMaps[i], sampleDir).r;
-            shadow += current - bias > closest ? 0.0 : 1.0;
-        }
-    }
-
-    return shadow / 9.0;
+    float current = length(toFrag) / range;
+    return texture(u_PointShadowMaps[i], vec4(toFrag, current - c_PointShadowBias / range));
 }
 
 vec3 FresnelSchlick(float cosTheta, vec3 F0)
@@ -212,6 +175,6 @@ void main()
     vec3 ambient = u_Ibl != 0
         ? ImageBasedLight(N, V, albedo, metallic, roughness, ao)
         : u_AmbientStrength * u_AmbientColor * albedo * ao;
-    o_Color = vec4(ambient + sun + lamps, u_Color.a);
+    o_Color = vec4(ambient + sun + lamps + u_Emissive, u_Color.a);
     o_EntityID = u_EntityID;
 }

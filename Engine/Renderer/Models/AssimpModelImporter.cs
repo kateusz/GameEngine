@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Text;
+using Engine.Renderer;
 using Engine.Renderer.Models.RuntimeMesh;
 using Serilog;
 using Silk.NET.Assimp;
@@ -85,6 +86,7 @@ internal sealed class AssimpModelImporter : IDisposable
                     submesh.AlphaCutout = material.AlphaCutout;
                     submesh.DoubleSided = material.DoubleSided;
                     submesh.AlphaCutoff = material.AlphaCutoff;
+                    submesh.Emissive = material.Emissive;
                     Logger.Debug(
                         "PBR set for mesh={Mesh} model={Path}: metallic={Metallic} roughness={Roughness} baseColor={BaseColor} " +
                         "maps albedo={Albedo} normal={Normal} metallicRoughness={Mr} occlusion={Occlusion} " +
@@ -460,6 +462,19 @@ internal sealed class AssimpModelImporter : IDisposable
         return System.Math.Clamp(value, 0f, 1f);
     }
 
+    // ponytail: factor only. The fragment stage already uses texture units 0–15.
+    // Upgrade path: a second additive pass on unit 0 for the emissive map.
+    internal static Vector3 ImportedEmissive(bool found, Vector4 color)
+    {
+        if (!found)
+            return Vector3.Zero;
+
+        return new Vector3(
+            LightingMath.ClampEmissive(color.X),
+            LightingMath.ClampEmissive(color.Y),
+            LightingMath.ClampEmissive(color.Z));
+    }
+
     private readonly record struct MaterialInfo(
         string? DiffusePath,
         string? NormalPath,
@@ -470,7 +485,8 @@ internal sealed class AssimpModelImporter : IDisposable
         Vector3 BaseColorFactor,
         bool AlphaCutout,
         bool DoubleSided,
-        float AlphaCutoff);
+        float AlphaCutoff,
+        Vector3 Emissive);
 
     private unsafe MaterialInfo ExtractMaterialInfo(
         Silk.NET.Assimp.Scene* scene,
@@ -483,7 +499,7 @@ internal sealed class AssimpModelImporter : IDisposable
             Logger.Warning(
                 "Material index {MaterialIndex} out of range (MNumMaterials={MaterialCount})",
                 materialIndex, scene->MNumMaterials);
-            return new MaterialInfo(null, null, null, null, 0f, 0.5f, Vector3.One, false, false, 0.5f);
+            return new MaterialInfo(null, null, null, null, 0f, 0.5f, Vector3.One, false, false, 0.5f, Vector3.Zero);
         }
 
         var aiMaterial = scene->MMaterials[materialIndex];
@@ -534,6 +550,9 @@ internal sealed class AssimpModelImporter : IDisposable
             : 0.5f;
         // Assimp 5.x does not surface glTF doubleSided. Leaf cards (MASK/BLEND) are two-sided.
         var doubleSided = ReadFactor(aiMaterial, "$mat.twosided", missing: 0f) > 0.5f || alphaCutout;
+        var emissiveColor = new Vector4();
+        var hasEmissive = _assimp.GetMaterialColor(aiMaterial, "$clr.emissive", 0, 0, ref emissiveColor) == Return.Success;
+        var emissive = ImportedEmissive(hasEmissive, emissiveColor);
 
         return new MaterialInfo(
             diffuseTexturePath,
@@ -545,7 +564,8 @@ internal sealed class AssimpModelImporter : IDisposable
             baseColor,
             alphaCutout,
             doubleSided,
-            alphaCutoff);
+            alphaCutoff,
+            emissive);
     }
 
     private unsafe string? ReadMaterialString(Material* material, string key)

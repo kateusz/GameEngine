@@ -189,6 +189,7 @@ internal class ModelFactory : IModelFactory
             mesh.MetallicFactor = submesh.Metallic;
             mesh.RoughnessFactor = submesh.Roughness;
             mesh.BaseColorFactor = submesh.BaseColorFactor;
+            mesh.EmissiveFactor = submesh.Emissive;
             mesh.AlphaCutout = submesh.AlphaCutout;
             mesh.DoubleSided = submesh.DoubleSided;
             mesh.AlphaCutoff = submesh.AlphaCutoff;
