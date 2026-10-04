@@ -50,7 +50,8 @@ Inside `Render3D`, after lights are resolved:
 1. Clear the directional shadow bind (`SetDirectionalShadow(identity, false)`).
 2. If `SceneView.DirectionalShadows`, the resolved sun color is not black, and the fit succeeds: depth pass, then bind the map.
 3. If `SceneView.PointShadows`: for each uploaded light with `CastsShadow`, reuse, redraw six faces, or skip. If the flag is off, the cache is marked stale and this step is skipped.
-4. Color pass. `BeginScene` uploads `u_ShadowsEnabled` and binds whatever maps the earlier steps left enabled.
+4. SSAO, when its gate passes. The normal prepass reuses `DrawOpaque3D` without the caster-distance cut. Details: [Lighting](lighting.md).
+5. Color pass. `BeginScene` uploads `u_ShadowsEnabled` and binds whatever maps the earlier steps left enabled.
 
 A fit failure logs once and the color pass runs without a directional map. A cubemap create failure logs once and that light stays unshadowed. `TryBuildPointShadowFaces` failing (`Range` ≤ `PointShadowNear`, which is `0.1`) skips the light with no log.
 
