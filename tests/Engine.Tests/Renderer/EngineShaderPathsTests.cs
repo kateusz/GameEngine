@@ -53,6 +53,15 @@ public class EngineShaderPathsTests
         frag.ShouldBe(Path.Combine(dir, fragment));
     }
 
+    [Fact]
+    public void Resolve_Emissive_ReusesModelVertexShader()
+    {
+        var dir = Path.Combine(AppContext.BaseDirectory, "assets", "shaders", "OpenGL");
+        var (vert, frag) = EngineShaderPaths.Resolve(ShaderId.Emissive);
+        vert.ShouldBe(Path.Combine(dir, "modelShader.vert"));
+        frag.ShouldBe(Path.Combine(dir, "emissive.frag"));
+    }
+
     [Theory]
     [InlineData(ShaderId.Irradiance, "irradiance.frag")]
     [InlineData(ShaderId.Prefilter, "prefilter.frag")]

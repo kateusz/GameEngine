@@ -133,6 +133,7 @@ internal static class RuntimeMeshWriter
         AppendUInt32(body, surface);
         AppendSingle(body, mesh.AlphaCutoff);
         AppendVector3(body, mesh.Emissive);
+        AppendString(body, mesh.EmissivePath);
 
         var vertexScratch = new byte[RuntimeMeshFormat.VertexLayoutStride];
         foreach (var vertex in mesh.Vertices)

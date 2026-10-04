@@ -27,6 +27,8 @@ internal static class RuntimeMeshTextureRefs
             yield return (submesh.MetallicRoughnessPath, false);
         if (!string.IsNullOrEmpty(submesh.OcclusionPath))
             yield return (submesh.OcclusionPath, false);
+        if (!string.IsNullOrEmpty(submesh.EmissivePath))
+            yield return (submesh.EmissivePath, true);
     }
 
     public static void BindTextures(
@@ -39,6 +41,7 @@ internal static class RuntimeMeshTextureRefs
         mesh.NormalTexture = Load(textureFactory, sourceDirectory, submesh.NormalPath);
         mesh.MetallicRoughnessTexture = Load(textureFactory, sourceDirectory, submesh.MetallicRoughnessPath);
         mesh.OcclusionTexture = Load(textureFactory, sourceDirectory, submesh.OcclusionPath);
+        mesh.EmissiveTexture = Load(textureFactory, sourceDirectory, submesh.EmissivePath, sRgb: true);
     }
 
     private static Texture2D? Load(

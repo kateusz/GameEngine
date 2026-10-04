@@ -24,6 +24,7 @@ internal sealed class SourceSubmesh
     public float Roughness { get; set; } = 0.5f;
     public Vector3 BaseColorFactor { get; set; } = Vector3.One;
     public Vector3 Emissive { get; set; }
+    public string EmissivePath { get; set; } = string.Empty;
     public string DiffusePath { get; set; } = string.Empty;
     public string NormalPath { get; set; } = string.Empty;
     public string MetallicRoughnessPath { get; set; } = string.Empty;

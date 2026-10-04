@@ -17,5 +17,6 @@ public enum ShaderId
     BrdfLut,
     Tonemap,
     BloomExtract,
-    BloomBlur
+    BloomBlur,
+    Emissive,
 }

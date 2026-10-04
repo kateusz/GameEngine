@@ -87,6 +87,7 @@ internal sealed class AssimpModelImporter : IDisposable
                     submesh.DoubleSided = material.DoubleSided;
                     submesh.AlphaCutoff = material.AlphaCutoff;
                     submesh.Emissive = material.Emissive;
+                    submesh.EmissivePath = material.EmissivePath ?? string.Empty;
                     Logger.Debug(
                         "PBR set for mesh={Mesh} model={Path}: metallic={Metallic} roughness={Roughness} baseColor={BaseColor} " +
                         "maps albedo={Albedo} normal={Normal} metallicRoughness={Mr} occlusion={Occlusion} " +
@@ -462,8 +463,6 @@ internal sealed class AssimpModelImporter : IDisposable
         return System.Math.Clamp(value, 0f, 1f);
     }
 
-    // ponytail: factor only. The fragment stage already uses texture units 0–15.
-    // Upgrade path: a second additive pass on unit 0 for the emissive map.
     internal static Vector3 ImportedEmissive(bool found, Vector4 color)
     {
         if (!found)
@@ -486,7 +485,8 @@ internal sealed class AssimpModelImporter : IDisposable
         bool AlphaCutout,
         bool DoubleSided,
         float AlphaCutoff,
-        Vector3 Emissive);
+        Vector3 Emissive,
+        string? EmissivePath);
 
     private unsafe MaterialInfo ExtractMaterialInfo(
         Silk.NET.Assimp.Scene* scene,
@@ -499,7 +499,7 @@ internal sealed class AssimpModelImporter : IDisposable
             Logger.Warning(
                 "Material index {MaterialIndex} out of range (MNumMaterials={MaterialCount})",
                 materialIndex, scene->MNumMaterials);
-            return new MaterialInfo(null, null, null, null, 0f, 0.5f, Vector3.One, false, false, 0.5f, Vector3.Zero);
+            return new MaterialInfo(null, null, null, null, 0f, 0.5f, Vector3.One, false, false, 0.5f, Vector3.Zero, null);
         }
 
         var aiMaterial = scene->MMaterials[materialIndex];
@@ -553,6 +553,8 @@ internal sealed class AssimpModelImporter : IDisposable
         var emissiveColor = new Vector4();
         var hasEmissive = _assimp.GetMaterialColor(aiMaterial, "$clr.emissive", 0, 0, ref emissiveColor) == Return.Success;
         var emissive = ImportedEmissive(hasEmissive, emissiveColor);
+        var emissivePath = ResolveTexturePath(scene, aiMaterial, TextureType.EmissionColor, directory, textureSidecar)
+                           ?? ResolveTexturePath(scene, aiMaterial, TextureType.Emissive, directory, textureSidecar);
 
         return new MaterialInfo(
             diffuseTexturePath,
@@ -565,7 +567,8 @@ internal sealed class AssimpModelImporter : IDisposable
             alphaCutout,
             doubleSided,
             alphaCutoff,
-            emissive);
+            emissive,
+            emissivePath);
     }
 
     private unsafe string? ReadMaterialString(Material* material, string key)

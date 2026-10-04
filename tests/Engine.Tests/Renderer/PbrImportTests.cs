@@ -29,6 +29,7 @@ public class PbrImportTests
         mesh.Emissive.X.ShouldBe(0.2f, 0.001f);
         mesh.Emissive.Y.ShouldBe(0f, 0.001f);
         mesh.Emissive.Z.ShouldBe(2f, 0.001f);
+        mesh.EmissivePath.ShouldBe("emissive.png");
     }
 
     [Fact]

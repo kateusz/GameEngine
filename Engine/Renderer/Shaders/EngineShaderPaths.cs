@@ -19,6 +19,8 @@ internal static class EngineShaderPaths
             return (Path.Combine(dir, "fxaa.vert"), Path.Combine(dir, "bloomExtract.frag"));
         if (shader == ShaderId.BloomBlur)
             return (Path.Combine(dir, "fxaa.vert"), Path.Combine(dir, "bloomBlur.frag"));
+        if (shader == ShaderId.Emissive)
+            return (Path.Combine(dir, "modelShader.vert"), Path.Combine(dir, "emissive.frag"));
 
         var name = shader switch
         {
