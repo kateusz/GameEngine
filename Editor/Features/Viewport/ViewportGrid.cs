@@ -9,7 +9,7 @@ namespace Editor.Features.Viewport;
 /// </summary>
 public class ViewportGrid(IViewportScaleHelper viewportScaleHelper)
 {
-    public bool Enabled { get; set; } = true;
+    public bool Enabled { get; set; }
 
     /// <summary>
     /// Renders the grid. Must be called within an active ImGui window.

@@ -1,10 +1,13 @@
 using System.Numerics;
 using Engine.Renderer;
+using Serilog;
 
 namespace Engine.Renderer.Models.RuntimeMesh;
 
 internal static class RuntimeMeshReader
 {
+    private static readonly ILogger Logger = Log.ForContext(typeof(RuntimeMeshReader));
+
     public static bool TryReadStamp(ReadOnlySpan<byte> file, out RuntimeMeshStamp stamp)
     {
         stamp = default;
@@ -74,7 +77,7 @@ internal static class RuntimeMeshReader
             return false;
 
         if (file.Length < RuntimeMeshFormat.Magic.Length
-            || !file.Slice(0, RuntimeMeshFormat.Magic.Length).SequenceEqual(RuntimeMeshFormat.Magic))
+            || !file[..RuntimeMeshFormat.Magic.Length].SequenceEqual(RuntimeMeshFormat.Magic))
             return false;
 
         var reader = new RuntimeMeshBinaryReader(file);
@@ -121,7 +124,7 @@ internal static class RuntimeMeshReader
             importerVersion,
             postProcessFlags,
             sourceSize,
-            sha256.ToArray(),
+            [.. sha256],
             meshOffset,
             nodeOffset,
             lightOffset);
@@ -130,20 +133,65 @@ internal static class RuntimeMeshReader
 
     private static bool ValidateHeader(ReadOnlySpan<byte> file, Header header)
     {
-        if (file.Length < RuntimeMeshFormat.MinFileBytes || file.Length > RuntimeMeshFormat.MaxFileBytes)
+        if (file.Length < RuntimeMeshFormat.MinFileBytes)
+        {
+            Logger.Warning(
+                "Runtime mesh file is smaller than the header: {Length} bytes, minimum {Minimum}",
+                file.Length, RuntimeMeshFormat.MinFileBytes);
             return false;
+        }
+
+        if (file.Length > RuntimeMeshFormat.MaxFileBytes)
+        {
+            Logger.Warning(
+                "Runtime mesh file exceeds size limit: {Length} bytes, maximum {Maximum}",
+                file.Length, RuntimeMeshFormat.MaxFileBytes);
+            return false;
+        }
 
         if ((ulong)file.Length != header.FileSize)
+        {
+            Logger.Warning(
+                "Runtime mesh size does not match header: file {Length} bytes, header {HeaderSize}",
+                file.Length, header.FileSize);
             return false;
+        }
 
-        if (header.MeshCount is 0 or > RuntimeMeshFormat.MaxMeshCount)
+        if (header.MeshCount == 0)
+        {
+            Logger.Warning("Runtime mesh has no meshes");
             return false;
+        }
 
-        if (header.NodeCount is 0 or > RuntimeMeshFormat.MaxNodeCount)
+        if (header.MeshCount > RuntimeMeshFormat.MaxMeshCount)
+        {
+            Logger.Warning(
+                "Runtime mesh count {MeshCount} exceeds maximum {Maximum}",
+                header.MeshCount, RuntimeMeshFormat.MaxMeshCount);
             return false;
+        }
+
+        if (header.NodeCount == 0)
+        {
+            Logger.Warning("Runtime mesh has no nodes");
+            return false;
+        }
+
+        if (header.NodeCount > RuntimeMeshFormat.MaxNodeCount)
+        {
+            Logger.Warning(
+                "Runtime mesh node count {NodeCount} exceeds maximum {Maximum}",
+                header.NodeCount, RuntimeMeshFormat.MaxNodeCount);
+            return false;
+        }
 
         if (header.LightCount > RuntimeMeshFormat.MaxLightCount)
+        {
+            Logger.Warning(
+                "Runtime mesh light count {LightCount} exceeds maximum {Maximum}",
+                header.LightCount, RuntimeMeshFormat.MaxLightCount);
             return false;
+        }
 
         return true;
     }
@@ -289,6 +337,8 @@ internal static class RuntimeMeshReader
             return false;
         if (!reader.TryReadSingle(out var alphaCutoff) || !IsFactor(alphaCutoff))
             return false;
+        if (!reader.TryReadSingle(out var opacity) || !IsFactor(opacity))
+            return false;
         if (!reader.TryReadVector3(out var emissive) || !IsEmissive(emissive))
             return false;
         if (!reader.TryReadString(out var emissivePath))
@@ -318,8 +368,10 @@ internal static class RuntimeMeshReader
             MetallicRoughnessPath = metallicRoughness,
             OcclusionPath = occlusion,
             AlphaCutout = (surfaceFlags & RuntimeMeshFormat.SurfaceAlphaCutout) != 0,
+            AlphaBlend = (surfaceFlags & RuntimeMeshFormat.SurfaceAlphaBlend) != 0,
             DoubleSided = (surfaceFlags & RuntimeMeshFormat.SurfaceDoubleSided) != 0,
             AlphaCutoff = alphaCutoff,
+            Opacity = opacity,
             Emissive = emissive,
             EmissivePath = emissivePath
         };

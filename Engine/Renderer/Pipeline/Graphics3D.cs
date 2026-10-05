@@ -556,29 +556,49 @@ internal sealed class Graphics3D(
         }
 
         rendererApi.SetDepthTest(true);
+        var blend = mesh.AlphaBlend;
         var first = instances[0];
         _modelShader.Bind();
-        ApplySurface(_modelShader, mesh);
-        _modelShader.SetFloat4("u_Color", first.Tint);
-        _modelShader.SetFloat("u_Metallic", first.Metallic);
-        _modelShader.SetFloat("u_Roughness", first.Roughness);
-        _modelShader.SetFloat("u_Ao", first.Ao);
-        _modelShader.SetFloat3("u_Emissive", WithoutEmissiveMap(mesh, first.Emissive));
-        _modelShader.SetFloat3("u_BaseColor", mesh.BaseColorFactor);
-        _modelShader.SetInt("u_HasDiffuseMap", mesh.HasDiffuseMap ? 1 : 0);
-        _modelShader.SetInt("u_HasMetallicRoughnessMap", mesh.HasMetallicRoughnessMap ? 1 : 0);
-        _modelShader.SetInt("u_HasNormalMap", mesh.HasNormalMap ? 1 : 0);
-        _modelShader.SetInt("u_HasOcclusionMap", mesh.HasOcclusionMap ? 1 : 0);
+        try
+        {
+            if (blend)
+            {
+                rendererApi.SetBlend(true);
+                rendererApi.SetDepthWrite(false);
+            }
 
-        (mesh.DiffuseTexture ?? textureFactory.GetWhiteTexture()).Bind(0);
-        (mesh.MetallicRoughnessTexture ?? textureFactory.GetWhiteTexture()).Bind(1);
-        (mesh.NormalTexture ?? textureFactory.GetFlatNormalTexture()).Bind(2);
-        (mesh.OcclusionTexture ?? textureFactory.GetWhiteTexture()).Bind(OcclusionMapSlot);
+            ApplySurface(_modelShader, mesh);
+            _modelShader.SetFloat4("u_Color", first.Tint);
+            _modelShader.SetFloat("u_Metallic", first.Metallic);
+            _modelShader.SetFloat("u_Roughness", first.Roughness);
+            _modelShader.SetFloat("u_Ao", first.Ao);
+            _modelShader.SetFloat3("u_Emissive", WithoutEmissiveMap(mesh, first.Emissive));
+            _modelShader.SetFloat("u_Opacity", mesh.Opacity);
+            _modelShader.SetFloat3("u_BaseColor", mesh.BaseColorFactor);
+            _modelShader.SetInt("u_HasDiffuseMap", mesh.HasDiffuseMap ? 1 : 0);
+            _modelShader.SetInt("u_HasMetallicRoughnessMap", mesh.HasMetallicRoughnessMap ? 1 : 0);
+            _modelShader.SetInt("u_HasNormalMap", mesh.HasNormalMap ? 1 : 0);
+            _modelShader.SetInt("u_HasOcclusionMap", mesh.HasOcclusionMap ? 1 : 0);
 
-        UploadAndDraw(mesh, instances, _modelShader);
-        _modelShader.Unbind();
-        rendererApi.SetFaceCulling(true);
-        DrawEmissive(mesh, instances);
+            (mesh.DiffuseTexture ?? textureFactory.GetWhiteTexture()).Bind(0);
+            (mesh.MetallicRoughnessTexture ?? textureFactory.GetWhiteTexture()).Bind(1);
+            (mesh.NormalTexture ?? textureFactory.GetFlatNormalTexture()).Bind(2);
+            (mesh.OcclusionTexture ?? textureFactory.GetWhiteTexture()).Bind(OcclusionMapSlot);
+
+            UploadAndDraw(mesh, instances, _modelShader);
+            rendererApi.SetFaceCulling(true);
+            if (!blend)
+                DrawEmissive(mesh, instances);
+        }
+        finally
+        {
+            _modelShader.Unbind();
+            if (blend)
+            {
+                rendererApi.SetDepthWrite(true);
+                rendererApi.SetBlend(false);
+            }
+        }
     }
 
     private void DrawEmissive(Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances)
@@ -728,7 +748,8 @@ internal sealed class Graphics3D(
 
     private void ApplySurface(IShader shader, Mesh mesh)
     {
-        var cutout = mesh.AlphaCutout && mesh.HasDiffuseMap;
+        var cutout = mesh.HasDiffuseMap
+            && (mesh.AlphaCutout || (mesh.AlphaBlend && (_shadowPass || _normalPass)));
         shader.SetInt("u_AlphaTest", cutout ? 1 : 0);
         shader.SetFloat("u_AlphaCutoff", mesh.AlphaCutoff);
         rendererApi.SetFaceCulling(!mesh.DoubleSided);

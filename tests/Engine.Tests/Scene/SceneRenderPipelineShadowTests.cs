@@ -804,6 +804,75 @@ public class SceneRenderPipelineShadowTests
         context.Register(entity);
     }
 
+    [Fact]
+    public void RenderScene_Blend_DrawsFartherFirstAfterOpaque()
+    {
+        var project = Substitute.For<IProjectContext>();
+        project.AssetsPath.Returns(Path.GetTempPath());
+        PathBuilder.UseProjectContext(project);
+
+        var opaque = InitializedCard("opaque", blend: false);
+        var far = InitializedCard("far", blend: true);
+        var near = InitializedCard("near", blend: true);
+        var models = Substitute.For<IModelFactory>();
+        models.Create(Arg.Is<string>(path => path.EndsWith("opaque.glb"))).Returns(new Model("opaque.glb", [opaque]));
+        models.Create(Arg.Is<string>(path => path.EndsWith("far.glb"))).Returns(new Model("far.glb", [far]));
+        models.Create(Arg.Is<string>(path => path.EndsWith("near.glb"))).Returns(new Model("near.glb", [near]));
+
+        var context = new Context();
+        context.Register(CardEntity(1, "near", "near.glb", new Vector3(0f, 0f, 2f)));
+        context.Register(CardEntity(2, "far", "far.glb", new Vector3(0f, 0f, -3f)));
+        context.Register(CardEntity(3, "opaque", "opaque.glb", new Vector3(0f, 0f, 0f)));
+
+        var eye = new Vector3(0f, 2f, 8f);
+        var graphics = new RecordingGraphics3D();
+        SceneRenderPipeline.RenderScene(
+            context,
+            Substitute.For<IGraphics2D>(),
+            graphics,
+            Substitute.For<ITextureFactory>(),
+            models,
+            new SceneView(ViewProjection(eye), eye));
+
+        graphics.MeshNames.ShouldBe(["opaque", "far", "near"]);
+        opaque.Dispose();
+        far.Dispose();
+        near.Dispose();
+    }
+
+    private static Entity CardEntity(int id, string name, string path, Vector3 translation)
+    {
+        var entity = new Entity(id, name);
+        var transform = new TransformComponent { Translation = translation };
+        transform.SetWorldTransform(Matrix4x4.CreateTranslation(translation));
+        entity.AddComponent(transform);
+        entity.AddComponent(new ModelRendererComponent { ModelPath = path });
+        return entity;
+    }
+
+    private static Mesh InitializedCard(string name, bool blend)
+    {
+        var vao = Substitute.For<IVertexArray>();
+        var ibo = Substitute.For<IIndexBuffer>();
+        ibo.Count.Returns(3);
+        vao.IndexBuffer.Returns(ibo);
+        var arrays = Substitute.For<IVertexArrayFactory>();
+        arrays.Create().Returns(vao);
+        var buffers = Substitute.For<IVertexBufferFactory>();
+        buffers.Create(Arg.Any<List<Mesh.Vertex>>()).Returns(Substitute.For<IVertexBuffer>());
+        var indices = Substitute.For<IIndexBufferFactory>();
+        indices.Create(Arg.Any<uint[]>(), Arg.Any<int>()).Returns(ibo);
+
+        var mesh = new Mesh(name) { AlphaBlend = blend };
+        mesh.Vertices.Add(new Mesh.Vertex { Position = new Vector3(-0.25f, -0.25f, -0.25f) });
+        mesh.Vertices.Add(new Mesh.Vertex { Position = new Vector3(0.25f, 0.25f, 0.25f) });
+        mesh.Indices.Add(0);
+        mesh.Indices.Add(1);
+        mesh.Indices.Add(0);
+        mesh.Initialize(arrays, buffers, indices);
+        return mesh;
+    }
+
     private static Matrix4x4 ViewProjection(Vector3 eye)
     {
         var forward = Vector3.Normalize(new Vector3(0f, -0.3f, -1f));
@@ -820,6 +889,7 @@ public class SceneRenderPipelineShadowTests
         public List<(Matrix4x4 Matrix, bool Enabled)> Shadows { get; } = [];
         public List<Matrix4x4> ShadowPasses { get; } = [];
         public List<string> Order { get; } = [];
+        public List<string> MeshNames { get; } = [];
         public int EndShadowPasses { get; private set; }
         public int BeginScenes { get; private set; }
         public int CubeDraws { get; private set; }
@@ -936,6 +1006,7 @@ public class SceneRenderPipelineShadowTests
             {
                 MeshFactors.Add((instance.Metallic, instance.Roughness, instance.Ao));
                 MeshEmissive.Add(instance.Emissive);
+                MeshNames.Add(mesh.Name);
                 Order.Add("mesh");
             }
         }

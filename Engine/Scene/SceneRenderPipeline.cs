@@ -318,7 +318,9 @@ internal static class SceneRenderPipeline
             graphics3D.SetSsao(textureFactory.GetWhiteTexture()?.GetRendererId() ?? 0, 0f);
 
         graphics3D.BeginScene(view);
-        perf.ColorPass = DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, view.ViewProjection);
+        perf.ColorPass = DrawOpaque3D(
+            context, graphics3D, textureFactory, modelFactory, view.ViewProjection,
+            deferBlend: true, blendSortOrigin: view.ViewPosition);
         graphics3D.EndScene();
 
         perf.GpuDrawCalls = graphics3D.GetStats().DrawCalls;
@@ -547,11 +549,14 @@ internal static class SceneRenderPipeline
         Matrix4x4 cullMatrix,
         float shadowCasterMaxDistanceSq = 0f,
         Vector3 shadowCasterViewPosition = default,
-        Vector3? skipCastersContainingLight = null)
+        Vector3? skipCastersContainingLight = null,
+        bool deferBlend = false,
+        Vector3 blendSortOrigin = default)
     {
         var stats = new PassStats();
         var start = Stopwatch.GetTimestamp();
         var hasFrustum = Frustum.TryFromClip(cullMatrix, out var frustum);
+        TransparentItems.Clear();
         try
         {
             foreach (var (entity, modelRenderer, transformComponent) in
@@ -619,7 +624,7 @@ internal static class SceneRenderPipeline
                             shadowCasterViewPosition, skipCastersContainingLight, ref stats))
                         continue;
 
-                    QueueSubmesh(modelRenderer, transform, tint, entity.Id, submesh, ref stats);
+                    QueueSurface(modelRenderer, transform, tint, entity.Id, submesh, deferBlend, blendSortOrigin, ref stats);
                     continue;
                 }
 
@@ -630,13 +635,15 @@ internal static class SceneRenderPipeline
                             shadowCasterViewPosition, skipCastersContainingLight, ref stats))
                         continue;
 
-                    QueueSubmesh(modelRenderer, transform, tint, entity.Id, submesh, ref stats);
+                    QueueSurface(modelRenderer, transform, tint, entity.Id, submesh, deferBlend, blendSortOrigin, ref stats);
                 }
             }
         }
         finally
         {
             FlushMeshBatches(graphics3D, ref stats);
+            if (deferBlend)
+                FlushTransparent(graphics3D);
         }
 
         stats.CpuMs = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
@@ -716,8 +723,76 @@ internal static class SceneRenderPipeline
     private readonly record struct MeshBatchKey(
         Mesh Mesh, Vector4 Tint, float Metallic, float Roughness, float Ao, Vector3 Emissive);
 
+    private readonly record struct TransparentItem(
+        Mesh Mesh,
+        Matrix4x4 Transform,
+        Vector4 Tint,
+        int EntityId,
+        float Metallic,
+        float Roughness,
+        float Ao,
+        Vector3 Emissive,
+        float DepthSq);
+
     private static readonly Dictionary<MeshBatchKey, List<MeshDrawInstance>> MeshBatches = new();
     private static readonly Stack<List<MeshDrawInstance>> BatchLists = new();
+    private static readonly List<TransparentItem> TransparentItems = [];
+
+    private static void QueueSurface(
+        ModelRendererComponent modelRenderer,
+        Matrix4x4 transform,
+        Vector4 tint,
+        int entityId,
+        Mesh submesh,
+        bool deferBlend,
+        Vector3 blendSortOrigin,
+        ref PassStats stats)
+    {
+        if (!deferBlend || !submesh.AlphaBlend)
+        {
+            QueueSubmesh(modelRenderer, transform, tint, entityId, submesh, ref stats);
+            return;
+        }
+
+        stats.Instances++;
+        stats.Vertices += submesh.VertexCount;
+        stats.Indices += submesh.GetIndexCount();
+        AdoptSubmeshFactors(modelRenderer, submesh);
+        var pbr = ResolvePbr(modelRenderer);
+        TransparentItems.Add(new TransparentItem(
+            submesh,
+            transform,
+            tint,
+            entityId,
+            pbr.Metallic,
+            pbr.Roughness,
+            pbr.Ao,
+            CombineEmissive(submesh.EmissiveFactor, modelRenderer),
+            BlendDepthSq(transform, submesh, blendSortOrigin)));
+    }
+
+    private static float BlendDepthSq(Matrix4x4 transform, Mesh submesh, Vector3 origin)
+    {
+        if (submesh.Bounds is not { } bounds)
+            return 0f;
+
+        Aabb.WorldMinMax(transform, bounds, out var min, out var max);
+        var center = (min + max) * 0.5f;
+        return Vector3.DistanceSquared(origin, center);
+    }
+
+    private static void FlushTransparent(IGraphics3D graphics3D)
+    {
+        TransparentItems.Sort(static (a, b) => b.DepthSq.CompareTo(a.DepthSq));
+        foreach (var item in TransparentItems)
+        {
+            graphics3D.DrawMesh(
+                item.Transform, item.Mesh, item.Tint, item.EntityId,
+                item.Metallic, item.Roughness, item.Ao, item.Emissive);
+        }
+
+        TransparentItems.Clear();
+    }
 
     private static void QueueSubmesh(
         ModelRendererComponent modelRenderer,

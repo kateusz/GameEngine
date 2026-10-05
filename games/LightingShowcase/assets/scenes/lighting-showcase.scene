@@ -42,6 +42,9 @@
           "AspectRatio": 1.7777778,
           "Primary": true,
           "FixedAspectRatio": false,
+          "Ssao": false,
+          "SsaoRadius": 0.5,
+          "SsaoStrength": 1,
           "Name": "CameraComponent"
         },
         {

@@ -130,7 +130,8 @@ public sealed class EditorViewport(
             var display = editorPreferences.Fxaa ? fxaaPass.Resolve(ldr) : ldr;
             var selected = selection.SelectedEntities;
             // Play mode keeps selection for hierarchy/properties, but no edit outline overlay
-            if (selected.Count > 0 && sceneContext.State == SceneState.Edit)
+            if (selected.Count > 0 && sceneContext.State == SceneState.Edit
+                && viewport.SceneToolbar.ShowObjectOutline)
             {
                 var ids = selected.Count <= 64 ? stackalloc int[selected.Count] : new int[selected.Count];
                 for (var i = 0; i < selected.Count; i++)

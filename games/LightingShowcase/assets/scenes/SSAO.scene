@@ -14,13 +14,13 @@
       "Components": [
         {
           "Translation": [
-            0.8,
-            4.6,
-            8.2
+            1.4,
+            2.6,
+            5.4
           ],
           "Rotation": [
-            -0.82,
-            0.18,
+            -0.42,
+            0.15,
             0
           ],
           "Scale": [
@@ -43,7 +43,7 @@
           "Primary": true,
           "FixedAspectRatio": false,
           "Ssao": true,
-          "SsaoRadius": 0.5,
+          "SsaoRadius": 1.2,
           "SsaoStrength": 1,
           "Name": "CameraComponent"
         },
@@ -78,13 +78,53 @@
         },
         {
           "Color": [
-            0.45,
-            0.48,
-            0.55,
+            0.92,
+            0.93,
+            0.95,
             1
           ],
-          "Strength": 0.035,
+          "Strength": 0.65,
           "Name": "AmbientLightComponent"
+        }
+      ]
+    },
+    {
+      "Id": 4,
+      "Name": "Sun",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            6,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Direction": [
+            -0.65,
+            -1,
+            -0.4
+          ],
+          "Color": [
+            1,
+            0.96,
+            0.9,
+            1
+          ],
+          "Intensity": 0.7,
+          "Name": "DirectionalLightComponent"
         }
       ]
     },
@@ -155,7 +195,7 @@
           ],
           "Rotation": [
             0,
-            0.12,
+            0.11999981,
             0
           ],
           "Scale": [
@@ -558,7 +598,7 @@
             0.35,
             1
           ],
-          "Intensity": 2.8,
+          "Intensity": 0,
           "Range": 11,
           "CastsShadow": false,
           "ApplyOffset": false,
@@ -601,7 +641,7 @@
             1,
             1
           ],
-          "Intensity": 2.5,
+          "Intensity": 0,
           "Range": 12,
           "CastsShadow": false,
           "ApplyOffset": false,
@@ -644,7 +684,7 @@
             0.28,
             1
           ],
-          "Intensity": 2.6,
+          "Intensity": 0,
           "Range": 10,
           "CastsShadow": false,
           "ApplyOffset": false,
@@ -687,7 +727,7 @@
             0.45,
             1
           ],
-          "Intensity": 2.4,
+          "Intensity": 0,
           "Range": 11,
           "CastsShadow": false,
           "ApplyOffset": false,
@@ -749,7 +789,7 @@
             0.92,
             0.35
           ],
-          "EmissiveStrength": 3.5,
+          "EmissiveStrength": 0,
           "VisibilityZoneEntityId": -1,
           "Name": "ModelRendererComponent"
         }
@@ -804,7 +844,7 @@
             0.65,
             1
           ],
-          "EmissiveStrength": 3.5,
+          "EmissiveStrength": 0,
           "VisibilityZoneEntityId": -1,
           "Name": "ModelRendererComponent"
         }
@@ -859,7 +899,7 @@
             0.32,
             0.28
           ],
-          "EmissiveStrength": 3.5,
+          "EmissiveStrength": 0,
           "VisibilityZoneEntityId": -1,
           "Name": "ModelRendererComponent"
         }
@@ -914,7 +954,7 @@
             1,
             0.45
           ],
-          "EmissiveStrength": 3.5,
+          "EmissiveStrength": 0,
           "VisibilityZoneEntityId": -1,
           "Name": "ModelRendererComponent"
         }

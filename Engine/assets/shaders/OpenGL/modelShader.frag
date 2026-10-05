@@ -31,6 +31,7 @@ uniform vec3 u_BaseColor;
 uniform int u_HasDiffuseMap;
 uniform int u_AlphaTest;
 uniform float u_AlphaCutoff;
+uniform float u_Opacity;
 uniform int u_HasMetallicRoughnessMap;
 uniform int u_HasNormalMap;
 uniform int u_HasOcclusionMap;
@@ -187,6 +188,6 @@ void main()
         : u_AmbientStrength * u_AmbientColor * albedo * ao;
     float ssao = texture(u_Ssao, gl_FragCoord.xy / vec2(textureSize(u_Ssao, 0))).r;
     ambient *= mix(1.0, ssao, u_SsaoStrength);
-    o_Color = vec4(ambient + sun + lamps + u_Emissive, u_Color.a);
+    o_Color = vec4(ambient + sun + lamps + u_Emissive, texel.a * u_Opacity * u_Color.a);
     o_EntityID = v_EntityID;
 }

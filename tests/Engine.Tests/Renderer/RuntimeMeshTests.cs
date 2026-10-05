@@ -68,6 +68,22 @@ public class RuntimeMeshTests
         read!.Submeshes[0].AlphaCutout.ShouldBeTrue();
         read.Submeshes[0].DoubleSided.ShouldBeTrue();
         read.Submeshes[0].AlphaCutoff.ShouldBe(0.35f, 0.001f);
+        read.Submeshes[0].AlphaBlend.ShouldBeFalse();
+        read.Submeshes[0].Opacity.ShouldBe(1f, 0.001f);
+    }
+
+    [Fact]
+    public void RoundTrip_PreservesAlphaBlend()
+    {
+        var model = SampleModel();
+        model.Submeshes[0].AlphaBlend = true;
+        model.Submeshes[0].Opacity = 0.35f;
+        var bytes = RuntimeMeshWriter.Serialize(model, new RuntimeMeshStamp(1, new byte[32],
+            RuntimeMeshFormat.ImporterVersion, RuntimeMeshFormat.AssimpPostProcessFlags));
+
+        RuntimeMeshReader.TryRead(bytes, out var read).ShouldBeTrue();
+        read!.Submeshes[0].AlphaBlend.ShouldBeTrue();
+        read.Submeshes[0].Opacity.ShouldBe(0.35f, 0.001f);
     }
 
     [Fact]

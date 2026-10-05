@@ -43,8 +43,10 @@ public class PbrImportTests
         var model = importer.ImportSource(path);
         model.ShouldNotBeNull();
         var mesh = model!.Submeshes[0];
-        mesh.AlphaCutout.ShouldBeTrue();
+        mesh.AlphaCutout.ShouldBeFalse();
+        mesh.AlphaBlend.ShouldBeTrue();
         mesh.DoubleSided.ShouldBeTrue();
+        mesh.Opacity.ShouldBe(1f, 0.001f);
         mesh.AlphaCutoff.ShouldBe(0.5f, 0.001f);
         mesh.Emissive.ShouldBe(Vector3.Zero);
     }
@@ -53,9 +55,11 @@ public class PbrImportTests
     public void UsesAlphaCutout_MaskAndBlend()
     {
         AssimpModelImporter.UsesAlphaCutout("MASK").ShouldBeTrue();
-        AssimpModelImporter.UsesAlphaCutout("BLEND").ShouldBeTrue();
+        AssimpModelImporter.UsesAlphaCutout("BLEND").ShouldBeFalse();
         AssimpModelImporter.UsesAlphaCutout("OPAQUE").ShouldBeFalse();
         AssimpModelImporter.UsesAlphaCutout(null).ShouldBeFalse();
+        AssimpModelImporter.UsesAlphaBlend("BLEND").ShouldBeTrue();
+        AssimpModelImporter.UsesAlphaBlend("MASK").ShouldBeFalse();
     }
 
     [Fact]
@@ -92,6 +96,23 @@ public class PbrImportTests
     {
         AssimpModelImporter.ImportedFactor(false, 1f, 0f).ShouldBe(0f);
         AssimpModelImporter.ImportedFactor(true, float.NaN, 0.5f).ShouldBe(0.5f);
+    }
+
+    [Fact]
+    public void ImportSource_BlendCard_HasThreeSurfaces()
+    {
+        var path = Path.GetFullPath(Path.Combine(
+            "games", "LightingShowcase", "assets", "models", "blend-card.gltf"));
+        if (!File.Exists(path))
+            path = Path.GetFullPath(Path.Combine(
+                "..", "..", "..", "..", "..", "games", "LightingShowcase", "assets", "models", "blend-card.gltf"));
+
+        using var importer = new AssimpModelImporter();
+        var model = importer.ImportSource(path);
+        model.ShouldNotBeNull();
+        var report = string.Join(" | ", model!.Submeshes.Select(mesh =>
+            $"{mesh.Name} v={mesh.Vertices.Count} i={mesh.Indices.Count} blend={mesh.AlphaBlend} cut={mesh.AlphaCutout} op={mesh.Opacity} n={mesh.Vertices[0].Normal} p={mesh.Vertices[0].Position} c={mesh.BaseColorFactor} d={mesh.DiffusePath}"));
+        report.ShouldBe("ok");
     }
 
     [Fact]
