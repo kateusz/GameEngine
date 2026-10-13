@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using Engine.Renderer.Models;
 
 namespace Engine.Renderer.Models.RuntimeMesh;
 
@@ -56,6 +57,13 @@ internal static class RuntimeMeshWriter
         foreach (var light in model.Lights)
             WriteLightRecord(body, light);
 
+        Align8(body);
+        var skinOffset = body.Count;
+        var wroteSkin = WriteSkin(body, model.Skin);
+        Align8(body);
+        var clipOffset = body.Count;
+        var wroteClips = model.Skin != null && WriteClips(body, model.Skin);
+
         var fileSize = RuntimeMeshFormat.HeaderSize + body.Count;
         var file = new byte[fileSize];
         WriteHeader(
@@ -67,7 +75,9 @@ internal static class RuntimeMeshWriter
             lightCount: (uint)model.Lights.Count,
             meshOffset: model.Submeshes.Count == 0 ? 0UL : (ulong)(RuntimeMeshFormat.HeaderSize + meshOffset),
             nodeOffset: model.Nodes.Count == 0 ? 0UL : (ulong)(RuntimeMeshFormat.HeaderSize + nodeOffset),
-            lightOffset: model.Lights.Count == 0 ? 0UL : (ulong)(RuntimeMeshFormat.HeaderSize + lightOffset));
+            lightOffset: model.Lights.Count == 0 ? 0UL : (ulong)(RuntimeMeshFormat.HeaderSize + lightOffset),
+            skinOffset: wroteSkin ? (ulong)(RuntimeMeshFormat.HeaderSize + skinOffset) : 0UL,
+            clipOffset: wroteClips ? (ulong)(RuntimeMeshFormat.HeaderSize + clipOffset) : 0UL);
         body.CopyTo(file, RuntimeMeshFormat.HeaderSize);
         return file;
     }
@@ -81,7 +91,9 @@ internal static class RuntimeMeshWriter
         uint lightCount,
         ulong meshOffset,
         ulong nodeOffset,
-        ulong lightOffset)
+        ulong lightOffset,
+        ulong skinOffset,
+        ulong clipOffset)
     {
         var writer = new RuntimeMeshBinaryWriter(file);
         writer.WriteMagic(RuntimeMeshFormat.Magic);
@@ -104,6 +116,8 @@ internal static class RuntimeMeshWriter
         writer.WriteUInt64(nodeOffset);
         writer.WriteUInt64(lightOffset);
         writer.WriteZeros(RuntimeMeshFormat.HeaderReservedBytes);
+        writer.WriteUInt64(skinOffset);
+        writer.WriteUInt64(clipOffset);
     }
 
     private static void WriteMeshRecord(List<byte> body, SourceSubmesh mesh)
@@ -144,6 +158,21 @@ internal static class RuntimeMeshWriter
 
         foreach (var index in mesh.Indices)
             AppendUInt32(body, index);
+
+        var hasWeights = mesh.Joints.Length == mesh.Vertices.Count * 4
+                         && mesh.Weights.Length == mesh.Vertices.Count * 4;
+        AppendUInt32(body, hasWeights ? 1u : 0u);
+        if (hasWeights)
+        {
+            for (var vertex = 0; vertex < mesh.Vertices.Count; vertex++)
+            {
+                var influenceStart = vertex * 4;
+                for (var influence = 0; influence < 4; influence++)
+                    AppendUInt32(body, (uint)mesh.Joints[influenceStart + influence]);
+                for (var influence = 0; influence < 4; influence++)
+                    AppendSingle(body, mesh.Weights[influenceStart + influence]);
+            }
+        }
 
         Align8(body);
         var length = body.Count - start;
@@ -198,6 +227,59 @@ internal static class RuntimeMeshWriter
         Align8(body);
         var length = body.Count - start;
         BinaryPrimitives.WriteUInt32LittleEndian(CollectionsMarshal.AsSpan(body).Slice(start, 4), (uint)length);
+    }
+
+    private static bool WriteSkin(List<byte> body, SkinData? skin)
+    {
+        if (skin == null || skin.Joints.Length == 0)
+            return false;
+
+        AppendUInt32(body, (uint)skin.Joints.Length);
+        AppendUInt32(body, 0);
+        foreach (var joint in skin.Joints)
+        {
+            AppendInt32(body, joint.Parent);
+            AppendMatrix(body, joint.InverseBind);
+            AppendVector3(body, joint.RestTranslation);
+            AppendSingle(body, joint.RestRotation.X);
+            AppendSingle(body, joint.RestRotation.Y);
+            AppendSingle(body, joint.RestRotation.Z);
+            AppendSingle(body, joint.RestRotation.W);
+            AppendVector3(body, joint.RestScale);
+        }
+
+        return true;
+    }
+
+    private static bool WriteClips(List<byte> body, SkinData skin)
+    {
+        if (skin.Clips.Length == 0)
+            return false;
+
+        AppendUInt32(body, (uint)skin.Clips.Length);
+        AppendUInt32(body, 0);
+        foreach (var clip in skin.Clips)
+        {
+            AppendString(body, clip.Name);
+            AppendSingle(body, clip.Duration);
+            AppendUInt32(body, (uint)clip.Channels.Length);
+            foreach (var channel in clip.Channels)
+            {
+                var stride = channel.Property == ChannelProperty.Rotation ? 4 : 3;
+                AppendUInt32(body, (uint)channel.Joint);
+                AppendUInt32(body, (uint)channel.Property);
+                AppendUInt32(body, (uint)channel.Interpolation);
+                AppendUInt32(body, (uint)channel.Times.Length);
+                for (var key = 0; key < channel.Times.Length; key++)
+                {
+                    AppendSingle(body, channel.Times[key]);
+                    for (var component = 0; component < stride; component++)
+                        AppendSingle(body, channel.Values[key * stride + component]);
+                }
+            }
+        }
+
+        return true;
     }
 
     private static void Align8(List<byte> body)

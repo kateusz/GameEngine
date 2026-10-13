@@ -52,6 +52,10 @@ internal sealed class OpenGLShader : IShader
             OpenGLDebug.CheckError(SilkNetContext.GL, "DeleteShader(fragment)");
             fragment = 0;
 
+            var jointBlock = SilkNetContext.GL.GetUniformBlockIndex(_handle, "JointPalette");
+            if (jointBlock != uint.MaxValue)
+                SilkNetContext.GL.UniformBlockBinding(_handle, jointBlock, 0);
+
             SilkNetContext.GL.GetProgram(_handle, ProgramPropertyARB.ActiveUniforms, out var numberOfUniforms);
 
             for (uint i = 0; i < numberOfUniforms; i++)

@@ -1,8 +1,10 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
 using Engine.Project;
+using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Meshes;
+using Engine.Renderer.Models;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
 
@@ -13,7 +15,8 @@ internal sealed class Graphics3D(
     IShaderFactory shaderFactory,
     IMeshFactory meshFactory,
     ITextureFactory textureFactory,
-    IFrameBufferFactory frameBuffers) : IGraphics3D
+    IFrameBufferFactory frameBuffers,
+    IUniformBuffer? jointPalette = null) : IGraphics3D
 {
     private const string ViewProjectionUniform = "u_ViewProjection";
     private const int ShadowMapSlot = 3;
@@ -33,6 +36,11 @@ internal sealed class Graphics3D(
     private IShader _cubeShader = null!;
     private IShader _modelShader = null!;
     private IShader _emissiveShader = null!;
+    private IShader _skinnedModelShader = null!;
+    private IShader _skinnedEmissiveShader = null!;
+    private IShader _skinnedDepthShader = null!;
+    private IShader _skinnedPointDepthShader = null!;
+    private readonly float[] _jointBlock = new float[SceneComponents.Rendering.SkinnedAnimationComponent.MaxJoints * 16];
     private IShader _depthShader = null!;
     private IShader _pointDepthShader = null!;
     private IShader _equirectShader = null!;
@@ -119,6 +127,32 @@ internal sealed class Graphics3D(
         for (var i = 0; i < LightingMath.MaxPointLights; i++)
             _modelShader.SetInt(PointShadowMapUniforms[i], PointShadowSlot + i);
         _modelShader.Unbind();
+
+        _skinnedModelShader = shaderFactory.Create(ShaderId.SkinnedModel);
+        _skinnedDepthShader = shaderFactory.Create(ShaderId.SkinnedDepth);
+        _skinnedPointDepthShader = shaderFactory.Create(ShaderId.SkinnedPointDepth);
+        _skinnedEmissiveShader = shaderFactory.Create(ShaderId.SkinnedEmissive);
+        _skinnedModelShader.Bind();
+        _skinnedModelShader.SetInt("u_DiffuseMap", 0);
+        _skinnedModelShader.SetInt("u_MetallicRoughnessMap", 1);
+        _skinnedModelShader.SetInt("u_NormalMap", 2);
+        _skinnedModelShader.SetInt("u_ShadowMap", ShadowMapSlot);
+        _skinnedModelShader.SetInt("u_OcclusionMap", OcclusionMapSlot);
+        _skinnedModelShader.SetInt("u_Irradiance", IrradianceSlot);
+        _skinnedModelShader.SetInt("u_Prefilter", PrefilterSlot);
+        _skinnedModelShader.SetInt("u_BrdfLut", BrdfLutSlot);
+        for (var i = 0; i < LightingMath.MaxPointLights; i++)
+            _skinnedModelShader.SetInt(PointShadowMapUniforms[i], PointShadowSlot + i);
+        _skinnedModelShader.Unbind();
+        _skinnedDepthShader.Bind();
+        _skinnedDepthShader.SetInt("u_DiffuseMap", 0);
+        _skinnedDepthShader.Unbind();
+        _skinnedPointDepthShader.Bind();
+        _skinnedPointDepthShader.SetInt("u_DiffuseMap", 0);
+        _skinnedPointDepthShader.Unbind();
+        _skinnedEmissiveShader.Bind();
+        _skinnedEmissiveShader.SetInt("u_EmissiveMap", 0);
+        _skinnedEmissiveShader.Unbind();
 
         _emissiveShader = shaderFactory.Create(ShaderId.Emissive);
         _emissiveShader.Bind();
@@ -459,6 +493,86 @@ internal sealed class Graphics3D(
         DrawMeshInstances(mesh, one);
     }
 
+    public void DrawSkinnedMesh(Mesh mesh, Matrix4x4 entityWorld, ReadOnlySpan<Matrix4x4> palette, Vector4 tint,
+        int entityId = -1, float metallic = 0f, float roughness = 0.5f, float ao = 1f, Vector3 emissive = default)
+    {
+        if (jointPalette == null)
+            return;
+
+        SkinnedPose.WriteBlock(palette, _jointBlock);
+        var floats = System.Math.Min(palette.Length, _jointBlock.Length / 16) * 16;
+        jointPalette.Update(_jointBlock.AsSpan(0, floats));
+        jointPalette.BindBase(0);
+
+        if (_shadowPass)
+        {
+            var shader = _pointShadowPass ? _skinnedPointDepthShader : _skinnedDepthShader;
+            rendererApi.SetDepthTest(true);
+            ApplySurface(shader, mesh);
+            shader.SetMat4("u_Model", entityWorld);
+            mesh.Bind();
+            rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
+            RecordDraw(mesh, instanceCount: 1, isCube: false);
+            rendererApi.SetFaceCulling(true);
+            return;
+        }
+
+        rendererApi.SetDepthTest(true);
+        _skinnedModelShader.Bind();
+        ApplySurface(_skinnedModelShader, mesh);
+        _skinnedModelShader.SetFloat4("u_Color", tint);
+        _skinnedModelShader.SetFloat("u_Metallic", metallic);
+        _skinnedModelShader.SetFloat("u_Roughness", roughness);
+        _skinnedModelShader.SetFloat("u_Ao", ao);
+        _skinnedModelShader.SetFloat3("u_Emissive", WithoutEmissiveMap(mesh, emissive));
+        _skinnedModelShader.SetFloat3("u_BaseColor", mesh.BaseColorFactor);
+        _skinnedModelShader.SetInt("u_HasDiffuseMap", mesh.HasDiffuseMap ? 1 : 0);
+        _skinnedModelShader.SetInt("u_HasMetallicRoughnessMap", mesh.HasMetallicRoughnessMap ? 1 : 0);
+        _skinnedModelShader.SetInt("u_HasNormalMap", mesh.HasNormalMap ? 1 : 0);
+        _skinnedModelShader.SetInt("u_HasOcclusionMap", mesh.HasOcclusionMap ? 1 : 0);
+        _skinnedModelShader.SetMat4("u_Model", entityWorld);
+        _skinnedModelShader.SetMat4("u_NormalMatrix", ComputeNormalMatrix(entityWorld));
+        _skinnedModelShader.SetInt("u_EntityID", entityId);
+
+        (mesh.DiffuseTexture ?? textureFactory.GetWhiteTexture()).Bind(0);
+        (mesh.MetallicRoughnessTexture ?? textureFactory.GetWhiteTexture()).Bind(1);
+        (mesh.NormalTexture ?? textureFactory.GetFlatNormalTexture()).Bind(2);
+        (mesh.OcclusionTexture ?? textureFactory.GetWhiteTexture()).Bind(OcclusionMapSlot);
+
+        mesh.Bind();
+        rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
+        RecordDraw(mesh, instanceCount: 1, isCube: false);
+        _skinnedModelShader.Unbind();
+        rendererApi.SetFaceCulling(true);
+
+        if (mesh.EmissiveTexture == null || (mesh.EmissiveFactor.X <= 0f && mesh.EmissiveFactor.Y <= 0f && mesh.EmissiveFactor.Z <= 0f))
+            return;
+
+        rendererApi.SetBlend(true);
+        rendererApi.SetAdditiveBlend(true);
+        rendererApi.SetDepthWrite(false);
+        rendererApi.SetFaceCulling(!mesh.DoubleSided);
+        try
+        {
+            _skinnedEmissiveShader.Bind();
+            _skinnedEmissiveShader.SetMat4(ViewProjectionUniform, _viewProjection);
+            _skinnedEmissiveShader.SetMat4("u_Model", entityWorld);
+            _skinnedEmissiveShader.SetInt("u_EntityID", entityId);
+            _skinnedEmissiveShader.SetFloat3("u_Emissive", mesh.EmissiveFactor);
+            mesh.EmissiveTexture.Bind(0);
+            mesh.Bind();
+            rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
+        }
+        finally
+        {
+            _skinnedEmissiveShader.Unbind();
+            rendererApi.SetFaceCulling(true);
+            rendererApi.SetDepthWrite(true);
+            rendererApi.SetAdditiveBlend(false);
+            rendererApi.SetBlend(false);
+        }
+    }
+
     public void DrawMeshInstances(Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances)
     {
         if (instances.IsEmpty)
@@ -787,6 +901,11 @@ internal sealed class Graphics3D(
         // Factory owns shader and cube-mesh lifetime; just release our references
         _cubeShader = null!;
         _modelShader = null!;
+        _emissiveShader = null!;
+        _skinnedModelShader = null!;
+        _skinnedEmissiveShader = null!;
+        _skinnedDepthShader = null!;
+        _skinnedPointDepthShader = null!;
         _depthShader = null!;
         _pointDepthShader = null!;
         _equirectShader = null!;

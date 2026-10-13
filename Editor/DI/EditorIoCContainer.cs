@@ -80,6 +80,7 @@ public static class EditorIoCContainer
         container.RegisterMany<PointLightComponentEditor>(Reuse.Singleton);
         container.RegisterMany<SpriteRendererComponentEditor>(Reuse.Singleton);
         container.RegisterMany<ModelRendererComponentEditor>(Reuse.Singleton);
+        container.RegisterMany<SkinnedAnimationComponentEditor>(Reuse.Singleton);
         container.RegisterMany<VisibilityZoneComponentEditor>(Reuse.Singleton);
         container.RegisterMany<RigidBody2DComponentEditor>(Reuse.Singleton);
         container.RegisterMany<BoxCollider2DComponentEditor>(Reuse.Singleton);

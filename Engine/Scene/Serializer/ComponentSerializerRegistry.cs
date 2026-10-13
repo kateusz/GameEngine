@@ -152,6 +152,7 @@ internal sealed class ComponentSerializerRegistry : IComponentSerializerRegistry
         Register<AudioListenerComponent>();
         Register<AudioSourceComponent>();
         Register<ModelRendererComponent>();
+        Register<SkinnedAnimationComponent>();
         Register<AmbientLightComponent>();
         Register<DirectionalLightComponent>();
         Register<PointLightComponent>();

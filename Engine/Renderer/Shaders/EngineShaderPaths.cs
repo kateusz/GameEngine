@@ -21,6 +21,14 @@ internal static class EngineShaderPaths
             return (Path.Combine(dir, "fxaa.vert"), Path.Combine(dir, "bloomBlur.frag"));
         if (shader == ShaderId.Emissive)
             return (Path.Combine(dir, "modelShader.vert"), Path.Combine(dir, "emissive.frag"));
+        if (shader == ShaderId.SkinnedEmissive)
+            return (Path.Combine(dir, "skinnedModel.vert"), Path.Combine(dir, "emissive.frag"));
+        if (shader == ShaderId.SkinnedModel)
+            return (Path.Combine(dir, "skinnedModel.vert"), Path.Combine(dir, "modelShader.frag"));
+        if (shader == ShaderId.SkinnedDepth)
+            return (Path.Combine(dir, "skinnedDepth.vert"), Path.Combine(dir, "depth.frag"));
+        if (shader == ShaderId.SkinnedPointDepth)
+            return (Path.Combine(dir, "skinnedPointDepth.vert"), Path.Combine(dir, "pointDepth.frag"));
 
         var name = shader switch
         {

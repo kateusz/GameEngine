@@ -1,5 +1,6 @@
 using System.Numerics;
 using Engine.Renderer;
+using Engine.Renderer.Models;
 
 namespace Engine.Renderer.Models.RuntimeMesh;
 
@@ -47,7 +48,24 @@ internal static class RuntimeMeshReader
         if (!ValidateNodeTree(nodes))
             return false;
 
-        model = new SourceModel(meshes, nodes, lights);
+        SkinData? skin = null;
+        if (header.SkinOffset != 0)
+        {
+            if (!TryReadSkin(span, header, out skin) || skin == null)
+                return false;
+        }
+
+        if (header.ClipOffset != 0)
+        {
+            if (skin == null || !TryReadClips(span, header, skin.Joints.Length, out var clips))
+                return false;
+            skin = new SkinData { Joints = skin.Joints, Clips = clips };
+        }
+
+        if (!WeightsMatchSkin(meshes, skin))
+            return false;
+
+        model = new SourceModel(meshes, nodes, lights, skin);
         return true;
     }
 
@@ -65,7 +83,9 @@ internal static class RuntimeMeshReader
         byte[] SourceSha256,
         ulong MeshTableOffset,
         ulong NodeTableOffset,
-        ulong LightTableOffset);
+        ulong LightTableOffset,
+        ulong SkinOffset,
+        ulong ClipOffset);
 
     private static bool TryReadHeader(ReadOnlySpan<byte> file, out Header header)
     {
@@ -112,6 +132,8 @@ internal static class RuntimeMeshReader
         if (!reader.TryReadBytes(RuntimeMeshFormat.HeaderReservedBytes, out var reserved)
             || !reserved.SequenceEqual(new byte[RuntimeMeshFormat.HeaderReservedBytes]))
             return false;
+        if (!reader.TryReadUInt64(out var skinOffset) || !reader.TryReadUInt64(out var clipOffset))
+            return false;
 
         header = new Header(
             fileSize,
@@ -124,7 +146,9 @@ internal static class RuntimeMeshReader
             sha256.ToArray(),
             meshOffset,
             nodeOffset,
-            lightOffset);
+            lightOffset,
+            skinOffset,
+            clipOffset);
         return true;
     }
 
@@ -158,7 +182,23 @@ internal static class RuntimeMeshReader
             return false;
         if (!ValidateTableOffset(header.LightCount, header.LightTableOffset, file.Length, ref previousEnd))
             return false;
+        if (!ValidateOptionalOffset(header.SkinOffset, file.Length, ref previousEnd))
+            return false;
+        if (!ValidateOptionalOffset(header.ClipOffset, file.Length, ref previousEnd))
+            return false;
 
+        return true;
+    }
+
+    private static bool ValidateOptionalOffset(ulong offset, int fileLength, ref ulong previousEnd)
+    {
+        if (offset == 0)
+            return true;
+        if (offset < RuntimeMeshFormat.HeaderSize || offset % 8 != 0 || offset >= (ulong)fileLength)
+            return false;
+        if (offset < previousEnd)
+            return false;
+        previousEnd = offset;
         return true;
     }
 
@@ -347,8 +387,206 @@ internal static class RuntimeMeshReader
             parsed.Indices.Add(index);
         }
 
+        if (!reader.TryReadUInt32(out var weightFlag) || weightFlag > 1)
+            return false;
+        if (weightFlag == 1)
+        {
+            var influences = (int)vertexCount * 4;
+            var joints = new int[influences];
+            var weights = new float[influences];
+            for (var vertex = 0; vertex < vertexCount; vertex++)
+            {
+                var start = vertex * 4;
+                for (var influence = 0; influence < 4; influence++)
+                {
+                    if (!reader.TryReadUInt32(out var joint))
+                        return false;
+                    joints[start + influence] = (int)joint;
+                }
+
+                for (var influence = 0; influence < 4; influence++)
+                {
+                    if (!reader.TryReadSingle(out var weight) || !float.IsFinite(weight))
+                        return false;
+                    weights[start + influence] = weight;
+                }
+            }
+
+            parsed.Joints = joints;
+            parsed.Weights = weights;
+        }
+
+        if (reader.Position > recordStart + byteLength)
+            return false;
+
         mesh = parsed;
         return true;
+    }
+
+    private static bool WeightsMatchSkin(List<SourceSubmesh> meshes, SkinData? skin)
+    {
+        var jointCount = skin?.Joints.Length ?? 0;
+        foreach (var mesh in meshes)
+        {
+            var expect = mesh.Vertices.Count * 4;
+            var hasWeights = mesh.Joints.Length == expect && mesh.Weights.Length == expect;
+            if (jointCount == 0)
+            {
+                if (hasWeights)
+                    return false;
+                continue;
+            }
+
+            if (!hasWeights)
+                return false;
+            for (var i = 0; i < mesh.Joints.Length; i++)
+            {
+                if ((uint)mesh.Joints[i] >= (uint)jointCount)
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool TryReadSkin(ReadOnlySpan<byte> file, Header header, out SkinData? skin)
+    {
+        skin = null;
+        var reader = new RuntimeMeshBinaryReader(file, (int)header.SkinOffset);
+        if (!reader.TryReadUInt32(out var jointCount)
+            || jointCount == 0
+            || jointCount > RuntimeMeshFormat.MaxJoints)
+            return false;
+        if (!reader.TryReadUInt32(out var pad) || pad != 0)
+            return false;
+
+        var joints = new JointData[jointCount];
+        for (var i = 0; i < jointCount; i++)
+        {
+            if (!reader.TryReadInt32(out var parent))
+                return false;
+            if (!reader.TryReadMatrix(out var inverseBind) || !IsFiniteMatrix(inverseBind))
+                return false;
+            if (!reader.TryReadVector3(out var translation) || !IsFinite(translation))
+                return false;
+            if (!reader.TryReadSingle(out var qx) || !reader.TryReadSingle(out var qy)
+                || !reader.TryReadSingle(out var qz) || !reader.TryReadSingle(out var qw))
+                return false;
+            var rotation = new Quaternion(qx, qy, qz, qw);
+            if (!float.IsFinite(rotation.X) || !float.IsFinite(rotation.Y)
+                || !float.IsFinite(rotation.Z) || !float.IsFinite(rotation.W))
+                return false;
+            if (!reader.TryReadVector3(out var scale) || !IsFinite(scale))
+                return false;
+            if (parent < -1 || parent >= jointCount || parent == i)
+                return false;
+            joints[i] = new JointData
+            {
+                Parent = parent,
+                InverseBind = inverseBind,
+                RestTranslation = translation,
+                RestRotation = rotation,
+                RestScale = scale
+            };
+        }
+
+        if (HasJointCycle(joints))
+            return false;
+
+        skin = new SkinData { Joints = joints, Clips = [] };
+        return true;
+    }
+
+    private static bool TryReadClips(ReadOnlySpan<byte> file, Header header, int jointCount, out ClipData[] clips)
+    {
+        clips = [];
+        var reader = new RuntimeMeshBinaryReader(file, (int)header.ClipOffset);
+        if (!reader.TryReadUInt32(out var clipCount) || clipCount == 0 || clipCount > RuntimeMeshFormat.MaxClips)
+            return false;
+        if (!reader.TryReadUInt32(out var pad) || pad != 0)
+            return false;
+
+        clips = new ClipData[clipCount];
+        for (var i = 0; i < clipCount; i++)
+        {
+            if (!reader.TryReadString(out var name))
+                return false;
+            if (!reader.TryReadSingle(out var duration) || !float.IsFinite(duration) || duration < 0f)
+                return false;
+            if (!reader.TryReadUInt32(out var channelCount) || channelCount > RuntimeMeshFormat.MaxChannelsPerClip)
+                return false;
+
+            var channels = new ClipChannel[channelCount];
+            for (var c = 0; c < channelCount; c++)
+            {
+                if (!reader.TryReadUInt32(out var joint) || joint >= (uint)jointCount)
+                    return false;
+                if (!reader.TryReadUInt32(out var property) || property is < 1 or > 3)
+                    return false;
+                if (!reader.TryReadUInt32(out var interpolation) || interpolation is < 1 or > 2)
+                    return false;
+                if (!reader.TryReadUInt32(out var keyCount) || keyCount > RuntimeMeshFormat.MaxKeysPerChannel)
+                    return false;
+
+                var stride = property == (uint)ChannelProperty.Rotation ? 4 : 3;
+                var times = new float[keyCount];
+                var values = new float[keyCount * stride];
+                for (var key = 0; key < keyCount; key++)
+                {
+                    if (!reader.TryReadSingle(out var time) || !float.IsFinite(time))
+                        return false;
+                    times[key] = time;
+                    for (var component = 0; component < stride; component++)
+                    {
+                        if (!reader.TryReadSingle(out var value) || !float.IsFinite(value))
+                            return false;
+                        values[key * stride + component] = value;
+                    }
+                }
+
+                channels[c] = new ClipChannel
+                {
+                    Joint = (int)joint,
+                    Property = (ChannelProperty)property,
+                    Interpolation = (ChannelInterpolation)interpolation,
+                    Times = times,
+                    Values = values
+                };
+            }
+
+            clips[i] = new ClipData { Name = name, Duration = duration, Channels = channels };
+        }
+
+        return true;
+    }
+
+    private static bool HasJointCycle(JointData[] joints)
+    {
+        var state = new byte[joints.Length];
+        for (var i = 0; i < joints.Length; i++)
+        {
+            var index = i;
+            while (index >= 0)
+            {
+                if (state[index] == 1)
+                    return true;
+                if (state[index] == 2)
+                    break;
+                state[index] = 1;
+                index = joints[index].Parent;
+                if (index >= joints.Length)
+                    return true;
+            }
+
+            index = i;
+            while (index >= 0 && state[index] == 1)
+            {
+                state[index] = 2;
+                index = joints[index].Parent;
+            }
+        }
+
+        return false;
     }
 
     private static bool TryReadNodeTable(

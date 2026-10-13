@@ -24,6 +24,7 @@ internal sealed class AssimpModelImporter : IDisposable
         var textureSidecar = new ModelSourceTextureSidecar(normalizedPath);
         var submeshes = new List<SourceSubmesh>();
         ModelSceneNode? sceneGraph;
+        SkinData? skin = null;
 
         unsafe
         {
@@ -122,6 +123,7 @@ internal sealed class AssimpModelImporter : IDisposable
 
                 sceneGraph = WalkNode(scene->MRootNode, meshIndexMap, pendingLights, Matrix4x4.Identity);
                 sceneGraph = WithUnmatchedLights(sceneGraph, pendingLights);
+                skin = SkinImporter.TryRead(scene, submeshes, meshIndexMap, sceneGraph);
             }
             finally
             {
@@ -130,7 +132,7 @@ internal sealed class AssimpModelImporter : IDisposable
         }
 
         var (nodes, lights) = RuntimeMeshSceneGraph.Flatten(sceneGraph);
-        return new SourceModel(submeshes, nodes, lights);
+        return new SourceModel(submeshes, nodes, lights, skin);
     }
 
     private static unsafe ModelSceneNode WalkNode(

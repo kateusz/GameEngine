@@ -9,4 +9,6 @@ internal sealed class VertexBufferFactory : IVertexBufferFactory
     public IVertexBuffer Create(uint size) => new OpenGLVertexBuffer(size);
 
     public IVertexBuffer Create(List<Mesh.Vertex> vertices) => new OpenGLVertexBuffer(vertices);
+
+    public IVertexBuffer Create(List<Mesh.SkinnedVertex> vertices) => new OpenGLVertexBuffer(vertices);
 }

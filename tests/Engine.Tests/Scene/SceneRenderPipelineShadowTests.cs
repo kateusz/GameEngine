@@ -905,6 +905,10 @@ public class SceneRenderPipelineShadowTests
             Order.Add("cube");
         }
 
+        public void DrawSkinnedMesh(Mesh mesh, Matrix4x4 entityWorld, ReadOnlySpan<Matrix4x4> palette, Vector4 tint,
+            int entityId = -1, float metallic = 0f, float roughness = 0.5f, float ao = 1f, Vector3 emissive = default) =>
+            DrawMesh(entityWorld, mesh, tint, entityId, metallic, roughness, ao, emissive);
+
         public void DrawMesh(Matrix4x4 transform, Mesh mesh, Vector4 tint, int entityId = -1,
             float metallic = 0f, float roughness = 0.5f, float ao = 1f, Vector3 emissive = default)
         {

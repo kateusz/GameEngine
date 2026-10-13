@@ -355,6 +355,7 @@ public sealed class EditorViewport(
                 if (sceneContext.ActiveScene is { } scene)
                 {
                     scene.UpdateWorldTransforms();
+                    SkinnedPose.Advance(scene.Context, modelFactory, deltaTime);
                     var viewMatrix = _editorCamera.GetViewMatrix();
                     var projection = _editorCamera.GetProjectionMatrix();
                     var skyView = viewMatrix;

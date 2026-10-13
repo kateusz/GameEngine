@@ -10,15 +10,20 @@ internal static class RuntimeMeshFormat
                PostProcessSteps.JoinIdenticalVertices |
                PostProcessSteps.GenerateNormals |
                PostProcessSteps.CalculateTangentSpace |
-               PostProcessSteps.FlipUVs);
+               PostProcessSteps.FlipUVs |
+               PostProcessSteps.LimitBoneWeights);
 
-    public const int HeaderSize = 128;
+    public const int HeaderSize = 144;
     public const int HeaderReservedBytes = 12;
-    public const uint Version = 1;
+    public const uint Version = 2;
     public const uint Flags = 0;
     public const uint VertexLayoutId = 1;
     public const uint IndexType = 1;
-    public const uint ImporterVersion = 6;
+    public const uint ImporterVersion = 8;
+    public const int MaxJoints = 128;
+    public const int MaxClips = 256;
+    public const int MaxChannelsPerClip = 1024;
+    public const int MaxKeysPerChannel = 65536;
     public const uint SurfaceAlphaCutout = 1;
     public const uint SurfaceDoubleSided = 2;
     public const int VertexLayoutStride = 56;

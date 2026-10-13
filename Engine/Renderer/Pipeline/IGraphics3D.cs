@@ -14,6 +14,9 @@ public interface IGraphics3D : IGraphics
     void DrawMesh(Matrix4x4 transform, Mesh mesh, Vector4 tint, int entityId = -1,
         float metallic = 0f, float roughness = 0.5f, float ao = 1f, Vector3 emissive = default);
 
+    void DrawSkinnedMesh(Mesh mesh, Matrix4x4 entityWorld, ReadOnlySpan<Matrix4x4> palette, Vector4 tint,
+        int entityId = -1, float metallic = 0f, float roughness = 0.5f, float ao = 1f, Vector3 emissive = default);
+
     /// <summary>
     /// One draw for every entry. Callers group by mesh and by tint / metallic / roughness / AO / emissive.
     /// </summary>

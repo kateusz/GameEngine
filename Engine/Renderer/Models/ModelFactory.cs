@@ -1,4 +1,5 @@
-﻿using Engine.Core.DI;
+﻿using System.Numerics;
+using Engine.Core.DI;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Meshes;
@@ -12,7 +13,7 @@ internal class ModelFactory : IModelFactory
 {
     private static readonly ILogger Logger = Log.ForContext<ModelFactory>();
 
-    private readonly Func<string, byte[]?, (IReadOnlyList<Mesh> Submeshes, ModelSceneNode? SceneGraph)> _import;
+    private readonly Func<string, byte[]?, (IReadOnlyList<Mesh> Submeshes, ModelSceneNode? SceneGraph, SkinData? Skin)> _import;
     private readonly IVertexArrayFactory _vertexArrayFactory;
     private readonly IVertexBufferFactory _vertexBufferFactory;
     private readonly IIndexBufferFactory _indexBufferFactory;
@@ -36,7 +37,7 @@ internal class ModelFactory : IModelFactory
     }
 
     internal ModelFactory(
-        Func<string, byte[]?, (IReadOnlyList<Mesh> Submeshes, ModelSceneNode? SceneGraph)> import,
+        Func<string, byte[]?, (IReadOnlyList<Mesh> Submeshes, ModelSceneNode? SceneGraph, SkinData? Skin)> import,
         IVertexArrayFactory vertexArrayFactory,
         IVertexBufferFactory vertexBufferFactory,
         IIndexBufferFactory indexBufferFactory)
@@ -73,7 +74,7 @@ internal class ModelFactory : IModelFactory
     {
         try
         {
-            var (submeshes, sceneGraph) = _import(normalizedPath, runtimeMeshBytes);
+            var (submeshes, sceneGraph, skin) = _import(normalizedPath, runtimeMeshBytes);
             if (submeshes.Count == 0)
             {
                 Logger.Warning("Model has no meshes: {Path}", normalizedPath);
@@ -122,7 +123,14 @@ internal class ModelFactory : IModelFactory
                     submesh.VertexCount, indexCount, indexCount / 3, submesh.Name);
             }
 
-            return new Model(normalizedPath, initialized, sceneGraph);
+            Matrix4x4[] restPose = [];
+            if (skin != null)
+            {
+                restPose = new Matrix4x4[skin.Joints.Length];
+                SkinnedPose.BuildRest(skin, restPose);
+            }
+
+            return new Model(normalizedPath, initialized, sceneGraph, skin, restPose);
         }
         catch (Exception ex)
         {
@@ -131,7 +139,7 @@ internal class ModelFactory : IModelFactory
         }
     }
 
-    private static (IReadOnlyList<Mesh> Submeshes, ModelSceneNode? SceneGraph) LoadFromRuntimeMesh(
+    private static (IReadOnlyList<Mesh> Submeshes, ModelSceneNode? SceneGraph, SkinData? Skin) LoadFromRuntimeMesh(
         string normalizedPath,
         ITextureFactory textureFactory,
         bool ensureRuntimeMeshSibling,
@@ -140,7 +148,7 @@ internal class ModelFactory : IModelFactory
         if (!RuntimeMeshPaths.IsModelSourceExtension(normalizedPath))
         {
             Logger.Warning("Unsupported model source extension: {Path}", normalizedPath);
-            return ([], null);
+            return ([], null, null);
         }
 
         byte[] bytes;
@@ -153,11 +161,11 @@ internal class ModelFactory : IModelFactory
             if (!File.Exists(normalizedPath))
             {
                 Logger.Warning("Model source file not found: {Path}", normalizedPath);
-                return ([], null);
+                return ([], null, null);
             }
 
             if (!RuntimeMeshBuilder.TryEnsureUpToDate(normalizedPath))
-                return ([], null);
+                return ([], null, null);
 
             bytes = File.ReadAllBytes(RuntimeMeshPaths.SiblingPath(normalizedPath));
         }
@@ -167,7 +175,7 @@ internal class ModelFactory : IModelFactory
             if (!File.Exists(siblingPath))
             {
                 Logger.Warning("Runtime mesh file not found: {Path}", siblingPath);
-                return ([], null);
+                return ([], null, null);
             }
 
             bytes = File.ReadAllBytes(siblingPath);
@@ -176,7 +184,7 @@ internal class ModelFactory : IModelFactory
         if (!RuntimeMeshReader.TryRead(bytes, out var source) || source == null)
         {
             Logger.Warning("Failed to read runtime mesh: {Path}", normalizedPath);
-            return ([], null);
+            return ([], null, null);
         }
 
         var sourceDirectory = Path.GetDirectoryName(Path.GetFullPath(normalizedPath)) ?? string.Empty;
@@ -186,6 +194,12 @@ internal class ModelFactory : IModelFactory
             var mesh = new Mesh(submesh.Name);
             mesh.Vertices.AddRange(submesh.Vertices);
             mesh.Indices.AddRange(submesh.Indices);
+            if (submesh.Joints.Length == submesh.Vertices.Count * 4)
+            {
+                mesh.IsSkinned = true;
+                mesh.Joints = submesh.Joints;
+                mesh.Weights = submesh.Weights;
+            }
             mesh.MetallicFactor = submesh.Metallic;
             mesh.RoughnessFactor = submesh.Roughness;
             mesh.BaseColorFactor = submesh.BaseColorFactor;
@@ -215,7 +229,7 @@ internal class ModelFactory : IModelFactory
         }
 
         var sceneGraph = RuntimeMeshSceneGraph.Unflatten(source.Nodes, source.Lights);
-        return (meshes, sceneGraph);
+        return (meshes, sceneGraph, source.Skin);
     }
 
     public void Clear()

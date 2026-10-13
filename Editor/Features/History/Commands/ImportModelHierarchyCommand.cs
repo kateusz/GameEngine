@@ -1,3 +1,4 @@
+using System.Numerics;
 using ECS;
 using Editor.Features.Scene;
 using Engine.Renderer.Models;
@@ -18,6 +19,8 @@ public sealed class ImportModelHierarchyCommand(
     private string? _oldModelPath;
     private int? _oldMeshIndex;
     private bool _oldSuppressDraw;
+    private Vector3 _oldPivot;
+    private bool _addedPlayback;
 
     public bool Execute()
     {
@@ -26,6 +29,8 @@ public sealed class ImportModelHierarchyCommand(
             _oldModelPath = component.ModelPath;
             _oldMeshIndex = component.MeshIndex;
             _oldSuppressDraw = component.SuppressDraw;
+            _oldPivot = component.Pivot;
+            _addedPlayback = !root.HasComponent<SkinnedAnimationComponent>();
             _oldChildren = EntitySubtreeSnapshot.CaptureChildren(scene, root);
         }
 
@@ -36,6 +41,17 @@ public sealed class ImportModelHierarchyCommand(
         component.MeshIndex = null;
 
         var graph = model.SceneGraph;
+        if (model.Skin is not null)
+        {
+            component.SuppressDraw = false;
+            component.Pivot = Vector3.Zero;
+            if (graph is not null)
+                ModelHierarchySpawner.SpawnPackedLights(scene, root, graph, atFileRoot: true);
+            if (!root.HasComponent<SkinnedAnimationComponent>())
+                root.AddComponent(new SkinnedAnimationComponent());
+            return true;
+        }
+
         component.SuppressDraw = graph is not null && graph.ShouldUnpack;
         if (graph is null)
             return true;
@@ -66,6 +82,9 @@ public sealed class ImportModelHierarchyCommand(
         component.ModelPath = _oldModelPath;
         component.MeshIndex = _oldMeshIndex;
         component.SuppressDraw = _oldSuppressDraw;
+        component.Pivot = _oldPivot;
+        if (_addedPlayback && root.HasComponent<SkinnedAnimationComponent>())
+            root.RemoveComponent<SkinnedAnimationComponent>();
 
         if (_oldChildren is null)
             return;

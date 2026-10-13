@@ -65,6 +65,20 @@ internal sealed class OpenGLVertexBuffer : IVertexBuffer
         }
     }
 
+    public OpenGLVertexBuffer(List<Mesh.SkinnedVertex> vertices)
+    {
+        ArgumentNullException.ThrowIfNull(vertices);
+        if (vertices.Count == 0)
+            throw new ArgumentException("Vertex list must not be empty", nameof(vertices));
+
+        var byteSpan = MemoryMarshal.Cast<Mesh.SkinnedVertex, byte>(CollectionsMarshal.AsSpan(vertices));
+        unsafe
+        {
+            fixed (byte* pData = byteSpan)
+                Allocate((uint)byteSpan.Length, BufferUsageARB.StaticDraw, pData);
+        }
+    }
+
     private unsafe void Allocate(uint size, BufferUsageARB usage, void* data)
     {
         switch (size)

@@ -22,6 +22,10 @@ internal sealed class MeshDrawRecordingGraphics3D : IGraphics3D
         {
             Transform = transform, EntityId = entityId, Tint = tint, Emissive = emissive
         }]);
+    public void DrawSkinnedMesh(Engine.Renderer.Meshes.Mesh mesh, Matrix4x4 entityWorld, ReadOnlySpan<Matrix4x4> palette,
+        Vector4 tint, int entityId = -1, float metallic = 0f, float roughness = 0.5f, float ao = 1f,
+        Vector3 emissive = default) =>
+        DrawMesh(entityWorld, mesh, tint, entityId, metallic, roughness, ao, emissive);
     public void SetAmbientLight(Vector3 color, float strength) { }
     public void SetDirectionalLight(Vector3 direction, Vector3 color) { }
     public void SetPointLights(ReadOnlySpan<PointLightData> lights) { }

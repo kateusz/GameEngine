@@ -33,9 +33,38 @@ public class Mesh : IDisposable
         ]);
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    public readonly record struct SkinnedVertex(
+        Vector3 Position,
+        Vector3 Normal,
+        Vector2 TexCoord,
+        Vector3 Tangent,
+        Vector3 Bitangent,
+        int EntityId,
+        int Joint0,
+        int Joint1,
+        int Joint2,
+        int Joint3,
+        Vector4 Weights)
+    {
+        public static BufferLayout Layout { get; } = new([
+            new BufferElement(ShaderDataType.Float3, "a_Position"),
+            new BufferElement(ShaderDataType.Float3, "a_Normal"),
+            new BufferElement(ShaderDataType.Float2, "a_TexCoord"),
+            new BufferElement(ShaderDataType.Float3, "a_Tangent"),
+            new BufferElement(ShaderDataType.Float3, "a_Bitangent"),
+            new BufferElement(ShaderDataType.Int, "a_EntityID"),
+            new BufferElement(ShaderDataType.Int4, "a_Joints"),
+            new BufferElement(ShaderDataType.Float4, "a_Weights")
+        ]);
+    }
+
     public string Name { get; set; }
     public List<Vertex> Vertices { get; set; }
     public List<uint> Indices { get; set; }
+    public bool IsSkinned { get; set; }
+    public int[] Joints { get; set; } = [];
+    public float[] Weights { get; set; } = [];
 
     /// <summary>Vertex count captured at <see cref="Initialize"/>, kept after CPU buffers are released.</summary>
     public int VertexCount { get; private set; }
@@ -92,8 +121,10 @@ public class Mesh : IDisposable
                 $"Mesh '{Name}' already initialized. Initialize() should only be called once.");
 
         _vertexArray = vertexArrayFactory.Create();
-        var vertexBuffer = vertexBufferFactory.Create(Vertices);
-        vertexBuffer.SetLayout(Vertex.Layout);
+        var vertexBuffer = IsSkinned
+            ? vertexBufferFactory.Create(PackSkinnedVertices())
+            : vertexBufferFactory.Create(Vertices);
+        vertexBuffer.SetLayout(IsSkinned ? SkinnedVertex.Layout : Vertex.Layout);
         _vertexArray.AddVertexBuffer(vertexBuffer);
 
         var indexBuffer = indexBufferFactory.Create([.. Indices], Indices.Count);
@@ -107,7 +138,37 @@ public class Mesh : IDisposable
         Vertices.TrimExcess();
         Indices.Clear();
         Indices.TrimExcess();
+        Joints = [];
+        Weights = [];
     }
+
+    private List<SkinnedVertex> PackSkinnedVertices()
+    {
+        var packed = new List<SkinnedVertex>(Vertices.Count);
+        for (var i = 0; i < Vertices.Count; i++)
+        {
+            var vertex = Vertices[i];
+            var start = i * 4;
+            packed.Add(new SkinnedVertex(
+                vertex.Position,
+                vertex.Normal,
+                vertex.TexCoord,
+                vertex.Tangent,
+                vertex.Bitangent,
+                -1,
+                JointAt(start),
+                JointAt(start + 1),
+                JointAt(start + 2),
+                JointAt(start + 3),
+                new Vector4(WeightAt(start), WeightAt(start + 1), WeightAt(start + 2), WeightAt(start + 3))));
+        }
+
+        return packed;
+    }
+
+    private int JointAt(int index) => (uint)index < (uint)Joints.Length ? Joints[index] : 0;
+
+    private float WeightAt(int index) => (uint)index < (uint)Weights.Length ? Weights[index] : 0f;
 
     public void Bind()
     {

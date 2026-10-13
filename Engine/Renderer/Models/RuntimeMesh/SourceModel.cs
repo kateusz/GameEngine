@@ -1,16 +1,19 @@
 using System.Numerics;
 using Engine.Renderer.Meshes;
+using Engine.Renderer.Models;
 
 namespace Engine.Renderer.Models.RuntimeMesh;
 
 internal sealed class SourceModel(
     IReadOnlyList<SourceSubmesh> submeshes,
     IReadOnlyList<SourceNode> nodes,
-    IReadOnlyList<SourceLight> lights)
+    IReadOnlyList<SourceLight> lights,
+    SkinData? skin = null)
 {
     public IReadOnlyList<SourceSubmesh> Submeshes { get; } = submeshes;
     public IReadOnlyList<SourceNode> Nodes { get; } = nodes;
     public IReadOnlyList<SourceLight> Lights { get; } = lights;
+    public SkinData? Skin { get; } = skin;
 }
 
 internal sealed class SourceSubmesh
@@ -32,6 +35,8 @@ internal sealed class SourceSubmesh
     public bool AlphaCutout { get; set; }
     public bool DoubleSided { get; set; }
     public float AlphaCutoff { get; set; } = 0.5f;
+    public int[] Joints { get; set; } = [];
+    public float[] Weights { get; set; } = [];
 }
 
 internal sealed class SourceNode

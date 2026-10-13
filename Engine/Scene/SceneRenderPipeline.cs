@@ -580,23 +580,32 @@ internal static class SceneRenderPipeline
                 if (kind == OpaqueSurfaceKind.SingleSubmesh)
                 {
                     var submesh = model!.Submeshes[submeshIndex];
-                    if (submesh.Bounds is { } bounds
+                    if (model.Skin is null
+                        && submesh.Bounds is { } bounds
                         && ShouldSkipOpaqueDraw(hasFrustum, frustum, transform, bounds, shadowCasterMaxDistanceSq,
                             shadowCasterViewPosition, skipCastersContainingLight, ref stats))
                         continue;
 
-                    QueueSubmesh(modelRenderer, transform, tint, entity.Id, submesh, ref stats);
+                    if (!TryDrawSkinned(graphics3D, entity, model!, transformComponent, modelRenderer, submesh, tint,
+                            hasFrustum, frustum, shadowCasterMaxDistanceSq, shadowCasterViewPosition,
+                            skipCastersContainingLight, ref stats))
+                        QueueSubmesh(modelRenderer, transform, tint, entity.Id, submesh, ref stats);
                     continue;
                 }
 
                 foreach (var submesh in model!.Submeshes)
                 {
-                    if (submesh.Bounds is { } bounds
-                        && ShouldSkipOpaqueDraw(hasFrustum, frustum, transform, bounds, shadowCasterMaxDistanceSq,
-                            shadowCasterViewPosition, skipCastersContainingLight, ref stats))
-                        continue;
+                    if (!TryDrawSkinned(graphics3D, entity, model, transformComponent, modelRenderer, submesh, tint,
+                            hasFrustum, frustum, shadowCasterMaxDistanceSq, shadowCasterViewPosition,
+                            skipCastersContainingLight, ref stats))
+                    {
+                        if (submesh.Bounds is { } bounds
+                            && ShouldSkipOpaqueDraw(hasFrustum, frustum, transform, bounds, shadowCasterMaxDistanceSq,
+                                shadowCasterViewPosition, skipCastersContainingLight, ref stats))
+                            continue;
 
-                    QueueSubmesh(modelRenderer, transform, tint, entity.Id, submesh, ref stats);
+                        QueueSubmesh(modelRenderer, transform, tint, entity.Id, submesh, ref stats);
+                    }
                 }
             }
         }
@@ -684,6 +693,46 @@ internal static class SceneRenderPipeline
 
     private static readonly Dictionary<MeshBatchKey, List<MeshDrawInstance>> MeshBatches = new();
     private static readonly Stack<List<MeshDrawInstance>> BatchLists = new();
+
+    private static bool TryDrawSkinned(
+        IGraphics3D graphics3D,
+        Entity entity,
+        Model model,
+        TransformComponent transformComponent,
+        ModelRendererComponent modelRenderer,
+        Mesh submesh,
+        Vector4 tint,
+        bool hasFrustum,
+        in Frustum frustum,
+        float shadowCasterMaxDistanceSq,
+        Vector3 shadowCasterViewPosition,
+        Vector3? skipCastersContainingLight,
+        ref PassStats stats)
+    {
+        if (model.Skin is null)
+            return false;
+
+        var world = transformComponent.GetWorldTransform();
+        if (submesh.Bounds is { } bounds
+            && ShouldSkipOpaqueDraw(hasFrustum, frustum, world, bounds, shadowCasterMaxDistanceSq,
+                shadowCasterViewPosition, skipCastersContainingLight, ref stats))
+            return true;
+
+        AdoptSubmeshFactors(modelRenderer, submesh);
+        var pbr = ResolvePbr(modelRenderer);
+        var palette = entity.TryGetComponent<SkinnedAnimationComponent>(out var playback)
+                      && playback.PoseReady
+                      && playback.Pose.Length == model.Skin.Joints.Length
+            ? playback.Pose
+            : model.RestPose;
+        graphics3D.DrawSkinnedMesh(
+            submesh, world, palette, tint, entity.Id, pbr.Metallic, pbr.Roughness, pbr.Ao,
+            CombineEmissive(submesh.EmissiveFactor, modelRenderer));
+        stats.Instances++;
+        stats.Vertices += submesh.VertexCount;
+        stats.Indices += submesh.GetIndexCount();
+        return true;
+    }
 
     private static void QueueSubmesh(
         ModelRendererComponent modelRenderer,

@@ -75,17 +75,23 @@ public static class ModelHierarchySpawner
             SpawnNode(scene, host, child, modelPath, color, submeshes);
     }
 
-    public static void SpawnPackedLights(IScene scene, Entity root, ModelSceneNode graphRoot)
+    public static void SpawnPackedLights(IScene scene, Entity root, ModelSceneNode graphRoot, bool atFileRoot = false)
     {
-        var meshWorld = Matrix4x4.Identity;
-        if (graphRoot.FirstMeshIndex is int meshIndex &&
-            graphRoot.TryGetMeshWorldTransform(meshIndex, out var found))
-            meshWorld = found;
-
-        if (!Matrix4x4.Invert(meshWorld, out var inverseMesh))
+        Matrix4x4 inverseMesh;
+        if (atFileRoot)
+            inverseMesh = Matrix4x4.Identity;
+        else
         {
-            Logger.Debug("Skipped packed lights because the mesh transform could not be inverted");
-            return;
+            var meshWorld = Matrix4x4.Identity;
+            if (graphRoot.FirstMeshIndex is int meshIndex &&
+                graphRoot.TryGetMeshWorldTransform(meshIndex, out var found))
+                meshWorld = found;
+
+            if (!Matrix4x4.Invert(meshWorld, out inverseMesh))
+            {
+                Logger.Debug("Skipped packed lights because the mesh transform could not be inverted");
+                return;
+            }
         }
 
         SpawnPackedWalk(scene, root, graphRoot, Matrix4x4.Identity, inverseMesh);

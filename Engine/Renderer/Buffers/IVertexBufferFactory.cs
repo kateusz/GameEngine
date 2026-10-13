@@ -18,4 +18,6 @@ public interface IVertexBufferFactory
     /// Creates a static vertex buffer uploaded in one <c>BufferData</c>.
     /// </summary>
     IVertexBuffer Create(List<Mesh.Vertex> vertices);
+
+    IVertexBuffer Create(List<Mesh.SkinnedVertex> vertices);
 }

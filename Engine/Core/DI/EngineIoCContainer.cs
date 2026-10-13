@@ -16,6 +16,7 @@ using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
+using Engine.Platform.OpenGL.Buffers;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Meshes;
 using Engine.Renderer.Models;
@@ -143,5 +144,6 @@ public static class EngineIoCContainer
         container.Register<IIndexBufferFactory, IndexBufferFactory>(Reuse.Singleton);
         container.Register<IFrameBufferFactory, FrameBufferFactory>(Reuse.Singleton);
         container.Register<IVertexArrayFactory, VertexArrayFactory>(Reuse.Singleton);
+        container.Register<IUniformBuffer, OpenGLUniformBuffer>(Reuse.Singleton);
     }
 }
