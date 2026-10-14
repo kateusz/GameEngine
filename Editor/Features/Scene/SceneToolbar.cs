@@ -24,8 +24,10 @@ public class SceneToolbar(
     private Texture2D _iconRotate;
     private Texture2D _iconRuler;
     private Texture2D _iconRestart;
+    private Texture2D _iconOutline;
 
     public EditorMode CurrentMode { get; set; } = EditorMode.Select;
+    public bool ShowObjectOutline { get; set; } = true;
 
     public void Init()
     {
@@ -37,6 +39,7 @@ public class SceneToolbar(
         _iconRotate = textureFactory.Create("Resources/Icons/rotate.png");
         _iconRuler = textureFactory.Create("Resources/Icons/ruler.png");
         _iconRestart = textureFactory.Create("Resources/Icons/restart.png");
+        _iconOutline = textureFactory.Create("Resources/Icons/outline.png");
     }
 
     public void Render()
@@ -88,6 +91,11 @@ public class SceneToolbar(
         DrawDimensionButton("2D", SceneDimension.TwoD);
         ImGui.SameLine();
         DrawDimensionButton("3D", SceneDimension.ThreeD);
+        ImGui.SameLine();
+        ButtonDrawer.DrawIconButton("outline", _iconOutline, new Vector2(15, 15),
+            isSelected: ShowObjectOutline,
+            onClick: () => ShowObjectOutline = !ShowObjectOutline,
+            tooltip: "Show Object Outline");
 
         var icon = sceneContext.State == SceneState.Edit ? _iconPlay : _iconStop;
 

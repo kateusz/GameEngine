@@ -191,8 +191,10 @@ internal class ModelFactory : IModelFactory
             mesh.BaseColorFactor = submesh.BaseColorFactor;
             mesh.EmissiveFactor = submesh.Emissive;
             mesh.AlphaCutout = submesh.AlphaCutout;
+            mesh.AlphaBlend = submesh.AlphaBlend;
             mesh.DoubleSided = submesh.DoubleSided;
             mesh.AlphaCutoff = submesh.AlphaCutoff;
+            mesh.Opacity = submesh.Opacity;
             Logger.Debug(
                 "PBR set for mesh={Mesh} model={Path}: metallic={Metallic} roughness={Roughness} baseColor={BaseColor} " +
                 "maps albedo={Albedo} normal={Normal} metallicRoughness={Mr} occlusion={Occlusion} " +

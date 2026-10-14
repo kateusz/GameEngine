@@ -30,7 +30,9 @@ public static class CameraViews
         view = new SceneView(
             viewMatrix * projection,
             new Vector3(transform.M41, transform.M42, transform.M43),
-            SkyViewProjection: skyView * projection);
+            SkyViewProjection: skyView * projection,
+            View: viewMatrix,
+            Projection: projection);
         return true;
     }
 }

@@ -211,7 +211,8 @@ Canonical order inside `RenderScene`:
 2. **3D lights** — ambient / directional / point data uploaded to `IGraphics3D`. Directional RGB is multiplied by intensity ([Lighting](lighting.md))
 3. **Directional shadow** (if directional shadows are enabled, the resolved sun color is not black, and the fit succeeds) — depth pass, then bind map ([Shadows](shadows.md))
 4. **Point shadows** (if `SceneView.PointShadows` and lights cast) — cubemap faces or cache reuse ([Shadows](shadows.md))
-5. **3D color** — `BeginScene` → opaque cubes/meshes (instanced when possible) → `EndScene`
+5. **SSAO** (if `SceneView.Ssao`, the radius is finite and positive, strength clamps above 0, the target size is non-zero, and `SsaoPass` is available) — view-normal prepass, then a fullscreen occlusion map and a 4×4 blur ([Lighting](lighting.md))
+6. **3D color** — `BeginScene` → opaque cubes/meshes (instanced when possible) → `EndScene`
 
 There is no separate transparency pass. Fully transparent sprite tints are skipped; 2D otherwise draws in submission order without depth.
 
@@ -254,14 +255,18 @@ sequenceDiagram
             SRP->>G3D: BeginPointShadowFace → DrawOpaque3D → EndPointShadowFace
         end
     end
-    SRP->>G3D: BeginScene(view)
+    opt SSAO gate passes
+        SRP->>G3D: BeginNormalPass → DrawOpaque3D → EndNormalPass
+        Note over SRP: SsaoPass writes a blurred occlusion map
+    end
+    SRP->>G3D: SetSsao then BeginScene(view)
     SRP->>G3D: DrawOpaque3D (color / instanced)
     SRP->>G3D: EndScene
 ```
 
 Logical passes vs GPU submissions: one “2D pass” may flush multiple times (batch full / texture slots). One “point shadow light” is up to six face draws unless the [point-shadow cache](shadows.md) skips redraw. Stats split color vs directional vs point shadow draw calls for that reason.
 
-`SceneView` is consumed for 2D view-projection, directional shadow fit / caster distance, point-shadow distance and enable flag, and color-pass view-projection plus view position (see [Cameras / SceneView](#cameras--sceneview)).
+`SceneView` is consumed for 2D view-projection, directional shadow fit / caster distance, point-shadow distance and enable flag, color-pass view-projection plus view position, and the SSAO gate (see [Cameras / SceneView](#cameras--sceneview)).
 
 ### Early-outs and defensive skips
 
@@ -277,6 +282,7 @@ These are deliberate guards so a bad frame degrades instead of submitting nonsen
 | `SceneView.PointShadows == false` | Skip point shadow work; mark cache stale |
 | Point light farther than 20 from the camera | No cubemap update and no point-shadow sample that frame |
 | Resolved directional color is black (missing light, or intensity ≤ 0) | No directional shadow pass |
+| SSAO flag off, strength not finite or clamps to 0, radius not finite or not positive, target size is 0, or `SsaoPass` is unavailable | Color pass samples a white texture at strength 0. One warning if the projection does not invert or a target cannot be created |
 | Point light `Range <= 0` or over max count (8) | Not uploaded / not shadowed |
 | `EffectiveVisible` false / frustum or zone cull | Entity skipped in opaque (and caster) collection |
 
@@ -297,6 +303,8 @@ Prefer fixing scene/camera setup over “always draw with a default view” — 
 **Point shadows.** Local lights that cast need a depth cubemap (or a reused cached one) so the color shader can attenuate by occlusion per lamp. Faces run after the directional map and before color so sampler slots are ready. Details: [Shadows](shadows.md).
 
 **Why shadows before color.** The forward color shader samples shadow maps in the same draw that evaluates lighting. Drawing color first would require a second shaded pass or deferred shadowing; keeping maps first preserves a single opaque color pass. See also the design decision in [Design Decisions](#shadow-passes-before-color-beginscene).
+
+**SSAO before color.** The occlusion factor has to exist before the color shader multiplies the indirect term. The normal prepass writes view-space normals into `SsaoPass`'s own depth target, so sprite depth in the scene buffer is not part of the kernel. Details: [Lighting](lighting.md).
 
 **Why not shade and shadow in one pass.** Combining caster depth and lit shading would couple light-space transforms to the camera color shader, block shadow caching, and prevent depth-only optimizations (no color attachments, simpler programs). Separate passes keep `Depth` / `PointDepth` vs `Cube` / `Model` contracts clear.
 
@@ -322,6 +330,11 @@ Programs are selected by `ShaderId` and cached by the shader factory. This secti
 | `Model` | 3D color (imported mesh) | Forward-lit PBR mesh (single or instanced); samples dir/point shadows |
 | `Depth` | Directional shadow | Depth-only casters into the 2D sun shadow map |
 | `PointDepth` | Point shadow faces | Depth-only casters into one cubemap face per call |
+| `ViewNormal` | SSAO geometry (unit cube) | View-space normal plus the scene depth format. No lights |
+| `ViewNormalModel` | SSAO geometry (imported mesh) | Same fragment shader as `ViewNormal`, with the model instance layout and the depth-pass alpha cutout |
+| `Ssao` | SSAO fullscreen | Hemisphere kernel into an `RGBA8` map. Position is rebuilt from that depth |
+| `SsaoBlur` | SSAO blur | 4×4 average of the occlusion map's red channel |
+| `Emissive` | 3D color add | Second draw when a mesh has an emissive map. Not an SSAO input |
 | `Fxaa` | Editor post | Resolve viewport color through FXAA — not used by `SceneRenderPipeline` |
 | `SelectionOutline` | Editor post | Composite selection edge from color + entity-id textures — editor only |
 
@@ -491,7 +504,12 @@ Callers build one `SceneView` and pass it to `SceneRenderPipeline.RenderScene`. 
 | `ViewPosition` | `0` | Directional caster-distance test, point-shadow near test, `u_ViewPosition` |
 | `PointShadows` | `true` | When false, skip point-shadow work and mark the cache stale |
 | `DirectionalShadows` | `true` | When false, skip the directional shadow pass |
-| `DirectionalShadowCasterMaxDistance` | `50` (`LightingMath.ShadowDistance`) | Drop shadow casters whose closest point is farther from the camera. `0` disables the cut. Not applied to the color pass |
+| `DirectionalShadowCasterMaxDistance` | `50` (`LightingMath.ShadowDistance`) | Drop shadow casters whose closest point is farther from the camera. `0` disables the cut. Not applied to the color pass or the SSAO normal prepass |
+| `View`, `Projection` | identity | SSAO rebuilds view position from `Projection`. The normal prepass transforms normals by `View` |
+| `TargetWidth`, `TargetHeight` | `0` | Pixel size of the bound scene target. `SceneRenderSystem` copies `IGraphics3D.SceneTargetWidth/Height`. `0` skips SSAO |
+| `Ssao` | `false` | Enable the occlusion pass |
+| `SsaoRadius` | `0.5` | Hemisphere radius in view units |
+| `SsaoStrength` | `1` | Mix weight. Clamped to 0–1 at use. `0` skips the pass |
 
 How a `CameraComponent` becomes this struct is the camera system’s job. Projection fields and the primary-camera rule: [Cameras and Rendering](../guide/concepts/cameras-and-rendering.md).
 
@@ -515,6 +533,8 @@ Targets this module does own:
 | Point shadow | `Graphics3D`, one per casting entity id | 512×512 `DepthCubemap` |
 | FXAA scene / resolve | `FxaaPass` | RGBA8, linear, clamp-to-edge. The scene target also has a depth attachment; the resolve target does not |
 | Selection outline | `SelectionOutlinePass` | RGBA8, linear, clamp-to-edge |
+| SSAO geometry | `SsaoPass` | `RGBA16F` normal (nearest, clamp) plus `Depth` |
+| SSAO occlusion and blur | `SsaoPass` | Two `RGBA8` targets, nearest, clamp. The factor is the red channel |
 
 Attachment formats available on the spec: `RGBA8`, `RGBA16F`, `RED_INTEGER`, `DEPTH24STENCIL8` (alias `Depth`), `DepthComponent`, `DepthCubemap`.
 

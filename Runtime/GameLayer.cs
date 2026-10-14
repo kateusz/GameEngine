@@ -8,6 +8,7 @@ using Engine.Project;
 using Engine.Renderer.Pipeline;
 using Engine.Scene;
 using Engine.Scene.Serializer;
+using Engine.Scene.Systems;
 using Serilog;
 
 namespace Runtime;
@@ -77,7 +78,10 @@ public class GameLayer(
 
         var size = gameWindow.ClientSize;
         var scale = gameWindow.ContentScale;
-        var hdr = fxaaPass.DrawScene((uint)(size.X * scale), (uint)(size.Y * scale), () =>
+        var pixelWidth = (uint)(size.X * scale);
+        var pixelHeight = (uint)(size.Y * scale);
+        graphics3D.SetSceneTargetSize(pixelWidth, pixelHeight);
+        var hdr = fxaaPass.DrawScene(pixelWidth, pixelHeight, () =>
         {
             graphics3D.SetSkybox(scene.Skybox);
             graphics2D.SetClearColor(scene.BackgroundColor);
@@ -87,9 +91,10 @@ public class GameLayer(
         if (hdr == null)
             return;
 
+        var exposure = CameraExposure.FromPrimary(scene.Context);
         if (fxaaPass.Available)
         {
-            var ldr = tonemapPass.Resolve(hdr);
+            var ldr = tonemapPass.Resolve(hdr, exposure);
             if (ldr == null)
                 return;
 
@@ -99,7 +104,7 @@ public class GameLayer(
         else
         {
             var hdrSize = hdr.GetSpecification();
-            tonemapPass.Draw(hdr.GetColorAttachmentRendererId(), hdrSize.Width, hdrSize.Height, dest: null);
+            tonemapPass.Draw(hdr.GetColorAttachmentRendererId(), hdrSize.Width, hdrSize.Height, null, exposure);
         }
     }
 

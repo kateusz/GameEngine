@@ -1,7 +1,6 @@
 using Editor.Commands;
 using Editor.Features.Project;
 using Editor.Features.Settings;
-using Editor.Features.Viewport;
 using Editor.Panels;
 using ImGuiNET;
 
@@ -79,7 +78,7 @@ public class EditorMenuBar(
         if (!ImGui.BeginMenu("Scene")) return;
 
         CommandItem("New...", EditorCommandIds.NewScene, "Ctrl+N");
-        CommandItem("Open...", EditorCommandIds.OpenScene);
+        CommandItem("Open...", EditorCommandIds.OpenScene, "CTRL+O");
         CommandItem("Save", EditorCommandIds.SaveScene, "Ctrl+S");
         CommandItem("Close", EditorCommandIds.CloseScene);
 

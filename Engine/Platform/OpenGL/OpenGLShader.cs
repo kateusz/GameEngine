@@ -42,7 +42,7 @@ internal sealed class OpenGLShader : IShader
             if (status == 0)
             {
                 throw new InvalidOperationException(
-                    $"Program failed to link with error: {SilkNetContext.GL.GetProgramInfoLog(_handle)}");
+                    $"Program {vertPath} failed to link with error: {SilkNetContext.GL.GetProgramInfoLog(_handle)}");
             }
 
             SilkNetContext.GL.DeleteShader(vertex);
@@ -143,6 +143,14 @@ internal sealed class OpenGLShader : IShader
         SilkNetContext.GL.UniformMatrix4(location, (uint)matrices.Length, true, floats);
     }
 
+    public void SetFloat2(string name, Vector2 data)
+    {
+        if (!TryGetUniformLocation(name, out var location))
+            return;
+        SilkNetContext.GL.UseProgram(_handle);
+        SilkNetContext.GL.Uniform2(location, data.X, data.Y);
+    }
+
     public void SetFloat3(string name, Vector3 data)
     {
         if (!TryGetUniformLocation(name, out var location))
@@ -195,6 +203,10 @@ internal sealed class OpenGLShader : IShader
             src = src.Remove(at, end - at + 1).Insert(at, included);
         }
 
+        if (type == ShaderType.FragmentShader &&
+            SilkNetContext.GL.GetInteger(GLEnum.MaxTextureImageUnits) >= 17)
+            src = InsertAfterVersion(src, "#define USE_BRDF_LUT 1\n");
+
         var handle = SilkNetContext.GL.CreateShader(type);
         OpenGLDebug.CheckError(SilkNetContext.GL, $"CreateShader({type})");
         try
@@ -217,6 +229,14 @@ internal sealed class OpenGLShader : IShader
             DeleteShaderIfNeeded(handle);
             throw;
         }
+    }
+
+    private static string InsertAfterVersion(string src, string line)
+    {
+        var lineEnd = src.IndexOf('\n');
+        if (src.StartsWith("#version", StringComparison.Ordinal) && lineEnd >= 0)
+            return src.Insert(lineEnd + 1, line);
+        return line + src;
     }
 
     private static void DeleteShaderIfNeeded(uint handle)

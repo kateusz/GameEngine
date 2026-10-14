@@ -45,7 +45,7 @@ Import keeps the Assimp / runtime-mesh node graph (transforms are not baked into
 
 Opaque 3D draws are **frustum-culled**. Optional **visibility zones**: add `VisibilityZoneComponent` (local AABB) on a zone entity; set `ModelRendererComponent.VisibilityZoneEntityId` to that entity’s id so the mesh only draws while the camera is inside the zone.
 
-**Supported today:** triangle meshes, albedo, normal, metallic-roughness, and occlusion maps, Cook-Torrance direct lighting, mesh instancing, directional/point shadows. **Not supported:** image-based lighting, skinning, animation clips, transparent mesh sort, spot lights.
+**Supported today:** triangle meshes, albedo, normal, metallic-roughness, and occlusion maps, Cook-Torrance direct lighting, image-based fill when a sky capture exists, screen-space ambient occlusion, mesh instancing, directional/point shadows. **Not supported:** skinning, animation clips, transparent mesh sort, spot lights.
 
 Put models under `assets/models/`.
 
@@ -55,7 +55,7 @@ Dropping a `.glb` / `.gltf` / `.fbx` on the viewport or assigning a model on `Mo
 
 ## Lights
 
-3D shading combines ambient, directional, and point lights (Cook-Torrance direct lighting; no image-based lighting). The frame uses the first ambient light, the first directional light, and the first eight point lights it visits. Only entities with light **components** contribute — either placed by hand or created by model import.
+3D shading combines an indirect term, a directional light, and point lights (Cook-Torrance). The indirect term is flat ambient, or image-based light when a sky capture is bound. The frame uses the first ambient light, the first directional light, and the first eight point lights it visits. Only entities with light **components** contribute — either placed by hand or created by model import.
 
 | Component | Limit | Notes |
 |-----------|-------|--------|
@@ -72,5 +72,9 @@ Metallic, roughness, and AO on `ModelRendererComponent` are clamped to 0–1. On
 - **Directional** — runs when `SceneView.DirectionalShadows` is on (the default), the resolved sun color is not black, and a shadow frustum fits the camera. Opaque cubes and models write the map. Casters farther than `DirectionalShadowCasterMaxDistance` from the camera are skipped (default 50; 0 disables that cut).
 - **Point** — set **CastsShadow**. A cubemap is redrawn or reused only for lights within **20** units of the camera. Farther lights still shade, without a shadow, that frame. Unchanged nearby lamps reuse the previous cubemap.
 - `SceneView.PointShadows` and `SceneView.DirectionalShadows` both default to on. A caller can turn either off for that frame.
+
+### Screen-space ambient occlusion
+
+`SceneView.Ssao` defaults off. `SsaoRadius` defaults to `0.5` (view units) and `SsaoStrength` defaults to `1`. The pass needs a non-zero `TargetWidth` and `TargetHeight` and the camera `Projection`. It darkens only the indirect term. Play mode copies the pixel size from `IGraphics3D` onto the view before `RenderScene`. Algorithm: [Lighting](../../architecture/lighting.md).
 
 Algorithm and shader constants: [Lighting](../../architecture/lighting.md), [Shadows](../../architecture/shadows.md). Pass order: [Scene Rendering Pipeline](../../architecture/scene-rendering-pipeline.md). Property details: [Component Inspector](../editor/component-inspector.md#cameracomponent).

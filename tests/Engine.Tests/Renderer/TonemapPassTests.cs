@@ -71,16 +71,35 @@ public class TonemapPassTests
         targets.Received().Create(Arg.Is<FrameBufferSpecification>(spec => spec.Width == 32 && spec.Height == 24));
     }
 
+    [Fact]
+    public void Resolve_Exposure_SetsTonemapAndExtract_AndReplacesNonPositiveWithOne()
+    {
+        var tonemap = Substitute.For<IShader>();
+        var extract = Substitute.For<IShader>();
+        var pass = NewPass(out _, out _, out _, tonemap: tonemap, extract: extract);
+        var scene = Scene(32, 24);
+
+        pass.Resolve(scene, 2f);
+        pass.Resolve(scene, float.NaN);
+
+        tonemap.Received().SetFloat("u_Exposure", 2f);
+        extract.Received().SetFloat("u_Exposure", 2f);
+        tonemap.Received().SetFloat("u_Exposure", 1f);
+        extract.Received().SetFloat("u_Exposure", 1f);
+    }
+
     private static TonemapPass NewPass(
         out IRendererAPI renderer,
         out IShaderFactory shaders,
         out IFrameBufferFactory targets,
-        IShader? blur = null)
+        IShader? blur = null,
+        IShader? tonemap = null,
+        IShader? extract = null)
     {
         renderer = Substitute.For<IRendererAPI>();
         shaders = Substitute.For<IShaderFactory>();
-        shaders.Create(ShaderId.Tonemap).Returns(Substitute.For<IShader>());
-        shaders.Create(ShaderId.BloomExtract).Returns(Substitute.For<IShader>());
+        shaders.Create(ShaderId.Tonemap).Returns(tonemap ?? Substitute.For<IShader>());
+        shaders.Create(ShaderId.BloomExtract).Returns(extract ?? Substitute.For<IShader>());
         shaders.Create(ShaderId.BloomBlur).Returns(blur ?? Substitute.For<IShader>());
         var arrays = Substitute.For<IVertexArrayFactory>();
         arrays.Create().Returns(Substitute.For<IVertexArray>());

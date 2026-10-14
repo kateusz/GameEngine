@@ -19,4 +19,8 @@ public enum ShaderId
     BloomExtract,
     BloomBlur,
     Emissive,
+    ViewNormal,
+    ViewNormalModel,
+    Ssao,
+    SsaoBlur,
 }
