@@ -64,7 +64,7 @@ public class SsaoPassTests
         targets.Received().Create(Arg.Is<FrameBufferSpecification>(spec =>
             spec.Width == 32 && spec.Height == 24 &&
             spec.AttachmentsSpec.Attachments.Any(a => a.TextureFormat == FrameBufferTextureFormat.RGBA16F) &&
-            spec.AttachmentsSpec.Attachments.Any(a => a.TextureFormat == FrameBufferTextureFormat.Depth)));
+            spec.AttachmentsSpec.Attachments.Any(a => a.TextureFormat == FrameBufferTextureFormat.SampledDepth)));
         targets.Received(2).Create(Arg.Is<FrameBufferSpecification>(spec =>
             spec.Width == 32 && spec.Height == 24 &&
             spec.AttachmentsSpec.Attachments.Count == 1 &&

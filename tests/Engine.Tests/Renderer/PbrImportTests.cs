@@ -99,23 +99,6 @@ public class PbrImportTests
     }
 
     [Fact]
-    public void ImportSource_BlendCard_HasThreeSurfaces()
-    {
-        var path = Path.GetFullPath(Path.Combine(
-            "games", "LightingShowcase", "assets", "models", "blend-card.gltf"));
-        if (!File.Exists(path))
-            path = Path.GetFullPath(Path.Combine(
-                "..", "..", "..", "..", "..", "games", "LightingShowcase", "assets", "models", "blend-card.gltf"));
-
-        using var importer = new AssimpModelImporter();
-        var model = importer.ImportSource(path);
-        model.ShouldNotBeNull();
-        var report = string.Join(" | ", model!.Submeshes.Select(mesh =>
-            $"{mesh.Name} v={mesh.Vertices.Count} i={mesh.Indices.Count} blend={mesh.AlphaBlend} cut={mesh.AlphaCutout} op={mesh.Opacity} n={mesh.Vertices[0].Normal} p={mesh.Vertices[0].Position} c={mesh.BaseColorFactor} d={mesh.DiffusePath}"));
-        report.ShouldBe("ok");
-    }
-
-    [Fact]
     public void ImportedFactor_PresentValue_Clamps()
     {
         AssimpModelImporter.ImportedFactor(true, 1f, 0f).ShouldBe(1f);

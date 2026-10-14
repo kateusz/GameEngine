@@ -563,7 +563,7 @@ internal sealed class Graphics3D(
         {
             if (blend)
             {
-                rendererApi.SetBlend(true);
+                rendererApi.SetColorAttachmentBlend(true);
                 rendererApi.SetDepthWrite(false);
             }
 
@@ -596,7 +596,7 @@ internal sealed class Graphics3D(
             if (blend)
             {
                 rendererApi.SetDepthWrite(true);
-                rendererApi.SetBlend(false);
+                rendererApi.SetColorAttachmentBlend(false);
             }
         }
     }

@@ -124,7 +124,10 @@ public sealed class EditorViewport(
         ResizeFramebufferIfNeeded();
         RenderSceneToFramebuffer(deltaTime);
 
-        var ldr = tonemapPass.Resolve(_frameBuffer);
+        var exposure = sceneContext.ActiveScene is { } active
+            ? CameraExposure.FromPrimary(active.Context)
+            : 1f;
+        var ldr = tonemapPass.Resolve(_frameBuffer, exposure);
         if (ldr != null)
         {
             var display = editorPreferences.Fxaa ? fxaaPass.Resolve(ldr) : ldr;

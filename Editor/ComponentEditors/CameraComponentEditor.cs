@@ -30,6 +30,11 @@ public class CameraComponentEditor(
             (e, v) => e.GetComponent<CameraComponent>().SsaoStrength = v,
             MultiField.SameFloat);
 
+        propertyRenderer.DrawPropertyField("Exposure", entity,
+            e => e.GetComponent<CameraComponent>().Exposure,
+            (e, v) => e.GetComponent<CameraComponent>().Exposure = v,
+            MultiField.SameFloat);
+
         propertyRenderer.DrawPropertyField("Primary", entity,
             e => e.GetComponent<CameraComponent>().Primary,
             (e, v) =>

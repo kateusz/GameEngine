@@ -8,6 +8,7 @@ using Engine.Project;
 using Engine.Renderer.Pipeline;
 using Engine.Scene;
 using Engine.Scene.Serializer;
+using Engine.Scene.Systems;
 using Serilog;
 
 namespace Runtime;
@@ -90,9 +91,10 @@ public class GameLayer(
         if (hdr == null)
             return;
 
+        var exposure = CameraExposure.FromPrimary(scene.Context);
         if (fxaaPass.Available)
         {
-            var ldr = tonemapPass.Resolve(hdr);
+            var ldr = tonemapPass.Resolve(hdr, exposure);
             if (ldr == null)
                 return;
 
@@ -102,7 +104,7 @@ public class GameLayer(
         else
         {
             var hdrSize = hdr.GetSpecification();
-            tonemapPass.Draw(hdr.GetColorAttachmentRendererId(), hdrSize.Width, hdrSize.Height, dest: null);
+            tonemapPass.Draw(hdr.GetColorAttachmentRendererId(), hdrSize.Width, hdrSize.Height, null, exposure);
         }
     }
 

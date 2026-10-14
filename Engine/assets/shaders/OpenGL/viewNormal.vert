@@ -10,12 +10,15 @@ uniform mat4 u_NormalMatrix;
 uniform mat4 u_View;
 
 out vec3 v_ViewNormal;
+out float v_ViewZ;
 out vec2 v_TexCoord;
 
 void main()
 {
+    vec4 worldPos = vec4(a_Position, 1.0) * u_Model;
     vec3 worldNormal = normalize(a_Normal * mat3(u_NormalMatrix));
     v_ViewNormal = normalize(worldNormal * mat3(u_View));
+    v_ViewZ = (worldPos * u_View).z;
     v_TexCoord = a_TexCoord;
-    gl_Position = vec4(a_Position, 1.0) * u_Model * u_ViewProjection;
+    gl_Position = worldPos * u_ViewProjection;
 }

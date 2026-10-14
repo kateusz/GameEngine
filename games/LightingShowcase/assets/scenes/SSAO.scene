@@ -45,6 +45,7 @@
           "Ssao": true,
           "SsaoRadius": 1.2,
           "SsaoStrength": 1,
+          "Exposure": 2,
           "Name": "CameraComponent"
         },
         {
@@ -123,7 +124,7 @@
             0.9,
             1
           ],
-          "Intensity": 0.7,
+          "Intensity": 0.35,
           "Name": "DirectionalLightComponent"
         }
       ]
@@ -305,7 +306,7 @@
           ],
           "Rotation": [
             0,
-            0.05,
+            0.049999993,
             0
           ],
           "Scale": [
@@ -525,7 +526,7 @@
           ],
           "Rotation": [
             0,
-            0.2,
+            0.19999997,
             0
           ],
           "Scale": [

@@ -13,14 +13,17 @@ uniform mat4 u_View;
 uniform int u_Instanced;
 
 out vec3 v_ViewNormal;
+out float v_ViewZ;
 out vec2 v_TexCoord;
 
 void main()
 {
     mat4 model = u_Instanced != 0 ? a_InstanceModel : u_Model;
     mat4 normalMat = u_Instanced != 0 ? a_InstanceNormal : u_NormalMatrix;
+    vec4 worldPos = vec4(a_Position, 1.0) * model;
     vec3 worldNormal = normalize(a_Normal * mat3(normalMat));
     v_ViewNormal = normalize(worldNormal * mat3(u_View));
+    v_ViewZ = (worldPos * u_View).z;
     v_TexCoord = a_TexCoord;
-    gl_Position = vec4(a_Position, 1.0) * model * u_ViewProjection;
+    gl_Position = worldPos * u_ViewProjection;
 }

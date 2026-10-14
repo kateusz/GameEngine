@@ -18,6 +18,7 @@ public class CameraComponentTests
         component.Ssao.ShouldBeFalse();
         component.SsaoRadius.ShouldBe(0.5f);
         component.SsaoStrength.ShouldBe(1f);
+        component.Exposure.ShouldBe(1f);
     }
 
     [Fact]
@@ -78,13 +79,14 @@ public class CameraComponentTests
     [Fact]
     public void CameraComponent_Clone_CopiesSsao()
     {
-        var original = new CameraComponent { Ssao = true, SsaoRadius = 1.25f, SsaoStrength = 0.4f };
+        var original = new CameraComponent { Ssao = true, SsaoRadius = 1.25f, SsaoStrength = 0.4f, Exposure = 2.5f };
 
         var clone = (CameraComponent)original.Clone();
 
         clone.Ssao.ShouldBeTrue();
         clone.SsaoRadius.ShouldBe(1.25f);
         clone.SsaoStrength.ShouldBe(0.4f);
+        clone.Exposure.ShouldBe(2.5f);
     }
 
     [Fact]

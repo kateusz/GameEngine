@@ -304,6 +304,21 @@ internal sealed class OpenGLRendererApi : IRendererAPI
         OpenGLDebug.CheckError(SilkNetContext.GL, "SetBlend");
     }
 
+    public void SetColorAttachmentBlend(bool enabled)
+    {
+        var gl = SilkNetContext.GL;
+        gl.Disable(EnableCap.Blend);
+        gl.Disable(EnableCap.Blend, 1);
+        if (enabled)
+        {
+            gl.Enable(EnableCap.Blend, 0);
+            gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+        }
+        else
+            gl.Disable(EnableCap.Blend, 0);
+        OpenGLDebug.CheckError(gl, "SetColorAttachmentBlend");
+    }
+
     public void SetAdditiveBlend(bool enabled)
     {
         if (enabled)

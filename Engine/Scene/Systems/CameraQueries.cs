@@ -79,6 +79,18 @@ internal sealed class CameraQueries(Context context, IPointerSurface pointerSurf
     }
 }
 
+public static class CameraExposure
+{
+    public static float FromPrimary(Context context)
+    {
+        if (!CameraQueries.TryGetPrimaryCamera(context, out var camera))
+            return 1f;
+
+        var value = camera.Exposure;
+        return float.IsFinite(value) && value > 0f ? value : 1f;
+    }
+}
+
 [SkipUnitTests]
 internal sealed class NullCameraQueries : ICameraQueries
 {

@@ -25,7 +25,8 @@ public class SceneSerializerSsaoTests
                     Primary = true,
                     Ssao = true,
                     SsaoRadius = 1.25f,
-                    SsaoStrength = 0.4f
+                    SsaoStrength = 0.4f,
+                    Exposure = 2.5f
                 });
                 serializer.Serialize(source, path);
             }
@@ -38,6 +39,7 @@ public class SceneSerializerSsaoTests
             component.Ssao.ShouldBeTrue();
             component.SsaoRadius.ShouldBe(1.25f);
             component.SsaoStrength.ShouldBe(0.4f);
+            component.Exposure.ShouldBe(2.5f);
         }
         finally
         {
@@ -55,14 +57,15 @@ public class SceneSerializerSsaoTests
         {
             using (var source = CreateEmptyScene())
             {
-                source.CreateEntity("Camera").AddComponent(new CameraComponent { Primary = true, Ssao = true });
+                source.CreateEntity("Camera").AddComponent(new CameraComponent { Primary = true, Ssao = true, Exposure = 4f });
                 serializer.Serialize(source, path);
             }
 
             var json = File.ReadAllText(path)
                 .Replace("\"Ssao\": true,", "", StringComparison.Ordinal)
                 .Replace("\"SsaoRadius\": 0.5,", "", StringComparison.Ordinal)
-                .Replace("\"SsaoStrength\": 1,", "", StringComparison.Ordinal);
+                .Replace("\"SsaoStrength\": 1,", "", StringComparison.Ordinal)
+                .Replace("\"Exposure\": 4,", "", StringComparison.Ordinal);
             File.WriteAllText(path, json);
 
             using var loaded = CreateEmptyScene();
@@ -73,6 +76,7 @@ public class SceneSerializerSsaoTests
             component.Ssao.ShouldBeFalse();
             component.SsaoRadius.ShouldBe(0.5f);
             component.SsaoStrength.ShouldBe(1f);
+            component.Exposure.ShouldBe(1f);
         }
         finally
         {

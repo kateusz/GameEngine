@@ -237,7 +237,11 @@ public sealed class SsaoPass(
                     Filter = FrameBufferTextureFilter.Nearest,
                     Wrap = FrameBufferTextureWrap.ClampToEdge
                 },
-                new FrameBufferTextureSpecification(FrameBufferTextureFormat.Depth)
+                new FrameBufferTextureSpecification(FrameBufferTextureFormat.SampledDepth)
+                {
+                    Filter = FrameBufferTextureFilter.Nearest,
+                    Wrap = FrameBufferTextureWrap.ClampToEdge
+                }
             ])
         };
 
