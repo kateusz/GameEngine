@@ -1,0 +1,141 @@
+{
+  "Scene": "level1",
+  "BackgroundColor": [0.45, 0.68, 0.95, 1],
+  "Dimension": "ThreeD",
+  "Skybox": "hdri/kloofendal_48d_partly_cloudy_puresky_2k.hdr",
+  "Entities": [
+    {
+      "Id": 1,
+      "Name": "Game",
+      "Components": [
+        {
+          "Translation": [0, 0, 0],
+          "Rotation": [0, 0, 0],
+          "Scale": [1, 1, 1],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "LevelPath": "levels/level1.lvl",
+          "ManifestPath": "config/assets.manifest",
+          "StartLives": 4,
+          "CrystalsPerExtraLife": 100,
+          "DefaultKillY": -14,
+          "ShowTitleScreen": true,
+          "Name": "GameSettingsComponent"
+        },
+        {
+          "BodyHalfExtents": [0.32, 0.6, 0.32],
+          "MaxRunSpeed": 7.5,
+          "GroundAcceleration": 55,
+          "GroundDeceleration": 70,
+          "AirAcceleration": 32,
+          "AirDeceleration": 12,
+          "Gravity": 32,
+          "FallGravityMultiplier": 1.55,
+          "MaxFallSpeed": 28,
+          "JumpSpeed": 12,
+          "JumpCutMultiplier": 0.45,
+          "CoyoteTime": 0.12,
+          "JumpBufferTime": 0.13,
+          "MaxAirJumps": 1,
+          "AirJumpSpeed": 10.5,
+          "SpinDuration": 0.5,
+          "SpinCooldown": 0.25,
+          "SpinRadius": 1.35,
+          "SpinFallGravityScale": 0.55,
+          "StompBounceSpeed": 9.5,
+          "StompBounceHeldSpeed": 13,
+          "CrateStompMinSpeed": 3,
+          "DeathDuration": 1.6,
+          "RespawnInvulnerability": 1.5,
+          "HardLandingSpeed": 12,
+          "Name": "PlayerTuningComponent"
+        },
+        {
+          "Distance": 7.5,
+          "FocusHeight": 1.4,
+          "Pitch": -0.36,
+          "Yaw": 0,
+          "LookAhead": 1.2,
+          "FollowSharpness": 7,
+          "VerticalSharpness": 2.5,
+          "ZoneBlendSharpness": 2.5,
+          "ArmReturnSharpness": 3,
+          "OrbitSpeed": 1.8,
+          "MouseOrbitSensitivity": 0.005,
+          "CollisionMargin": 0.35,
+          "MinDistance": 1.6,
+          "Name": "CameraTuningComponent"
+        }
+      ]
+    },
+    {
+      "Id": 2,
+      "Name": "Camera",
+      "Components": [
+        {
+          "Translation": [0, 4, 8],
+          "Rotation": [-0.36, 0, 0],
+          "Scale": [1, 1, 1],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "ProjectionType": "Perspective",
+          "OrthographicSize": 10,
+          "OrthographicNear": -1,
+          "OrthographicFar": 1,
+          "PerspectiveFOV": 1.0471976,
+          "PerspectiveNear": 0.05,
+          "PerspectiveFar": 260,
+          "AspectRatio": 1.7777778,
+          "Primary": true,
+          "FixedAspectRatio": false,
+          "Name": "CameraComponent"
+        },
+        {
+          "IsActive": true,
+          "Name": "AudioListenerComponent"
+        }
+      ]
+    },
+    {
+      "Id": 3,
+      "Name": "Sun",
+      "Components": [
+        {
+          "Translation": [0, 20, 0],
+          "Rotation": [0, 0, 0],
+          "Scale": [1, 1, 1],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Direction": [-0.3, -1, -0.35],
+          "Color": [1, 0.95, 0.85, 1],
+          "Intensity": 2.6,
+          "Name": "DirectionalLightComponent"
+        }
+      ]
+    },
+    {
+      "Id": 4,
+      "Name": "Ambient",
+      "Components": [
+        {
+          "Translation": [0, 0, 0],
+          "Rotation": [0, 0, 0],
+          "Scale": [1, 1, 1],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [0.7, 0.8, 1, 1],
+          "Strength": 0.12,
+          "Name": "AmbientLightComponent"
+        }
+      ]
+    }
+  ]
+}

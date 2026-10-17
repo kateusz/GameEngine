@@ -1,0 +1,55 @@
+# Island Dash asset manifest: logical name -> model file, normalization, material overrides.
+# Swapping an art pack = editing this file. Gameplay code only uses the logical names.
+#
+#   name              path (relative to assets/, or "cube")              scale        pivot          [tint=r,g,b] [emissive=r,g,b,strength] [roughness=x]
+#
+# scale : one number or x,y,z; brings the model to the kit unit size listed in the comment.
+# pivot : x,y,z in model units, added before scaling, so the model's base sits on the piece origin.
+#         Kenney models are already bottom-centered (0,0,0). A "cube" primitive is centered, so it needs 0,0.5,0.
+# Missing names (or files that fail to load) render as placeholder cubes instead of stopping the game.
+
+# --- Characters (kit height ~1.3 m) ---
+player            models/kenney_platformer/character-ooli.glb         1.45         0,0,0          tint=0.86,0.88,0.92
+enemy_patrol      models/kenney_platformer/character-oodi.glb         1.35         0,0,0
+enemy_chase       models/kenney_platformer/character-oozi.glb         1.4          0,0,0          tint=1,0.55,0.55
+
+# --- Pickups ---
+crystal           models/kenney_platformer/jewel.glb                  1.6          0,0,0          emissive=0.1,0.3,1,0.9 roughness=0.25
+heart             models/kenney_platformer/heart.glb                  1.8          0,0,0          emissive=1,0.15,0.2,0.6
+checkpoint_flag   models/kenney_platformer/flag.glb                   1.1          0,0,0
+
+# --- Crates (kit unit 1 x 1 x 1) ---
+crate             models/kenney_platformer/crate.glb                  2            0,0,0
+crate_life        models/kenney_platformer/crate-item.glb             2            0,0,0          emissive=1,0.6,0.1,0.25
+crate_checkpoint  models/kenney_platformer/crate-strong.glb           1.6667       0,0,0          tint=0.75,0.9,1
+
+# --- Terrain (ground_tile kit unit 2 x 1 x 2, others 1 x 1 x 1; stretched to the piece size) ---
+ground_tile       models/kenney_platformer/block-grass-large.glb      1            0,0,0
+block             models/kenney_platformer/block-grass.glb            1            0,0,0
+platform          models/kenney_platformer/platform.glb               1,5,1        0,0,0
+mover             models/kenney_platformer/block-moving.glb           1,3.333,1    0,0,0
+vanish            models/kenney_platformer/block-moving-blue.glb      1,2,1        0,0,0          emissive=0.1,0.2,1,0.3
+faller            models/kenney_platformer/platform.glb               1,5,1        0,0,0          tint=1,0.55,0.45
+
+# --- Hazards ---
+spikes            models/kenney_platformer/trap-spikes.glb            1.56         0,0,0
+crusher           models/kenney_platformer/spike-block.glb            1.11         0,-0.05,0
+
+# --- Goal ---
+goal              models/kenney_platformer/flag.glb                   3            0,0,0
+goal_gem          models/kenney_platformer/star.glb                   3.5          0,0,0          emissive=1,0.8,0.2,1.5
+
+# --- Decoration ---
+tree              models/kenney_platformer/tree.glb                   1.6          0,0,0
+tree_pine         models/kenney_platformer/tree-pine.glb              1.6          0,0,0
+tree_small        models/kenney_platformer/tree-pine-small.glb        1.5          0,0,0
+flowers           models/kenney_platformer/flowers.glb                1.5          0,0,0
+flowers_tall      models/kenney_platformer/flowers-tall.glb           1.5          0,0,0
+grass             models/kenney_platformer/grass.glb                  1.6          0,0,0
+rocks             models/kenney_platformer/rocks.glb                  1.6          0,0,0
+mushrooms         models/kenney_platformer/mushrooms.glb              1.6          0,0,0
+sign              models/kenney_platformer/sign.glb                   1.8          0,0,0
+fence             models/kenney_platformer/fence-straight.glb         2            0,0,0
+barrel            models/kenney_platformer/barrel.glb                 1.8          0,0,0
+poles             models/kenney_platformer/poles.glb                  1.4          0,0,0
+arrow             models/kenney_platformer/arrow.glb                  2            0,0,0

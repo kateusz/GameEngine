@@ -39,7 +39,7 @@ public readonly record struct ShadowQuality(
     {
         ShadowPreset.High => new(2048, 1024, 50f, PcfTaps: 5, PointPcf: true, Cascades: 2),
         ShadowPreset.Medium => new(2048, 512, 50f, PcfTaps: 3, Cascades: 2),
-        _ => new ShadowQuality()
+        _ => new ShadowQuality(DirectionalResolution: 1024)
     };
 
     public static ShadowPreset? Matching(ShadowQuality quality)

@@ -1,0 +1,9 @@
+assets/scripts/.engine/
+.engine/
+.build/
+bin/
+obj/
+tests/bin/
+tests/obj/
+*.mesh
+logs/

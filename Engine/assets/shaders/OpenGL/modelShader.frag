@@ -1,4 +1,6 @@
 #version 330 core
+// u_PointShadowMaps[i] is indexed by a loop counter; GLSL 3.30 only allows that with gpu_shader5 (Mesa enforces it).
+#extension GL_ARB_gpu_shader5 : enable
 
 layout(location = 0) out vec4 o_Color;
 layout(location = 1) out int  o_EntityID;
