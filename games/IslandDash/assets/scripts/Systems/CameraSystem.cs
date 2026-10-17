@@ -41,7 +41,8 @@ public class CameraSystem(Context context, IKeyboardInput keyboard, IMouseInput 
 
         cameraEntity.GetComponent<CameraComponent>().CameraViewTransform = null;
         var snap = state.CameraSnap;
-        if (!snap && state.Phase is GamePhase.Dying or GamePhase.Paused)
+        // Keep following a death so the fall stays on screen. Pause freezes the view.
+        if (!snap && state.Phase == GamePhase.Paused)
             return;
 
         var playerPosition = player.GetComponent<TransformComponent>().Translation;
@@ -53,11 +54,12 @@ public class CameraSystem(Context context, IKeyboardInput keyboard, IMouseInput 
         var orientation = Quaternion.CreateFromYawPitchRoll(yaw, rig.Pitch, 0f);
         var flatForward = Vector3.Transform(-Vector3.UnitZ, GameMath.YawRotation(yaw));
         var desiredFocus = playerPosition + new Vector3(0f, rig.FocusHeight, 0f) + flatForward * tuning.LookAhead;
+        var verticalSharpness = state.Phase == GamePhase.Dying ? 8f : tuning.VerticalSharpness;
         rig.Focus = snap
             ? desiredFocus
             : new Vector3(
                 GameMath.Damp(rig.Focus.X, desiredFocus.X, tuning.FollowSharpness, dt),
-                GameMath.Damp(rig.Focus.Y, desiredFocus.Y, tuning.VerticalSharpness, dt),
+                GameMath.Damp(rig.Focus.Y, desiredFocus.Y, verticalSharpness, dt),
                 GameMath.Damp(rig.Focus.Z, desiredFocus.Z, tuning.FollowSharpness, dt));
 
         var back = Vector3.Transform(Vector3.UnitZ, orientation);
