@@ -28,5 +28,7 @@ dotnet "$CookOut\MeshCook.dll" "$Stage\assets\models"
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 if ($NoRun) { Write-Host "Staged to $Stage"; exit 0 }
+$rid = if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "win-arm64" } else { "win-x64" }
+$env:PATH = "$Stage\runtimes\$rid\native;$env:PATH"
 Push-Location $Stage
 try { dotnet Runtime.dll } finally { Pop-Location }

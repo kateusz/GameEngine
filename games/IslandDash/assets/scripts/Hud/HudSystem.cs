@@ -91,8 +91,8 @@ public class HudSystem(Context context) : IGameSystem
                 DrawText(hud, ref used, frame, "ISLAND DASH", 0f, 0.42f, TitleTextSize, TitleColor);
                 if (blinkOn)
                     DrawText(hud, ref used, frame, "PRESS ENTER", 0f, -0.05f, PromptTextSize, PromptColor);
-                DrawText(hud, ref used, frame, "WASD MOVE  SPACE JUMP  K SPIN", 0f, -0.6f, SmallTextSize, PromptColor);
-                DrawText(hud, ref used, frame, "Q E CAMERA  P PAUSE", 0f, -0.72f, SmallTextSize, PromptColor);
+                DrawText(hud, ref used, frame, "WASD MOVE  SPACE DOUBLE JUMP  K SPIN", 0f, -0.6f, SmallTextSize, PromptColor);
+                DrawText(hud, ref used, frame, "Q E CAMERA   P PAUSE", 0f, -0.72f, SmallTextSize, PromptColor);
                 break;
             case GamePhase.Paused:
                 DrawText(hud, ref used, frame, "PAUSED", 0f, 0.2f, HeadlineTextSize, PromptColor);

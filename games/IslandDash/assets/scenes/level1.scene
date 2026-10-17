@@ -114,7 +114,7 @@
         {
           "Direction": [-0.3, -1, -0.35],
           "Color": [1, 0.95, 0.85, 1],
-          "Intensity": 2.2,
+          "Intensity": 2.6,
           "Name": "DirectionalLightComponent"
         }
       ]
@@ -132,7 +132,7 @@
         },
         {
           "Color": [0.7, 0.8, 1, 1],
-          "Strength": 0.35,
+          "Strength": 0.12,
           "Name": "AmbientLightComponent"
         }
       ]

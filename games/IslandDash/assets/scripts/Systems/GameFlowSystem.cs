@@ -97,6 +97,8 @@ public class GameFlowSystem(Context context, IKeyboardInput keyboard, IMouseInpu
         var animator = player.GetComponent<ProceduralAnimatorComponent>();
         animator.FacingYaw = MathF.PI + state.CameraYaw;
         animator.Fire(AnimationEvent.Respawn);
+        if (World.PrimaryCamera(context) is { } camera && camera.TryGetComponent<CameraRigComponent>(out var rig))
+            rig.UserYaw = 0f;
 
         EnemySystem.ResetAll(context);
         state.CameraSnap = true;
