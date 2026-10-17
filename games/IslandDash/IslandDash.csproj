@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- Builds assets/scripts into GameAssembly.dll, the same output the editor's Roslyn compile produces. -->
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <AssemblyName>GameAssembly</AssemblyName>
+        <RootNamespace>IslandDash</RootNamespace>
+        <ImplicitUsings>disable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="assets/scripts/**/*.cs" Exclude="assets/scripts/.engine/**;assets/scripts/obj/**;assets/scripts/bin/**" />
+    </ItemGroup>
+
+    <!-- Same global usings as Editor/Scripting/GameAssemblyCompiler.cs, so the scripts compile identically in both. -->
+    <ItemGroup>
+        <Using Include="System" />
+        <Using Include="System.Collections.Generic" />
+        <Using Include="System.Linq" />
+        <Using Include="System.Numerics" />
+        <Using Include="System.Globalization" />
+        <Using Include="System.Text" />
+        <Using Include="System.Threading" />
+        <Using Include="System.Threading.Tasks" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Audio\Audio.csproj" />
+        <ProjectReference Include="..\..\ECS\ECS.csproj" />
+        <ProjectReference Include="..\..\Input\Input.csproj" />
+        <ProjectReference Include="..\..\Math\Math.csproj" />
+        <ProjectReference Include="..\..\SceneComponents\SceneComponents.csproj" />
+        <ProjectReference Include="..\..\Scripting\Scripting.csproj" />
+    </ItemGroup>
+</Project>
