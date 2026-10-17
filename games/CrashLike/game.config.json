@@ -1,0 +1,9 @@
+{
+  "GameAssemblyPath": "GameAssembly.dll",
+  "StartupScenePath": "assets/scenes/level01.scene",
+  "WindowWidth": 1280,
+  "WindowHeight": 720,
+  "Fullscreen": false,
+  "GameTitle": "Crash Like",
+  "TargetFrameRate": 60
+}

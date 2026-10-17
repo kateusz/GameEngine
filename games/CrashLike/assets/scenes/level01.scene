@@ -1,0 +1,5551 @@
+{
+  "Scene": "level01",
+  "BackgroundColor": [
+    0.45,
+    0.72,
+    0.95,
+    1
+  ],
+  "Dimension": "ThreeD",
+  "Entities": [
+    {
+      "Id": 1,
+      "Name": "Camera",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            4.6,
+            -4.5
+          ],
+          "Rotation": [
+            -0.473,
+            3.144,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "ProjectionType": "Perspective",
+          "OrthographicSize": 10,
+          "OrthographicNear": -1,
+          "OrthographicFar": 1,
+          "PerspectiveFOV": 0.95,
+          "PerspectiveNear": 0.08,
+          "PerspectiveFar": 180,
+          "AspectRatio": 1.777778,
+          "Primary": true,
+          "FixedAspectRatio": false,
+          "Name": "CameraComponent"
+        }
+      ]
+    },
+    {
+      "Id": 2,
+      "Name": "Ambient",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.65,
+            0.78,
+            0.95,
+            1
+          ],
+          "Strength": 0.38,
+          "Name": "AmbientLightComponent"
+        }
+      ]
+    },
+    {
+      "Id": 3,
+      "Name": "Sun",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            8,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Direction": [
+            -0.45,
+            -1,
+            -0.25
+          ],
+          "Color": [
+            1,
+            0.96,
+            0.86,
+            1
+          ],
+          "Intensity": 1.15,
+          "Name": "DirectionalLightComponent"
+        }
+      ]
+    },
+    {
+      "Id": 4,
+      "Name": "Game",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Phase": 0,
+          "Lives": 3,
+          "StartingLives": 3,
+          "MaxLives": 5,
+          "Wumpa": 0,
+          "WumpaPerLife": 10,
+          "Masks": 0,
+          "SpinTimer": 0,
+          "InvulnTimer": 0,
+          "CoyoteTimer": 0,
+          "JumpBuffer": 0,
+          "JumpHeld": false,
+          "CameraMode": 0,
+          "RespawnX": 0,
+          "RespawnY": 1.5,
+          "RespawnZ": 2.2,
+          "StartX": 0,
+          "StartY": 1.5,
+          "StartZ": 2.2,
+          "TeleportPending": false,
+          "HintVisible": true,
+          "DeathY": -3,
+          "LevelMinX": -8,
+          "LevelMaxX": 8,
+          "CameraY": 3.4,
+          "SideLookAhead": 0,
+          "DepthLookAhead": 0,
+          "SideOrtho": 4,
+          "DepthOrtho": 4,
+          "CameraSharpness": 6,
+          "MoveSpeed": 7,
+          "StrafeSpeed": 5.5,
+          "Gravity": 18,
+          "GroundAccel": 48,
+          "AirAccel": 22,
+          "JumpSpeed": 9.6,
+          "JumpCut": 0.5,
+          "SpinTime": 0.4,
+          "InvulnTime": 1.15,
+          "CoyoteTime": 0.12,
+          "JumpBufferTime": 0.12,
+          "StompBounce": 8.2,
+          "BounceSpeed": 13,
+          "Name": "CrashLikeGameComponent"
+        }
+      ]
+    },
+    {
+      "Id": 5,
+      "Name": "Player",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            1.5,
+            2.2
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.62,
+            0.5,
+            0.42
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1.0,
+            0.46,
+            0.12,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.45,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfWidth": 0.34,
+          "HalfHeight": 0.7,
+          "HalfDepth": 0.34,
+          "VelocityX": 0,
+          "VelocityY": 0,
+          "VelocityZ": 0,
+          "Grounded": false,
+          "Name": "PlayerMotorComponent"
+        }
+      ]
+    },
+    {
+      "Id": 6,
+      "Name": "Head",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            1.96,
+            2.2
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.5,
+            0.42,
+            0.44
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1.0,
+            0.46,
+            0.12,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.45,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "LocalX": 0,
+          "LocalY": 0.46,
+          "LocalZ": 0,
+          "Name": "RiderComponent"
+        }
+      ]
+    },
+    {
+      "Id": 7,
+      "Name": "Snout",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            1.88,
+            2.48
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.18,
+            0.14,
+            0.16
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.95,
+            0.32,
+            0.1,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.45,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "LocalX": 0,
+          "LocalY": 0.38,
+          "LocalZ": 0.28,
+          "Name": "RiderComponent"
+        }
+      ]
+    },
+    {
+      "Id": 8,
+      "Name": "EarL",
+      "Components": [
+        {
+          "Translation": [
+            -0.22,
+            2.18,
+            2.2
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.12,
+            0.2,
+            0.1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1.0,
+            0.46,
+            0.12,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.45,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "LocalX": -0.22,
+          "LocalY": 0.68,
+          "LocalZ": 0,
+          "Name": "RiderComponent"
+        }
+      ]
+    },
+    {
+      "Id": 9,
+      "Name": "EarR",
+      "Components": [
+        {
+          "Translation": [
+            0.22,
+            2.18,
+            2.2
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.12,
+            0.2,
+            0.1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1.0,
+            0.46,
+            0.12,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.45,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "LocalX": 0.22,
+          "LocalY": 0.68,
+          "LocalZ": 0,
+          "Name": "RiderComponent"
+        }
+      ]
+    },
+    {
+      "Id": 10,
+      "Name": "EyeL",
+      "Components": [
+        {
+          "Translation": [
+            -0.12,
+            2.02,
+            2.4
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.1,
+            0.1,
+            0.06
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.95,
+            0.95,
+            0.92,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.45,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "LocalX": -0.12,
+          "LocalY": 0.52,
+          "LocalZ": 0.2,
+          "Name": "RiderComponent"
+        }
+      ]
+    },
+    {
+      "Id": 11,
+      "Name": "EyeR",
+      "Components": [
+        {
+          "Translation": [
+            0.12,
+            2.02,
+            2.4
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.1,
+            0.1,
+            0.06
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.95,
+            0.95,
+            0.92,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.45,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "LocalX": 0.12,
+          "LocalY": 0.52,
+          "LocalZ": 0.2,
+          "Name": "RiderComponent"
+        }
+      ]
+    },
+    {
+      "Id": 12,
+      "Name": "FootL",
+      "Components": [
+        {
+          "Translation": [
+            -0.14,
+            1.0,
+            2.22
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.18,
+            0.28,
+            0.26
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.95,
+            0.32,
+            0.1,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.45,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "LocalX": -0.14,
+          "LocalY": -0.5,
+          "LocalZ": 0.02,
+          "Name": "RiderComponent"
+        }
+      ]
+    },
+    {
+      "Id": 13,
+      "Name": "FootR",
+      "Components": [
+        {
+          "Translation": [
+            0.14,
+            1.0,
+            2.22
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.18,
+            0.28,
+            0.26
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.95,
+            0.32,
+            0.1,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.45,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "LocalX": 0.14,
+          "LocalY": -0.5,
+          "LocalZ": 0.02,
+          "Name": "RiderComponent"
+        }
+      ]
+    },
+    {
+      "Id": 14,
+      "Name": "Ground_0",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            -0.2,
+            8.0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            6.4,
+            0.4,
+            16
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.34,
+            0.66,
+            0.28,
+            1
+          ],
+          "TexturePath": "textures/tiles/grass.png",
+          "TilingFactor": 4.0,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfX": 3.2,
+          "HalfY": 0.2,
+          "HalfZ": 8.0,
+          "Name": "SolidComponent"
+        }
+      ]
+    },
+    {
+      "Id": 15,
+      "Name": "Dirt_0",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            -0.85,
+            8.0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            7.2,
+            0.9,
+            16
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.42,
+            0.3,
+            0.16,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 16,
+      "Name": "Ground_1",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            -0.2,
+            28.0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            6.4,
+            0.4,
+            16
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.34,
+            0.66,
+            0.28,
+            1
+          ],
+          "TexturePath": "textures/tiles/grass.png",
+          "TilingFactor": 4.0,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfX": 3.2,
+          "HalfY": 0.2,
+          "HalfZ": 8.0,
+          "Name": "SolidComponent"
+        }
+      ]
+    },
+    {
+      "Id": 17,
+      "Name": "Dirt_1",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            -0.85,
+            28.0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            7.2,
+            0.9,
+            16
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.42,
+            0.3,
+            0.16,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 18,
+      "Name": "Ground_2",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            -0.2,
+            48.0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            6.4,
+            0.4,
+            16
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.34,
+            0.66,
+            0.28,
+            1
+          ],
+          "TexturePath": "textures/tiles/grass.png",
+          "TilingFactor": 4.0,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfX": 3.2,
+          "HalfY": 0.2,
+          "HalfZ": 8.0,
+          "Name": "SolidComponent"
+        }
+      ]
+    },
+    {
+      "Id": 19,
+      "Name": "Dirt_2",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            -0.85,
+            48.0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            7.2,
+            0.9,
+            16
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.42,
+            0.3,
+            0.16,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 20,
+      "Name": "Ground_3",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            -0.2,
+            71.0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            6.4,
+            0.4,
+            22
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.34,
+            0.66,
+            0.28,
+            1
+          ],
+          "TexturePath": "textures/tiles/grass.png",
+          "TilingFactor": 5.5,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfX": 3.2,
+          "HalfY": 0.2,
+          "HalfZ": 11.0,
+          "Name": "SolidComponent"
+        }
+      ]
+    },
+    {
+      "Id": 21,
+      "Name": "Dirt_3",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            -0.85,
+            71.0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            7.2,
+            0.9,
+            22
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.42,
+            0.3,
+            0.16,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 22,
+      "Name": "WallL",
+      "Components": [
+        {
+          "Translation": [
+            -3.55,
+            0.7,
+            41
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.5,
+            1.8,
+            84
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.22,
+            0.42,
+            0.18,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfX": 0.25,
+          "HalfY": 0.9,
+          "HalfZ": 42.0,
+          "Name": "SolidComponent"
+        }
+      ]
+    },
+    {
+      "Id": 23,
+      "Name": "WallR",
+      "Components": [
+        {
+          "Translation": [
+            3.55,
+            0.7,
+            41
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.5,
+            1.8,
+            84
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.22,
+            0.42,
+            0.18,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfX": 0.25,
+          "HalfY": 0.9,
+          "HalfZ": 42.0,
+          "Name": "SolidComponent"
+        }
+      ]
+    },
+    {
+      "Id": 24,
+      "Name": "WallBack",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0.7,
+            -0.4
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            7.6,
+            1.8,
+            0.5
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.22,
+            0.42,
+            0.18,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfX": 3.8,
+          "HalfY": 0.9,
+          "HalfZ": 0.25,
+          "Name": "SolidComponent"
+        }
+      ]
+    },
+    {
+      "Id": 25,
+      "Name": "HighPlat",
+      "Components": [
+        {
+          "Translation": [
+            -1.4,
+            1.15,
+            48
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            2.4,
+            0.4,
+            3.2
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.34,
+            0.66,
+            0.28,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfX": 1.2,
+          "HalfY": 0.2,
+          "HalfZ": 1.6,
+          "Name": "SolidComponent"
+        }
+      ]
+    },
+    {
+      "Id": 27,
+      "Name": "Crate_A",
+      "Components": [
+        {
+          "Translation": [
+            -1.2,
+            0.45,
+            6
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.9,
+            0.9,
+            0.9
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.76,
+            0.52,
+            0.24,
+            1
+          ],
+          "TexturePath": "textures/crates/basic.png",
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.5,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfX": 0.45,
+          "HalfY": 0.45,
+          "HalfZ": 0.45,
+          "Name": "SolidComponent"
+        },
+        {
+          "CrateType": 0,
+          "LootWumpa": 1,
+          "BonusLife": false,
+          "Broken": false,
+          "Lit": false,
+          "FuseTimer": 0,
+          "HomeX": -1.2,
+          "HomeY": 0.45,
+          "HomeZ": 6,
+          "HalfWidth": 0.45,
+          "HalfHeight": 0.45,
+          "HalfDepth": 0.45,
+          "Name": "CrateComponent"
+        }
+      ]
+    },
+    {
+      "Id": 28,
+      "Name": "Crate_B",
+      "Components": [
+        {
+          "Translation": [
+            -1.2,
+            1.35,
+            6
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.9,
+            0.9,
+            0.9
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.76,
+            0.52,
+            0.24,
+            1
+          ],
+          "TexturePath": "textures/crates/basic.png",
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.5,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfX": 0.45,
+          "HalfY": 0.45,
+          "HalfZ": 0.45,
+          "Name": "SolidComponent"
+        },
+        {
+          "CrateType": 0,
+          "LootWumpa": 1,
+          "BonusLife": false,
+          "Broken": false,
+          "Lit": false,
+          "FuseTimer": 0,
+          "HomeX": -1.2,
+          "HomeY": 1.35,
+          "HomeZ": 6,
+          "HalfWidth": 0.45,
+          "HalfHeight": 0.45,
+          "HalfDepth": 0.45,
+          "Name": "CrateComponent"
+        }
+      ]
+    },
+    {
+      "Id": 29,
+      "Name": "Crate_Q",
+      "Components": [
+        {
+          "Translation": [
+            1.1,
+            0.45,
+            8.5
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.9,
+            0.9,
+            0.9
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.95,
+            0.95,
+            0.92,
+            1
+          ],
+          "TexturePath": "textures/crates/question.png",
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.5,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfX": 0.45,
+          "HalfY": 0.45,
+          "HalfZ": 0.45,
+          "Name": "SolidComponent"
+        },
+        {
+          "CrateType": 1,
+          "LootWumpa": 5,
+          "BonusLife": false,
+          "Broken": false,
+          "Lit": false,
+          "FuseTimer": 0,
+          "HomeX": 1.1,
+          "HomeY": 0.45,
+          "HomeZ": 8.5,
+          "HalfWidth": 0.45,
+          "HalfHeight": 0.45,
+          "HalfDepth": 0.45,
+          "Name": "CrateComponent"
+        }
+      ]
+    },
+    {
+      "Id": 30,
+      "Name": "Crate_Tnt1",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0.45,
+            12
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.9,
+            0.9,
+            0.9
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.82,
+            0.16,
+            0.14,
+            1
+          ],
+          "TexturePath": "textures/crates/tnt.png",
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.5,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfX": 0.45,
+          "HalfY": 0.45,
+          "HalfZ": 0.45,
+          "Name": "SolidComponent"
+        },
+        {
+          "CrateType": 3,
+          "LootWumpa": 0,
+          "BonusLife": false,
+          "Broken": false,
+          "Lit": false,
+          "FuseTimer": 0,
+          "HomeX": 0,
+          "HomeY": 0.45,
+          "HomeZ": 12,
+          "HalfWidth": 0.45,
+          "HalfHeight": 0.45,
+          "HalfDepth": 0.45,
+          "Name": "CrateComponent"
+        }
+      ]
+    },
+    {
+      "Id": 31,
+      "Name": "Crate_C",
+      "Components": [
+        {
+          "Translation": [
+            0.2,
+            0.45,
+            24
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.9,
+            0.9,
+            0.9
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.76,
+            0.52,
+            0.24,
+            1
+          ],
+          "TexturePath": "textures/crates/basic.png",
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.5,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfX": 0.45,
+          "HalfY": 0.45,
+          "HalfZ": 0.45,
+          "Name": "SolidComponent"
+        },
+        {
+          "CrateType": 0,
+          "LootWumpa": 1,
+          "BonusLife": false,
+          "Broken": false,
+          "Lit": false,
+          "FuseTimer": 0,
+          "HomeX": 0.2,
+          "HomeY": 0.45,
+          "HomeZ": 24,
+          "HalfWidth": 0.45,
+          "HalfHeight": 0.45,
+          "HalfDepth": 0.45,
+          "Name": "CrateComponent"
+        }
+      ]
+    },
+    {
+      "Id": 32,
+      "Name": "Crate_D",
+      "Components": [
+        {
+          "Translation": [
+            0.2,
+            1.35,
+            24
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.9,
+            0.9,
+            0.9
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.76,
+            0.52,
+            0.24,
+            1
+          ],
+          "TexturePath": "textures/crates/basic.png",
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.5,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfX": 0.45,
+          "HalfY": 0.45,
+          "HalfZ": 0.45,
+          "Name": "SolidComponent"
+        },
+        {
+          "CrateType": 0,
+          "LootWumpa": 1,
+          "BonusLife": false,
+          "Broken": false,
+          "Lit": false,
+          "FuseTimer": 0,
+          "HomeX": 0.2,
+          "HomeY": 1.35,
+          "HomeZ": 24,
+          "HalfWidth": 0.45,
+          "HalfHeight": 0.45,
+          "HalfDepth": 0.45,
+          "Name": "CrateComponent"
+        }
+      ]
+    },
+    {
+      "Id": 33,
+      "Name": "Crate_Life",
+      "Components": [
+        {
+          "Translation": [
+            0.2,
+            2.25,
+            24
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.9,
+            0.9,
+            0.9
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.95,
+            0.95,
+            0.92,
+            1
+          ],
+          "TexturePath": "textures/crates/question.png",
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.5,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfX": 0.45,
+          "HalfY": 0.45,
+          "HalfZ": 0.45,
+          "Name": "SolidComponent"
+        },
+        {
+          "CrateType": 1,
+          "LootWumpa": 0,
+          "BonusLife": true,
+          "Broken": false,
+          "Lit": false,
+          "FuseTimer": 0,
+          "HomeX": 0.2,
+          "HomeY": 2.25,
+          "HomeZ": 24,
+          "HalfWidth": 0.45,
+          "HalfHeight": 0.45,
+          "HalfDepth": 0.45,
+          "Name": "CrateComponent"
+        }
+      ]
+    },
+    {
+      "Id": 34,
+      "Name": "Crate_E",
+      "Components": [
+        {
+          "Translation": [
+            -1.6,
+            0.45,
+            50
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.9,
+            0.9,
+            0.9
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.76,
+            0.52,
+            0.24,
+            1
+          ],
+          "TexturePath": "textures/crates/basic.png",
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.5,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfX": 0.45,
+          "HalfY": 0.45,
+          "HalfZ": 0.45,
+          "Name": "SolidComponent"
+        },
+        {
+          "CrateType": 0,
+          "LootWumpa": 1,
+          "BonusLife": false,
+          "Broken": false,
+          "Lit": false,
+          "FuseTimer": 0,
+          "HomeX": -1.6,
+          "HomeY": 0.45,
+          "HomeZ": 50,
+          "HalfWidth": 0.45,
+          "HalfHeight": 0.45,
+          "HalfDepth": 0.45,
+          "Name": "CrateComponent"
+        }
+      ]
+    },
+    {
+      "Id": 35,
+      "Name": "Crate_F",
+      "Components": [
+        {
+          "Translation": [
+            1.5,
+            0.45,
+            66
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.9,
+            0.9,
+            0.9
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.76,
+            0.52,
+            0.24,
+            1
+          ],
+          "TexturePath": "textures/crates/basic.png",
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.5,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfX": 0.45,
+          "HalfY": 0.45,
+          "HalfZ": 0.45,
+          "Name": "SolidComponent"
+        },
+        {
+          "CrateType": 0,
+          "LootWumpa": 1,
+          "BonusLife": false,
+          "Broken": false,
+          "Lit": false,
+          "FuseTimer": 0,
+          "HomeX": 1.5,
+          "HomeY": 0.45,
+          "HomeZ": 66,
+          "HalfWidth": 0.45,
+          "HalfHeight": 0.45,
+          "HalfDepth": 0.45,
+          "Name": "CrateComponent"
+        }
+      ]
+    },
+    {
+      "Id": 36,
+      "Name": "Crate_G",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0.45,
+            69
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.9,
+            0.9,
+            0.9
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.76,
+            0.52,
+            0.24,
+            1
+          ],
+          "TexturePath": "textures/crates/basic.png",
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.5,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfX": 0.45,
+          "HalfY": 0.45,
+          "HalfZ": 0.45,
+          "Name": "SolidComponent"
+        },
+        {
+          "CrateType": 0,
+          "LootWumpa": 1,
+          "BonusLife": false,
+          "Broken": false,
+          "Lit": false,
+          "FuseTimer": 0,
+          "HomeX": 0,
+          "HomeY": 0.45,
+          "HomeZ": 69,
+          "HalfWidth": 0.45,
+          "HalfHeight": 0.45,
+          "HalfDepth": 0.45,
+          "Name": "CrateComponent"
+        }
+      ]
+    },
+    {
+      "Id": 37,
+      "Name": "Crate_Tnt2",
+      "Components": [
+        {
+          "Translation": [
+            -1.4,
+            0.45,
+            72
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.9,
+            0.9,
+            0.9
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.82,
+            0.16,
+            0.14,
+            1
+          ],
+          "TexturePath": "textures/crates/tnt.png",
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.5,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfX": 0.45,
+          "HalfY": 0.45,
+          "HalfZ": 0.45,
+          "Name": "SolidComponent"
+        },
+        {
+          "CrateType": 3,
+          "LootWumpa": 0,
+          "BonusLife": false,
+          "Broken": false,
+          "Lit": false,
+          "FuseTimer": 0,
+          "HomeX": -1.4,
+          "HomeY": 0.45,
+          "HomeZ": 72,
+          "HalfWidth": 0.45,
+          "HalfHeight": 0.45,
+          "HalfDepth": 0.45,
+          "Name": "CrateComponent"
+        }
+      ]
+    },
+    {
+      "Id": 38,
+      "Name": "Bounce",
+      "Components": [
+        {
+          "Translation": [
+            1.3,
+            0.18,
+            44
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1.3,
+            0.36,
+            1.3
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.25,
+            0.72,
+            0.9,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.35,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfX": 0.65,
+          "HalfY": 0.18,
+          "HalfZ": 0.65,
+          "Name": "SolidComponent"
+        },
+        {
+          "CrateType": 2,
+          "LootWumpa": 0,
+          "BonusLife": false,
+          "Broken": false,
+          "Lit": false,
+          "FuseTimer": 0,
+          "HomeX": 1.3,
+          "HomeY": 0.18,
+          "HomeZ": 44,
+          "HalfWidth": 0.65,
+          "HalfHeight": 0.18,
+          "HalfDepth": 0.65,
+          "Name": "CrateComponent"
+        }
+      ]
+    },
+    {
+      "Id": 39,
+      "Name": "Wumpa_0",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            1.1,
+            4
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.38,
+            0.38,
+            0.38
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1.0,
+            0.48,
+            0.08,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.4,
+          "Ao": 1,
+          "Emissive": [
+            0.6,
+            0.2,
+            0
+          ],
+          "EmissiveStrength": 0.4,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "PickupType": 0,
+          "Value": 1,
+          "Taken": false,
+          "HomeX": 0,
+          "HomeY": 1.1,
+          "HomeZ": 4,
+          "Radius": 0.55,
+          "Name": "CollectibleComponent"
+        }
+      ]
+    },
+    {
+      "Id": 40,
+      "Name": "Wumpa_1",
+      "Components": [
+        {
+          "Translation": [
+            -1.4,
+            1.5,
+            5
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.38,
+            0.38,
+            0.38
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1.0,
+            0.48,
+            0.08,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.4,
+          "Ao": 1,
+          "Emissive": [
+            0.6,
+            0.2,
+            0
+          ],
+          "EmissiveStrength": 0.4,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "PickupType": 0,
+          "Value": 1,
+          "Taken": false,
+          "HomeX": -1.4,
+          "HomeY": 1.5,
+          "HomeZ": 5,
+          "Radius": 0.55,
+          "Name": "CollectibleComponent"
+        }
+      ]
+    },
+    {
+      "Id": 41,
+      "Name": "Wumpa_2",
+      "Components": [
+        {
+          "Translation": [
+            1.4,
+            1.5,
+            5
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.38,
+            0.38,
+            0.38
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1.0,
+            0.48,
+            0.08,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.4,
+          "Ao": 1,
+          "Emissive": [
+            0.6,
+            0.2,
+            0
+          ],
+          "EmissiveStrength": 0.4,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "PickupType": 0,
+          "Value": 1,
+          "Taken": false,
+          "HomeX": 1.4,
+          "HomeY": 1.5,
+          "HomeZ": 5,
+          "Radius": 0.55,
+          "Name": "CollectibleComponent"
+        }
+      ]
+    },
+    {
+      "Id": 42,
+      "Name": "Wumpa_3",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            2.2,
+            17.2
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.38,
+            0.38,
+            0.38
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1.0,
+            0.48,
+            0.08,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.4,
+          "Ao": 1,
+          "Emissive": [
+            0.6,
+            0.2,
+            0
+          ],
+          "EmissiveStrength": 0.4,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "PickupType": 0,
+          "Value": 1,
+          "Taken": false,
+          "HomeX": 0,
+          "HomeY": 2.2,
+          "HomeZ": 17.2,
+          "Radius": 0.55,
+          "Name": "CollectibleComponent"
+        }
+      ]
+    },
+    {
+      "Id": 43,
+      "Name": "Wumpa_4",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            1.2,
+            22
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.38,
+            0.38,
+            0.38
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1.0,
+            0.48,
+            0.08,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.4,
+          "Ao": 1,
+          "Emissive": [
+            0.6,
+            0.2,
+            0
+          ],
+          "EmissiveStrength": 0.4,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "PickupType": 0,
+          "Value": 1,
+          "Taken": false,
+          "HomeX": 0,
+          "HomeY": 1.2,
+          "HomeZ": 22,
+          "Radius": 0.55,
+          "Name": "CollectibleComponent"
+        }
+      ]
+    },
+    {
+      "Id": 44,
+      "Name": "Wumpa_5",
+      "Components": [
+        {
+          "Translation": [
+            -1.5,
+            1.3,
+            28
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.38,
+            0.38,
+            0.38
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1.0,
+            0.48,
+            0.08,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.4,
+          "Ao": 1,
+          "Emissive": [
+            0.6,
+            0.2,
+            0
+          ],
+          "EmissiveStrength": 0.4,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "PickupType": 0,
+          "Value": 1,
+          "Taken": false,
+          "HomeX": -1.5,
+          "HomeY": 1.3,
+          "HomeZ": 28,
+          "Radius": 0.55,
+          "Name": "CollectibleComponent"
+        }
+      ]
+    },
+    {
+      "Id": 45,
+      "Name": "Wumpa_6",
+      "Components": [
+        {
+          "Translation": [
+            1.5,
+            1.3,
+            30
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.38,
+            0.38,
+            0.38
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1.0,
+            0.48,
+            0.08,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.4,
+          "Ao": 1,
+          "Emissive": [
+            0.6,
+            0.2,
+            0
+          ],
+          "EmissiveStrength": 0.4,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "PickupType": 0,
+          "Value": 1,
+          "Taken": false,
+          "HomeX": 1.5,
+          "HomeY": 1.3,
+          "HomeZ": 30,
+          "Radius": 0.55,
+          "Name": "CollectibleComponent"
+        }
+      ]
+    },
+    {
+      "Id": 46,
+      "Name": "Wumpa_7",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            2.6,
+            37
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.38,
+            0.38,
+            0.38
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1.0,
+            0.48,
+            0.08,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.4,
+          "Ao": 1,
+          "Emissive": [
+            0.6,
+            0.2,
+            0
+          ],
+          "EmissiveStrength": 0.4,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "PickupType": 0,
+          "Value": 1,
+          "Taken": false,
+          "HomeX": 0,
+          "HomeY": 2.6,
+          "HomeZ": 37,
+          "Radius": 0.55,
+          "Name": "CollectibleComponent"
+        }
+      ]
+    },
+    {
+      "Id": 47,
+      "Name": "Wumpa_8",
+      "Components": [
+        {
+          "Translation": [
+            -1.4,
+            2.3,
+            48
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.38,
+            0.38,
+            0.38
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1.0,
+            0.48,
+            0.08,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.4,
+          "Ao": 1,
+          "Emissive": [
+            0.6,
+            0.2,
+            0
+          ],
+          "EmissiveStrength": 0.4,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "PickupType": 0,
+          "Value": 1,
+          "Taken": false,
+          "HomeX": -1.4,
+          "HomeY": 2.3,
+          "HomeZ": 48,
+          "Radius": 0.55,
+          "Name": "CollectibleComponent"
+        }
+      ]
+    },
+    {
+      "Id": 48,
+      "Name": "Wumpa_9",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            1.2,
+            52
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.38,
+            0.38,
+            0.38
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1.0,
+            0.48,
+            0.08,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.4,
+          "Ao": 1,
+          "Emissive": [
+            0.6,
+            0.2,
+            0
+          ],
+          "EmissiveStrength": 0.4,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "PickupType": 0,
+          "Value": 1,
+          "Taken": false,
+          "HomeX": 0,
+          "HomeY": 1.2,
+          "HomeZ": 52,
+          "Radius": 0.55,
+          "Name": "CollectibleComponent"
+        }
+      ]
+    },
+    {
+      "Id": 49,
+      "Name": "Wumpa_10",
+      "Components": [
+        {
+          "Translation": [
+            1.2,
+            1.4,
+            62
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.38,
+            0.38,
+            0.38
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1.0,
+            0.48,
+            0.08,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.4,
+          "Ao": 1,
+          "Emissive": [
+            0.6,
+            0.2,
+            0
+          ],
+          "EmissiveStrength": 0.4,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "PickupType": 0,
+          "Value": 1,
+          "Taken": false,
+          "HomeX": 1.2,
+          "HomeY": 1.4,
+          "HomeZ": 62,
+          "Radius": 0.55,
+          "Name": "CollectibleComponent"
+        }
+      ]
+    },
+    {
+      "Id": 50,
+      "Name": "Wumpa_11",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            1.6,
+            70
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.38,
+            0.38,
+            0.38
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1.0,
+            0.48,
+            0.08,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.4,
+          "Ao": 1,
+          "Emissive": [
+            0.6,
+            0.2,
+            0
+          ],
+          "EmissiveStrength": 0.4,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "PickupType": 0,
+          "Value": 1,
+          "Taken": false,
+          "HomeX": 0,
+          "HomeY": 1.6,
+          "HomeZ": 70,
+          "Radius": 0.55,
+          "Name": "CollectibleComponent"
+        }
+      ]
+    },
+    {
+      "Id": 51,
+      "Name": "Wumpa_12",
+      "Components": [
+        {
+          "Translation": [
+            -1.2,
+            1.3,
+            76
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.38,
+            0.38,
+            0.38
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1.0,
+            0.48,
+            0.08,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.4,
+          "Ao": 1,
+          "Emissive": [
+            0.6,
+            0.2,
+            0
+          ],
+          "EmissiveStrength": 0.4,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "PickupType": 0,
+          "Value": 1,
+          "Taken": false,
+          "HomeX": -1.2,
+          "HomeY": 1.3,
+          "HomeZ": 76,
+          "Radius": 0.55,
+          "Name": "CollectibleComponent"
+        }
+      ]
+    },
+    {
+      "Id": 52,
+      "Name": "Mask",
+      "Components": [
+        {
+          "Translation": [
+            -1.4,
+            2.15,
+            48.8
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.48,
+            0.48,
+            0.48
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1.0,
+            0.86,
+            0.25,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.4,
+          "Ao": 1,
+          "Emissive": [
+            0.8,
+            0.6,
+            0.1
+          ],
+          "EmissiveStrength": 0.8,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "PickupType": 2,
+          "Value": 1,
+          "Taken": false,
+          "HomeX": -1.4,
+          "HomeY": 2.15,
+          "HomeZ": 48.8,
+          "Radius": 0.6,
+          "Name": "CollectibleComponent"
+        }
+      ]
+    },
+    {
+      "Id": 53,
+      "Name": "ExtraLife",
+      "Components": [
+        {
+          "Translation": [
+            1.6,
+            1.15,
+            63
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.42,
+            0.42,
+            0.42
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.92,
+            0.2,
+            0.28,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.4,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "PickupType": 1,
+          "Value": 1,
+          "Taken": false,
+          "HomeX": 1.6,
+          "HomeY": 1.15,
+          "HomeZ": 63,
+          "Radius": 0.55,
+          "Name": "CollectibleComponent"
+        }
+      ]
+    },
+    {
+      "Id": 54,
+      "Name": "Goal",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            1.1,
+            79
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.9,
+            0.9,
+            0.9
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.95,
+            0.85,
+            0.35,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.4,
+          "Ao": 1,
+          "Emissive": [
+            0.5,
+            0.4,
+            0.05
+          ],
+          "EmissiveStrength": 0.5,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "PickupType": 3,
+          "Value": 1,
+          "Taken": false,
+          "HomeX": 0,
+          "HomeY": 1.1,
+          "HomeZ": 79,
+          "Radius": 0.85,
+          "Name": "CollectibleComponent"
+        }
+      ]
+    },
+    {
+      "Id": 55,
+      "Name": "Spike_32_0",
+      "Components": [
+        {
+          "Translation": [
+            -1.2,
+            0.28,
+            32
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.7,
+            0.56,
+            0.7
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.78,
+            0.8,
+            0.84,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.35,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfWidth": 0.28,
+          "HalfHeight": 0.24,
+          "HalfDepth": 0.28,
+          "Name": "HazardComponent"
+        }
+      ]
+    },
+    {
+      "Id": 56,
+      "Name": "Spike_32_1",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0.28,
+            32
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.7,
+            0.56,
+            0.7
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.78,
+            0.8,
+            0.84,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.35,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfWidth": 0.28,
+          "HalfHeight": 0.24,
+          "HalfDepth": 0.28,
+          "Name": "HazardComponent"
+        }
+      ]
+    },
+    {
+      "Id": 57,
+      "Name": "Spike_32_2",
+      "Components": [
+        {
+          "Translation": [
+            1.2,
+            0.28,
+            32
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.7,
+            0.56,
+            0.7
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.78,
+            0.8,
+            0.84,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.35,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfWidth": 0.28,
+          "HalfHeight": 0.24,
+          "HalfDepth": 0.28,
+          "Name": "HazardComponent"
+        }
+      ]
+    },
+    {
+      "Id": 58,
+      "Name": "Spike_33.1_0",
+      "Components": [
+        {
+          "Translation": [
+            -0.6,
+            0.28,
+            33.1
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.7,
+            0.56,
+            0.7
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.78,
+            0.8,
+            0.84,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.35,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfWidth": 0.28,
+          "HalfHeight": 0.24,
+          "HalfDepth": 0.28,
+          "Name": "HazardComponent"
+        }
+      ]
+    },
+    {
+      "Id": 59,
+      "Name": "Spike_33.1_1",
+      "Components": [
+        {
+          "Translation": [
+            0.6,
+            0.28,
+            33.1
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.7,
+            0.56,
+            0.7
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.78,
+            0.8,
+            0.84,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.35,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfWidth": 0.28,
+          "HalfHeight": 0.24,
+          "HalfDepth": 0.28,
+          "Name": "HazardComponent"
+        }
+      ]
+    },
+    {
+      "Id": 60,
+      "Name": "Checkpoint_1",
+      "Components": [
+        {
+          "Translation": [
+            -2.4,
+            0.7,
+            27
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.25,
+            1.4,
+            0.25
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.2,
+            0.72,
+            0.38,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.4,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "Id": 1,
+          "SpawnX": -2.4,
+          "SpawnY": 1.5,
+          "SpawnZ": 26.2,
+          "Activated": false,
+          "HalfWidth": 0.6,
+          "HalfHeight": 0.9,
+          "HalfDepth": 0.6,
+          "IdleTexture": "textures/items/checkpoint.png",
+          "ActiveTexture": "textures/items/checkpoint_on.png",
+          "Name": "CheckpointComponent"
+        }
+      ]
+    },
+    {
+      "Id": 61,
+      "Name": "Checkpoint_2",
+      "Components": [
+        {
+          "Translation": [
+            2.4,
+            0.7,
+            61
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.25,
+            1.4,
+            0.25
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.2,
+            0.72,
+            0.38,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.4,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "Id": 2,
+          "SpawnX": 2.4,
+          "SpawnY": 1.5,
+          "SpawnZ": 60.2,
+          "Activated": false,
+          "HalfWidth": 0.6,
+          "HalfHeight": 0.9,
+          "HalfDepth": 0.6,
+          "IdleTexture": "textures/items/checkpoint.png",
+          "ActiveTexture": "textures/items/checkpoint_on.png",
+          "Name": "CheckpointComponent"
+        }
+      ]
+    },
+    {
+      "Id": 62,
+      "Name": "Slime_1",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0.32,
+            22.5
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.85,
+            0.5,
+            0.7
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.62,
+            0.28,
+            0.78,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.45,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "Kind": 0,
+          "HomeX": 0,
+          "HomeY": 0.32,
+          "HomeZ": 22.5,
+          "MinX": -2.2,
+          "MaxX": 2.2,
+          "Speed": 1.8,
+          "Direction": 1,
+          "Alive": true,
+          "HalfWidth": 0.425,
+          "HalfHeight": 0.25,
+          "HalfDepth": 0.35,
+          "ChargeRange": 0,
+          "TexturePath": "",
+          "Name": "EnemyComponent"
+        }
+      ]
+    },
+    {
+      "Id": 63,
+      "Name": "Fly_1",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            1.35,
+            68
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.7,
+            0.35,
+            0.7
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.9,
+            0.78,
+            0.2,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.45,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "Kind": 1,
+          "HomeX": 0,
+          "HomeY": 1.35,
+          "HomeZ": 68,
+          "MinX": -2.0,
+          "MaxX": 2.0,
+          "Speed": 2.2,
+          "Direction": 1,
+          "Alive": true,
+          "HalfWidth": 0.35,
+          "HalfHeight": 0.175,
+          "HalfDepth": 0.35,
+          "ChargeRange": 4.5,
+          "TexturePath": "",
+          "Name": "EnemyComponent"
+        }
+      ]
+    },
+    {
+      "Id": 64,
+      "Name": "Slime_2",
+      "Components": [
+        {
+          "Translation": [
+            1.2,
+            0.32,
+            74
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.85,
+            0.5,
+            0.7
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.62,
+            0.28,
+            0.78,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.45,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "Kind": 0,
+          "HomeX": 1.2,
+          "HomeY": 0.32,
+          "HomeZ": 74,
+          "MinX": -2.2,
+          "MaxX": 2.2,
+          "Speed": 2.1,
+          "Direction": 1,
+          "Alive": true,
+          "HalfWidth": 0.425,
+          "HalfHeight": 0.25,
+          "HalfDepth": 0.35,
+          "ChargeRange": 0,
+          "TexturePath": "",
+          "Name": "EnemyComponent"
+        }
+      ]
+    },
+    {
+      "Id": 65,
+      "Name": "ZoneSide",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            1,
+            48
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Mode": 1,
+          "MinX": 0,
+          "MaxX": 0,
+          "MinZ": 40,
+          "MaxZ": 56,
+          "LookAhead": 0,
+          "OrthoSize": 4,
+          "Name": "CameraZoneComponent"
+        }
+      ]
+    },
+    {
+      "Id": 66,
+      "Name": "Trunk_0",
+      "Components": [
+        {
+          "Translation": [
+            -4.6,
+            1.1,
+            5
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.35,
+            2.2,
+            0.35
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.4,
+            0.26,
+            0.14,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 67,
+      "Name": "Leaves_0",
+      "Components": [
+        {
+          "Translation": [
+            -4.6,
+            2.5,
+            5
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1.4,
+            0.7,
+            1.4
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.18,
+            0.55,
+            0.22,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 68,
+      "Name": "Trunk_1",
+      "Components": [
+        {
+          "Translation": [
+            4.6,
+            1.1,
+            14
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.35,
+            2.2,
+            0.35
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.4,
+            0.26,
+            0.14,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 69,
+      "Name": "Leaves_1",
+      "Components": [
+        {
+          "Translation": [
+            4.6,
+            2.5,
+            14
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1.4,
+            0.7,
+            1.4
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.18,
+            0.55,
+            0.22,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 70,
+      "Name": "Trunk_2",
+      "Components": [
+        {
+          "Translation": [
+            -4.6,
+            1.1,
+            26
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.35,
+            2.2,
+            0.35
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.4,
+            0.26,
+            0.14,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 71,
+      "Name": "Leaves_2",
+      "Components": [
+        {
+          "Translation": [
+            -4.6,
+            2.5,
+            26
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1.4,
+            0.7,
+            1.4
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.18,
+            0.55,
+            0.22,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 72,
+      "Name": "Trunk_3",
+      "Components": [
+        {
+          "Translation": [
+            4.6,
+            1.1,
+            42
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.35,
+            2.2,
+            0.35
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.4,
+            0.26,
+            0.14,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 73,
+      "Name": "Leaves_3",
+      "Components": [
+        {
+          "Translation": [
+            4.6,
+            2.5,
+            42
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1.4,
+            0.7,
+            1.4
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.18,
+            0.55,
+            0.22,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 74,
+      "Name": "Trunk_4",
+      "Components": [
+        {
+          "Translation": [
+            -4.6,
+            1.1,
+            58
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.35,
+            2.2,
+            0.35
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.4,
+            0.26,
+            0.14,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 75,
+      "Name": "Leaves_4",
+      "Components": [
+        {
+          "Translation": [
+            -4.6,
+            2.5,
+            58
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1.4,
+            0.7,
+            1.4
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.18,
+            0.55,
+            0.22,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 76,
+      "Name": "Trunk_5",
+      "Components": [
+        {
+          "Translation": [
+            4.6,
+            1.1,
+            73
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.35,
+            2.2,
+            0.35
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.4,
+            0.26,
+            0.14,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 77,
+      "Name": "Leaves_5",
+      "Components": [
+        {
+          "Translation": [
+            4.6,
+            2.5,
+            73
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1.4,
+            0.7,
+            1.4
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.18,
+            0.55,
+            0.22,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 78,
+      "Name": "Rock_1",
+      "Components": [
+        {
+          "Translation": [
+            2.2,
+            0.28,
+            11
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.7,
+            0.55,
+            0.7
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.45,
+            0.46,
+            0.5,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfX": 0.35,
+          "HalfY": 0.275,
+          "HalfZ": 0.35,
+          "Name": "SolidComponent"
+        }
+      ]
+    },
+    {
+      "Id": 79,
+      "Name": "Rock_2",
+      "Components": [
+        {
+          "Translation": [
+            -2.1,
+            0.22,
+            46
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.6,
+            0.45,
+            0.6
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.45,
+            0.46,
+            0.5,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "HalfX": 0.3,
+          "HalfY": 0.225,
+          "HalfZ": 0.3,
+          "Name": "SolidComponent"
+        }
+      ]
+    },
+    {
+      "Id": 80,
+      "Name": "Heart_0",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            3,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.14,
+            0.14,
+            0.05
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.92,
+            0.2,
+            0.28,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.4,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 81,
+      "Name": "Heart_1",
+      "Components": [
+        {
+          "Translation": [
+            1,
+            3,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.14,
+            0.14,
+            0.05
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.92,
+            0.2,
+            0.28,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.4,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 82,
+      "Name": "Heart_2",
+      "Components": [
+        {
+          "Translation": [
+            2,
+            3,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.14,
+            0.14,
+            0.05
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.92,
+            0.2,
+            0.28,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.4,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 83,
+      "Name": "Heart_3",
+      "Components": [
+        {
+          "Translation": [
+            3,
+            3,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.14,
+            0.14,
+            0.05
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.92,
+            0.2,
+            0.28,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.4,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 84,
+      "Name": "Heart_4",
+      "Components": [
+        {
+          "Translation": [
+            4,
+            3,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.14,
+            0.14,
+            0.05
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.92,
+            0.2,
+            0.28,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.4,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 85,
+      "Name": "WumpaIcon",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            3,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.16,
+            0.16,
+            0.05
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1.0,
+            0.48,
+            0.08,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0.5,
+            0.2,
+            0
+          ],
+          "EmissiveStrength": 0.3,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 86,
+      "Name": "Digit_0",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            3,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.14,
+            0.18,
+            0.04
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.95,
+            0.95,
+            0.92,
+            1
+          ],
+          "TexturePath": "textures/hud/0.png",
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.4,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "Place": 0,
+          "Name": "HudDigitComponent"
+        }
+      ]
+    },
+    {
+      "Id": 87,
+      "Name": "Digit_1",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            3,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.14,
+            0.18,
+            0.04
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.95,
+            0.95,
+            0.92,
+            1
+          ],
+          "TexturePath": "textures/hud/0.png",
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.4,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        },
+        {
+          "Place": 1,
+          "Name": "HudDigitComponent"
+        }
+      ]
+    },
+    {
+      "Id": 88,
+      "Name": "MaskIcon",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            3,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.16,
+            0.16,
+            0.05
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1.0,
+            0.86,
+            0.25,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.6,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 89,
+      "Name": "Hint",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            2,
+            2
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1.7,
+            0.55,
+            0.04
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.95,
+            0.95,
+            0.92,
+            1
+          ],
+          "TexturePath": "textures/hud/hint.png",
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.5,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 90,
+      "Name": "BannerGameOver",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            -50,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1.8,
+            0.7,
+            0.04
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.95,
+            0.95,
+            0.92,
+            1
+          ],
+          "TexturePath": "textures/hud/gameover.png",
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.5,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 91,
+      "Name": "BannerClear",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            -50,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1.8,
+            0.7,
+            0.04
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.95,
+            0.95,
+            0.92,
+            1
+          ],
+          "TexturePath": "textures/hud/clear.png",
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.5,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    }
+  ]
+}

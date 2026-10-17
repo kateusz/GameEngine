@@ -1,0 +1,11 @@
+Art and audio are CC0 assets by Kenney (www.kenney.nl):
+
+- Platformer Art Deluxe
+- Impact Sounds
+- RPG Audio
+
+The hero was recolored orange and the coin was recolored into a fruit.
+Hint / game-over / clear banners are generated text, not Kenney art.
+
+This is an original side-view homage. It is not Crash Bandicoot and it does
+not use any Naughty Dog / Sony / Activision assets.
