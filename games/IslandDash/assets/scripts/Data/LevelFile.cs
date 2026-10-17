@@ -37,6 +37,14 @@ public sealed class PieceSpec(string kind, Vector3 position, Dictionary<string, 
 /// </summary>
 public static class LevelFile
 {
+    /// <summary>Piece kinds <see cref="LevelSystem"/> builds. The self-check fails a level that uses anything else.</summary>
+    public static readonly string[] Kinds =
+    [
+        "start", "kill_plane", "ground", "block", "platform", "mover", "vanish", "faller",
+        "crate", "crate_life", "crate_checkpoint", "crystal", "spikes", "crusher", "enemy",
+        "goal", "deco", "camzone", "light"
+    ];
+
     public static List<PieceSpec> Load(string relativePath)
     {
         var path = AssetPaths.Resolve(relativePath);

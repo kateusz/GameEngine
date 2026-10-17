@@ -9,7 +9,7 @@
 # Missing names (or files that fail to load) render as placeholder cubes instead of stopping the game.
 
 # --- Characters (kit height ~1.3 m) ---
-player            models/kenney_platformer/character-ooli.glb         1.45         0,0,0
+player            models/kenney_platformer/character-ooli.glb         1.45         0,0,0          tint=0.86,0.88,0.92
 enemy_patrol      models/kenney_platformer/character-oodi.glb         1.35         0,0,0
 enemy_chase       models/kenney_platformer/character-oozi.glb         1.4          0,0,0          tint=1,0.55,0.55
 
