@@ -1,0 +1,10 @@
+# Stage-3 smoke level (replaced by the full level later)
+start 0 0.05 0
+ground 0 0 -10 size=10,1.5,30
+repeat 5 0 0 -2 crystal 0 0.4 -6
+crate 2 0 -8
+crate_checkpoint -2 0 -8
+block 0 1 -18 size=3,2.5,3
+deco -4 0 -4 model=tree
+deco 4 0 -12 model=tree_pine
+enemy 0 0 -22 type=patrol path=-3,0,0;3,0,0

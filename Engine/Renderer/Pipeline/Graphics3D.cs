@@ -51,7 +51,7 @@ internal sealed class Graphics3D(
     private Matrix4x4 _lightViewProjection = Matrix4x4.Identity;
     private Matrix4x4 _farLightViewProjection = Matrix4x4.Identity;
     private bool _shadowsEnabled;
-    private ShadowQuality _quality = new();
+    private ShadowQuality _quality = new(DirectionalResolution: 1024);
 
     private Matrix4x4 _viewProjection = Matrix4x4.Identity;
     private Vector3 _viewPosition;
