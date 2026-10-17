@@ -15,6 +15,7 @@ public class CollectibleComponent : IGameComponent
     public bool Taken { get; set; }
     public float HomeX { get; set; }
     public float HomeY { get; set; }
+    public float HomeZ { get; set; }
     public float Radius { get; set; } = 0.45f;
 
     public IComponent Clone() => new CollectibleComponent
@@ -24,6 +25,7 @@ public class CollectibleComponent : IGameComponent
         Taken = Taken,
         HomeX = HomeX,
         HomeY = HomeY,
+        HomeZ = HomeZ,
         Radius = Radius
     };
 }

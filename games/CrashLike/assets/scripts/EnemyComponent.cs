@@ -11,6 +11,7 @@ public class EnemyComponent : IGameComponent
     public int Kind { get; set; }
     public float HomeX { get; set; }
     public float HomeY { get; set; }
+    public float HomeZ { get; set; }
     public float MinX { get; set; }
     public float MaxX { get; set; }
     public float Speed { get; set; } = 1.8f;
@@ -18,6 +19,7 @@ public class EnemyComponent : IGameComponent
     public bool Alive { get; set; } = true;
     public float HalfWidth { get; set; } = 0.3f;
     public float HalfHeight { get; set; } = 0.2f;
+    public float HalfDepth { get; set; } = 0.3f;
     public float ChargeRange { get; set; } = 4f;
     public string TexturePath { get; set; } = "textures/enemies/slime.png";
 
@@ -26,6 +28,7 @@ public class EnemyComponent : IGameComponent
         Kind = Kind,
         HomeX = HomeX,
         HomeY = HomeY,
+        HomeZ = HomeZ,
         MinX = MinX,
         MaxX = MaxX,
         Speed = Speed,
@@ -33,6 +36,7 @@ public class EnemyComponent : IGameComponent
         Alive = Alive,
         HalfWidth = HalfWidth,
         HalfHeight = HalfHeight,
+        HalfDepth = HalfDepth,
         ChargeRange = ChargeRange,
         TexturePath = TexturePath
     };

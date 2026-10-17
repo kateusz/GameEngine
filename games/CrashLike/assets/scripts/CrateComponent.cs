@@ -18,8 +18,10 @@ public class CrateComponent : IGameComponent
     public float FuseTimer { get; set; }
     public float HomeX { get; set; }
     public float HomeY { get; set; }
+    public float HomeZ { get; set; }
     public float HalfWidth { get; set; } = 0.5f;
     public float HalfHeight { get; set; } = 0.5f;
+    public float HalfDepth { get; set; } = 0.5f;
 
     public IComponent Clone() => new CrateComponent
     {
@@ -31,7 +33,9 @@ public class CrateComponent : IGameComponent
         FuseTimer = FuseTimer,
         HomeX = HomeX,
         HomeY = HomeY,
+        HomeZ = HomeZ,
         HalfWidth = HalfWidth,
-        HalfHeight = HalfHeight
+        HalfHeight = HalfHeight,
+        HalfDepth = HalfDepth
     };
 }

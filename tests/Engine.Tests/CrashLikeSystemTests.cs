@@ -6,8 +6,6 @@ using Input;
 using NSubstitute;
 using SceneComponents;
 using SceneComponents.Camera;
-using SceneComponents.Physics;
-using SceneComponents.Rendering;
 using Scripting;
 using Shouldly;
 
@@ -16,53 +14,64 @@ namespace Engine.Tests;
 public class CrashLikeSystemTests
 {
     [Fact]
-    public void OnUpdate_RightKey_AcceleratesForward()
+    public void OnUpdate_RightKey_StrafesOnX()
     {
         var world = CreateWorld();
         world.Keyboard.IsKeyDown(KeyCodes.D).Returns(true);
+        var startX = world.Player.GetComponent<TransformComponent>().Translation.X;
 
         world.System.OnUpdate(TimeSpan.FromSeconds(0.05));
 
-        world.Player.GetComponent<RigidBody2DComponent>().Velocity.X.ShouldBeGreaterThan(0.5f);
-        world.Game.Phase.ShouldBe(CrashLikeGameComponent.Playing);
+        world.Player.GetComponent<TransformComponent>().Translation.X.ShouldBeGreaterThan(startX);
     }
 
     [Fact]
-    public void OnUpdate_DepthZone_RunsForwardWithoutInput()
+    public void OnUpdate_AutoRun_AdvancesAlongZ()
+    {
+        var world = CreateWorld();
+        var startZ = world.Player.GetComponent<TransformComponent>().Translation.Z;
+
+        world.System.OnUpdate(TimeSpan.FromSeconds(0.05));
+
+        world.Player.GetComponent<TransformComponent>().Translation.Z.ShouldBeGreaterThan(startZ + 0.05f);
+    }
+
+    [Fact]
+    public void OnUpdate_SideZone_SwingsTheCamera()
     {
         var world = CreateWorld();
         var zone = new Entity(10, "Zone");
         zone.AddComponent(new CameraZoneComponent
         {
-            Mode = CrashLikeGameComponent.Depth,
-            MinX = -10f,
-            MaxX = 10f,
-            LookAhead = 3f,
-            OrthoSize = 4f
+            Mode = CrashLikeGameComponent.Side,
+            MinZ = -10f,
+            MaxZ = 10f
         });
         world.Context.Register(zone);
 
         world.System.OnUpdate(TimeSpan.FromSeconds(0.05));
 
-        world.Player.GetComponent<RigidBody2DComponent>().Velocity.X.ShouldBeGreaterThan(0.5f);
-        world.Player.GetComponent<PlayerMotorComponent>().Facing.ShouldBe(1);
+        world.Game.CameraMode.ShouldBe(CrashLikeGameComponent.Side);
+        world.Camera.GetComponent<CameraComponent>().ProjectionType.ShouldBe(CameraProjectionTypeData.Perspective);
     }
 
     [Fact]
-    public void OnUpdate_Fall_LosesALifeAndArmsRespawn()
+    public void OnUpdate_Fall_LosesALifeAndRespawns()
     {
         var world = CreateWorld();
         world.Game.DeathY = -2f;
-        world.Game.RespawnX = 4f;
-        world.Game.RespawnY = 2f;
+        world.Game.RespawnX = 1f;
+        world.Game.RespawnY = 3f;
+        world.Game.RespawnZ = 4f;
         world.Player.GetComponent<TransformComponent>().Translation = new Vector3(0f, -5f, 0f);
 
         world.System.OnUpdate(TimeSpan.FromSeconds(0.016));
 
         world.Game.Lives.ShouldBe(2);
-        world.Game.TeleportPending.ShouldBeTrue();
-        world.Player.GetComponent<TransformComponent>().Translation.Y.ShouldBe(2f);
-        world.Player.GetComponent<RigidBody2DComponent>().BodyType.ShouldBe(RigidBodyType.Kinematic);
+        var at = world.Player.GetComponent<TransformComponent>().Translation;
+        at.X.ShouldBe(1f);
+        at.Y.ShouldBe(3f);
+        at.Z.ShouldBe(4f);
     }
 
     [Fact]
@@ -86,14 +95,14 @@ public class CrashLikeSystemTests
         var at = world.Player.GetComponent<TransformComponent>().Translation;
         var fruit = new Entity(20, "Wumpa");
         fruit.AddComponent(new TransformComponent { Translation = at });
-        fruit.AddComponent(new SpriteRendererComponent());
         fruit.AddComponent(new CollectibleComponent
         {
             PickupType = CollectibleComponent.Wumpa,
             Value = 1,
             Radius = 1f,
             HomeX = at.X,
-            HomeY = at.Y
+            HomeY = at.Y,
+            HomeZ = at.Z
         });
         world.Context.Register(fruit);
 
@@ -101,7 +110,7 @@ public class CrashLikeSystemTests
 
         world.Game.Wumpa.ShouldBe(1);
         fruit.GetComponent<CollectibleComponent>().Taken.ShouldBeTrue();
-        fruit.GetComponent<SpriteRendererComponent>().Color.W.ShouldBe(0f);
+        fruit.GetComponent<TransformComponent>().Translation.Y.ShouldBe(-40f);
     }
 
     [Fact]
@@ -110,19 +119,7 @@ public class CrashLikeSystemTests
         var world = CreateWorld();
         world.Game.SpinTimer = 0.5f;
         var at = world.Player.GetComponent<TransformComponent>().Translation;
-        var crate = new Entity(21, "Crate");
-        crate.AddComponent(new TransformComponent { Translation = at });
-        crate.AddComponent(new SpriteRendererComponent());
-        crate.AddComponent(new BoxCollider2DComponent());
-        crate.AddComponent(new CrateComponent
-        {
-            CrateType = CrateComponent.Basic,
-            LootWumpa = 1,
-            HomeX = at.X,
-            HomeY = at.Y,
-            HalfWidth = 0.5f,
-            HalfHeight = 0.5f
-        });
+        var crate = Crate(21, at.X, at.Y, at.Z, loot: 1);
         world.Context.Register(crate);
 
         world.System.OnUpdate(TimeSpan.FromSeconds(0.05));
@@ -139,9 +136,10 @@ public class CrashLikeSystemTests
         var motor = world.Player.GetComponent<PlayerMotorComponent>();
         motor.HalfWidth = 0.05f;
         motor.HalfHeight = 0.05f;
-        world.Player.GetComponent<TransformComponent>().Translation = new Vector3(2f, 0.5f, 0f);
-        var bottom = Crate(21, 2f, 0.5f, loot: 0);
-        var top = Crate(22, 2f, 1.5f, loot: 0);
+        motor.HalfDepth = 0.05f;
+        world.Player.GetComponent<TransformComponent>().Translation = new Vector3(2f, 0.5f, 1f);
+        var bottom = Crate(21, 2f, 0.5f, 1f, loot: 0);
+        var top = Crate(22, 2f, 1.5f, 1f, loot: 0);
         world.Context.Register(bottom);
         world.Context.Register(top);
 
@@ -157,19 +155,16 @@ public class CrashLikeSystemTests
     {
         var world = CreateWorld();
         world.Game.Masks = 1;
+        var at = world.Player.GetComponent<TransformComponent>().Translation;
         var hazard = new Entity(22, "Spikes");
-        hazard.AddComponent(new TransformComponent
-        {
-            Translation = world.Player.GetComponent<TransformComponent>().Translation
-        });
-        hazard.AddComponent(new HazardComponent { HalfWidth = 1f, HalfHeight = 1f });
+        hazard.AddComponent(new TransformComponent { Translation = at });
+        hazard.AddComponent(new HazardComponent { HalfWidth = 1f, HalfHeight = 1f, HalfDepth = 1f });
         world.Context.Register(hazard);
 
         world.System.OnUpdate(TimeSpan.FromSeconds(0.016));
 
         world.Game.Masks.ShouldBe(0);
         world.Game.Lives.ShouldBe(3);
-        world.Game.TeleportPending.ShouldBeFalse();
     }
 
     [Fact]
@@ -187,24 +182,43 @@ public class CrashLikeSystemTests
         world.Game.Phase.ShouldBe(CrashLikeGameComponent.Playing);
         world.Game.Lives.ShouldBe(3);
         world.Game.Wumpa.ShouldBe(0);
-        world.Game.TeleportPending.ShouldBeTrue();
-        world.Player.GetComponent<TransformComponent>().Translation.X.ShouldBe(world.Game.StartX);
+        var at = world.Player.GetComponent<TransformComponent>().Translation;
+        at.X.ShouldBe(world.Game.StartX);
+        at.Z.ShouldBe(world.Game.StartZ);
     }
 
-    private static Entity Crate(int id, float x, float y, int loot)
+    [Fact]
+    public void OnUpdate_Ground_StopsTheFall()
+    {
+        var world = CreateWorld();
+        world.Player.GetComponent<TransformComponent>().Translation = new Vector3(0f, 0.54f, 0f);
+        var ground = new Entity(30, "Ground");
+        ground.AddComponent(new TransformComponent { Translation = new Vector3(0f, -0.5f, 0f) });
+        ground.AddComponent(new SolidComponent { HalfX = 4f, HalfY = 0.5f, HalfZ = 4f });
+        world.Context.Register(ground);
+
+        world.System.OnUpdate(TimeSpan.FromSeconds(0.05));
+
+        var motor = world.Player.GetComponent<PlayerMotorComponent>();
+        motor.Grounded.ShouldBeTrue();
+        world.Player.GetComponent<TransformComponent>().Translation.Y.ShouldBe(0.5f, 0.02f);
+    }
+
+    private static Entity Crate(int id, float x, float y, float z, int loot)
     {
         var crate = new Entity(id, $"Crate{id}");
-        crate.AddComponent(new TransformComponent { Translation = new Vector3(x, y, 0f) });
-        crate.AddComponent(new SpriteRendererComponent());
-        crate.AddComponent(new BoxCollider2DComponent());
+        crate.AddComponent(new TransformComponent { Translation = new Vector3(x, y, z) });
+        crate.AddComponent(new SolidComponent { HalfX = 0.5f, HalfY = 0.5f, HalfZ = 0.5f });
         crate.AddComponent(new CrateComponent
         {
             CrateType = CrateComponent.Basic,
             LootWumpa = loot,
             HomeX = x,
             HomeY = y,
+            HomeZ = z,
             HalfWidth = 0.5f,
-            HalfHeight = 0.5f
+            HalfHeight = 0.5f,
+            HalfDepth = 0.5f
         });
         return crate;
     }
@@ -218,34 +232,49 @@ public class CrashLikeSystemTests
             Lives = 3,
             StartingLives = 3,
             MaxLives = 5,
-            StartX = 2f,
-            StartY = 1f,
-            RespawnX = 2f,
-            RespawnY = 1f,
-            MoveSpeed = 6.5f,
+            StartX = 0f,
+            StartY = 1.2f,
+            StartZ = 2f,
+            RespawnX = 0f,
+            RespawnY = 1.2f,
+            RespawnZ = 2f,
+            MoveSpeed = 7f,
+            StrafeSpeed = 5.5f,
+            Gravity = 18f,
             GroundAccel = 70f,
             AirAccel = 28f,
-            JumpSpeed = 10f,
+            JumpSpeed = 9.6f,
             DeathY = -3f
         };
         gameEntity.AddComponent(game);
         context.Register(gameEntity);
 
         var player = new Entity(2, "Player");
-        player.AddComponent(new TransformComponent { Translation = new Vector3(2f, 1f, 0f) });
-        player.AddComponent(new RigidBody2DComponent { BodyType = RigidBodyType.Dynamic, FixedRotation = true });
-        player.AddComponent(new SpriteRendererComponent());
-        player.AddComponent(new PlayerMotorComponent { HalfWidth = 0.3f, HalfHeight = 0.5f, Facing = 1 });
+        player.AddComponent(new TransformComponent { Translation = new Vector3(0f, 1.2f, 2f) });
+        player.AddComponent(new PlayerMotorComponent
+        {
+            HalfWidth = 0.3f,
+            HalfHeight = 0.5f,
+            HalfDepth = 0.3f
+        });
         context.Register(player);
 
         var camera = new Entity(3, "Camera");
-        camera.AddComponent(new TransformComponent { Translation = new Vector3(8f, 2.2f, 0f) });
-        camera.AddComponent(new CameraComponent { OrthographicSize = 4.6f, AspectRatio = 16f / 9f, Primary = true });
+        camera.AddComponent(new TransformComponent { Translation = new Vector3(0f, 4f, -4f) });
+        camera.AddComponent(new CameraComponent
+        {
+            ProjectionType = CameraProjectionTypeData.Perspective,
+            PerspectiveFOV = 1f,
+            PerspectiveNear = 0.1f,
+            PerspectiveFar = 100f,
+            AspectRatio = 16f / 9f,
+            Primary = true
+        });
         context.Register(camera);
 
         var keyboard = Substitute.For<IKeyboardInput>();
-        var system = new CrashLikeSystem(context, keyboard, Substitute.For<IPhysicsQueries>(), Substitute.For<IAudio>());
-        return new World(context, system, game, player, keyboard);
+        var system = new CrashLikeSystem(context, keyboard, Substitute.For<IAudio>());
+        return new World(context, system, game, player, camera, keyboard);
     }
 
     private sealed record World(
@@ -253,5 +282,6 @@ public class CrashLikeSystemTests
         CrashLikeSystem System,
         CrashLikeGameComponent Game,
         Entity Player,
+        Entity Camera,
         IKeyboardInput Keyboard);
 }

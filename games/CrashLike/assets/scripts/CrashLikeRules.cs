@@ -34,6 +34,23 @@ public static class CrashLikeRules
         return feet <= head + 0.14f && feet >= otherY - 0.08f;
     }
 
+    public static bool Overlap3(Vector3 a, Vector3 ah, Vector3 b, Vector3 bh, float pad = 0f)
+    {
+        return MathF.Abs(a.X - b.X) <= ah.X + bh.X + pad
+            && MathF.Abs(a.Y - b.Y) <= ah.Y + bh.Y + pad
+            && MathF.Abs(a.Z - b.Z) <= ah.Z + bh.Z + pad;
+    }
+
+    public static float Strafe(bool left, bool right, float speed)
+    {
+        var value = 0f;
+        if (left)
+            value -= speed;
+        if (right)
+            value += speed;
+        return value;
+    }
+
     public static float TargetSpeed(bool depth, bool left, bool right, float moveSpeed)
     {
         if (depth)

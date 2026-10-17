@@ -34,11 +34,13 @@ public class CrashLikeSceneTests
             }
         }
 
+        scene.RootElement.GetProperty("Dimension").GetString().ShouldBe("ThreeD");
         names.ShouldContain("Player");
         names.ShouldContain("Camera");
         names.ShouldContain("Game");
         names.ShouldContain("Goal");
-        names.ShouldContain("ZoneDepth");
+        names.ShouldContain("Sun");
+        names.ShouldContain("ZoneSide");
 
         foreach (var texture in textures)
         {

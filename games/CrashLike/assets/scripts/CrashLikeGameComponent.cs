@@ -3,7 +3,7 @@ using ECS;
 namespace CrashLike.assets.scripts;
 
 /// <summary>
-/// Whole-level state for the side-view platformer. Lives on the "Game" entity.
+/// Whole-level state for the 3D platformer. Lives on the "Game" entity.
 /// Tunables are editable in the inspector; runtime fields reset when the level restarts.
 /// </summary>
 [SerializableComponent]
@@ -13,8 +13,8 @@ public class CrashLikeGameComponent : IGameComponent
     public const int GameOver = 1;
     public const int Complete = 2;
 
-    public const int Side = 0;
-    public const int Depth = 1;
+    public const int Chase = 0;
+    public const int Side = 1;
 
     public int Phase { get; set; } = Playing;
     public int Lives { get; set; } = 3;
@@ -29,12 +29,14 @@ public class CrashLikeGameComponent : IGameComponent
     public float CoyoteTimer { get; set; }
     public float JumpBuffer { get; set; }
     public bool JumpHeld { get; set; }
-    public int CameraMode { get; set; } = Side;
+    public int CameraMode { get; set; } = Chase;
 
-    public float RespawnX { get; set; } = 2.4f;
-    public float RespawnY { get; set; } = 1.3f;
-    public float StartX { get; set; } = 2.4f;
-    public float StartY { get; set; } = 1.3f;
+    public float RespawnX { get; set; }
+    public float RespawnY { get; set; } = 1.2f;
+    public float RespawnZ { get; set; } = 2f;
+    public float StartX { get; set; }
+    public float StartY { get; set; } = 1.2f;
+    public float StartZ { get; set; } = 2f;
     public bool TeleportPending { get; set; }
     public bool HintVisible { get; set; } = true;
 
@@ -48,7 +50,9 @@ public class CrashLikeGameComponent : IGameComponent
     public float DepthOrtho { get; set; } = 4.15f;
     public float CameraSharpness { get; set; } = 8f;
 
-    public float MoveSpeed { get; set; } = 6.5f;
+    public float MoveSpeed { get; set; } = 7f;
+    public float StrafeSpeed { get; set; } = 5.5f;
+    public float Gravity { get; set; } = 18f;
     public float GroundAccel { get; set; } = 70f;
     public float AirAccel { get; set; } = 28f;
     public float JumpSpeed { get; set; } = 10.6f;
@@ -77,8 +81,10 @@ public class CrashLikeGameComponent : IGameComponent
         CameraMode = CameraMode,
         RespawnX = RespawnX,
         RespawnY = RespawnY,
+        RespawnZ = RespawnZ,
         StartX = StartX,
         StartY = StartY,
+        StartZ = StartZ,
         TeleportPending = TeleportPending,
         HintVisible = HintVisible,
         DeathY = DeathY,
@@ -91,6 +97,8 @@ public class CrashLikeGameComponent : IGameComponent
         DepthOrtho = DepthOrtho,
         CameraSharpness = CameraSharpness,
         MoveSpeed = MoveSpeed,
+        StrafeSpeed = StrafeSpeed,
+        Gravity = Gravity,
         GroundAccel = GroundAccel,
         AirAccel = AirAccel,
         JumpSpeed = JumpSpeed,
