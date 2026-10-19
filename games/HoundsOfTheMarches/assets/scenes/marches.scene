@@ -1,0 +1,33 @@
+{
+  "Scene": "marches",
+  "BackgroundColor": [0.06, 0.07, 0.1, 1],
+  "Dimension": "TwoD",
+  "Entities": [
+    {
+      "Id": 1,
+      "Name": "Camera",
+      "Components": [
+        {
+          "Translation": [12, 3.2, 0],
+          "Rotation": [0, 0, 0],
+          "Scale": [1, 1, 1],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "ProjectionType": "Orthographic",
+          "OrthographicSize": 4.4,
+          "OrthographicNear": -20,
+          "OrthographicFar": 20,
+          "PerspectiveFOV": 0.7853982,
+          "PerspectiveNear": 0.01,
+          "PerspectiveFar": 1000,
+          "AspectRatio": 1.7777778,
+          "Primary": true,
+          "FixedAspectRatio": false,
+          "Name": "CameraComponent"
+        }
+      ]
+    }
+  ]
+}

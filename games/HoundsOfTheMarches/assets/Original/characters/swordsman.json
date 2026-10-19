@@ -1,0 +1,23 @@
+{
+  "animations": {
+    "idle": [{"texture": "Original/characters/swordsman.png", "x": 0, "y": 0, "w": 180, "h": 220}],
+    "run": [{"texture": "Original/characters/swordsman.png", "x": 180, "y": 0, "w": 180, "h": 220}, {"texture": "Original/characters/swordsman.png", "x": 360, "y": 0, "w": 180, "h": 220}],
+    "air": [{"texture": "Original/characters/swordsman.png", "x": 540, "y": 0, "w": 180, "h": 220}],
+    "lightWindup": [{"texture": "Original/characters/swordsman.png", "x": 540, "y": 0, "w": 180, "h": 220}],
+    "light": [{"texture": "Original/characters/swordsman.png", "x": 720, "y": 0, "w": 180, "h": 220}],
+    "heavyWindup": [{"texture": "Original/characters/swordsman.png", "x": 900, "y": 0, "w": 180, "h": 220}],
+    "heavy": [{"texture": "Original/characters/swordsman.png", "x": 1080, "y": 0, "w": 180, "h": 220}],
+    "dodge": [{"texture": "Original/characters/swordsman.png", "x": 1260, "y": 0, "w": 180, "h": 220}],
+    "block": [{"texture": "Original/characters/swordsman.png", "x": 1440, "y": 0, "w": 180, "h": 220}],
+    "hurt": [{"texture": "Original/characters/swordsman.png", "x": 1620, "y": 0, "w": 180, "h": 220}],
+    "recover": [{"texture": "Original/characters/swordsman.png", "x": 720, "y": 0, "w": 180, "h": 220}],
+    "windup": [{"texture": "Original/characters/swordsman.png", "x": 900, "y": 0, "w": 180, "h": 220}],
+    "active": [{"texture": "Original/characters/swordsman.png", "x": 1080, "y": 0, "w": 180, "h": 220}],
+    "slashWindup": [{"texture": "Original/characters/swordsman.png", "x": 900, "y": 0, "w": 180, "h": 220}],
+    "slash": [{"texture": "Original/characters/swordsman.png", "x": 1080, "y": 0, "w": 180, "h": 220}],
+    "thrustWindup": [{"texture": "Original/characters/swordsman.png", "x": 540, "y": 0, "w": 180, "h": 220}],
+    "thrust": [{"texture": "Original/characters/swordsman.png", "x": 720, "y": 0, "w": 180, "h": 220}],
+    "leap": [{"texture": "Original/characters/swordsman.png", "x": 1260, "y": 0, "w": 180, "h": 220}],
+    "phase2": [{"texture": "Original/characters/swordsman.png", "x": 1440, "y": 0, "w": 180, "h": 220}]
+  }
+}

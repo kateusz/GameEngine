@@ -61,7 +61,7 @@ OpenGL backend behind `IRendererAPI`. Play mode draws through the **Primary** `C
 
 - **SpriteRendererComponent** — textured or solid-color quads; alpha 0 skips the draw
 - **SubTextureRendererComponent** — atlas cells via coords and cell size
-- **Batched indexed draws** — sprites flush in entity iteration order; depth test off (no Z sort; `SortingOrder` not implemented)
+- **Batched indexed draws** — sprites and subtextures flush together, sorted by `SortOrder` (higher draws later) then entity id. Depth test stays off, so this order is the 2D sort. Games encode Y-sort in `SortOrder` (physics pins transform Z to 0). `SubTextureRendererComponent.Color` tints the cell.
 - Entities with `EffectiveVisible == false` are skipped
 
 #### Cameras
@@ -245,6 +245,26 @@ Open `assets/scenes/arena.scene`, then press Play. **R** restarts after game ove
 ### Lighting Showcase
 
 3D room (20×16 m) with a grid of cubes (matte, metal, rough PBR). Demonstrates **ambient**, **directional** (sun shadows), and **eight point lights** with varied **range** and color (three with cubemap shadows — engine max is 8 point lights). No gameplay scripts — open the scene in the editor viewport or press Play. [`games/LightingShowcase/`](games/LightingShowcase/)
+
+### Hounds of the Marches (Ogary Marchii)
+
+Side-view soulslike vertical slice: one march from Ashmere village across a broken bridge into the keep courtyard, then a feline captain. Same gameplay for two art packs. [`games/HoundsOfTheMarches/`](games/HoundsOfTheMarches/)
+
+**Play.** Open that folder as a project and press Play. The startup scene is `assets/scenes/marches.scene`.
+
+**Swap art packs.**
+
+| How you launch | What selects the pack |
+|---|---|
+| Editor Play | `assets/artpack.txt` — one line, `original` or `external` |
+| Runtime / published player | `--art original` or `--art external` (wins over `artpack.txt`) |
+| Headless check | `dotnet run --project games/HoundsOfTheMarches -- --check` |
+
+`--check` bakes the original pack if it is missing, then verifies combat numbers, the level, and that both packs resolve ground tiles and the player sheet. `--bake` only writes files. A missing external file falls back to the original image instead of throwing.
+
+**Controls.** A/D or arrows move. Space jumps. W/S or up/down climbs the ladder (walk off a ledge to drop). J light attack, K heavy, Left Shift dodge, L block (tap as the hit lands to parry). E rests at a shrine. Falling into a pit kills you. Stingers dropped on death sit on the stain until you walk back to them.
+
+Design and numbers: [docs/VERTICAL_SLICE.md](docs/VERTICAL_SLICE.md). Asset list: [docs/HOUNDS_ASSETS.md](docs/HOUNDS_ASSETS.md). External licenses: [games/HoundsOfTheMarches/assets/External/CREDITS.md](games/HoundsOfTheMarches/assets/External/CREDITS.md).
 
 ## Documentation
 

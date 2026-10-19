@@ -24,6 +24,13 @@ public class SpriteRendererComponent : IComponent
 
     public float TilingFactor { get; set; }
 
+    /// <summary>
+    /// Draw order for the 2D batch. Higher values are submitted later and appear in front.
+    /// Depth test stays off. Equal values tie-break by entity id.
+    /// Encode a side-view Y-sort as <c>layer - worldY</c> so lower actors draw in front.
+    /// </summary>
+    public float SortOrder { get; set; }
+
     public SpriteRendererComponent()
     {
         Color = Vector4.One;
@@ -41,7 +48,8 @@ public class SpriteRendererComponent : IComponent
         return new SpriteRendererComponent(Color)
         {
             TexturePath = TexturePath,
-            TilingFactor = TilingFactor
+            TilingFactor = TilingFactor,
+            SortOrder = SortOrder
         };
     }
 }

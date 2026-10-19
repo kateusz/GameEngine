@@ -1,0 +1,9 @@
+{
+  "GameAssemblyPath": "GameAssembly.dll",
+  "StartupScenePath": "assets/scenes/marches.scene",
+  "WindowWidth": 1920,
+  "WindowHeight": 1080,
+  "Fullscreen": false,
+  "GameTitle": "Hounds of the Marches",
+  "TargetFrameRate": 60
+}
