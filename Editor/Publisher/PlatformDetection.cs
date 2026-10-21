@@ -4,6 +4,9 @@ namespace Editor.Publisher;
 
 public static class PlatformDetection
 {
+    public static readonly string[] SupportedRuntimeIdentifiers =
+        ["win-x64", "win-x86", "win-arm64", "osx-x64", "osx-arm64"];
+
     public static string DetectCurrentPlatform()
     {
         if (OperatingSystem.IsWindows())

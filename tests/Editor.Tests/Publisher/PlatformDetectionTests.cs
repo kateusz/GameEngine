@@ -6,6 +6,13 @@ namespace Editor.Tests.Publisher;
 public class PlatformDetectionTests
 {
     [Fact]
+    public void SupportedRuntimeIdentifiers_lists_all_publish_targets()
+    {
+        PlatformDetection.SupportedRuntimeIdentifiers.ShouldBe(
+            ["win-x64", "win-x86", "win-arm64", "osx-x64", "osx-arm64"]);
+    }
+
+    [Fact]
     public void GetPublishedExecutableName_win_x64_appends_exe()
     {
         PlatformDetection.GetPublishedExecutableName("win-x64", "Snake").ShouldBe("Snake.exe");

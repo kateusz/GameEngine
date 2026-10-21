@@ -25,6 +25,10 @@ public class PublishSettingsUI(
     private CancellationTokenSource? _publishCts;
 
     private static readonly string[] Configurations = ["Release", "Debug"];
+    private static readonly string[] PlatformDisplayNames =
+        PlatformDetection.SupportedRuntimeIdentifiers
+            .Select(PlatformDetection.GetPlatformDisplayName)
+            .ToArray();
 
     public void ShowExportModal()
     {
@@ -74,9 +78,23 @@ public class PublishSettingsUI(
     private void RenderBuildFields()
     {
         LayoutDrawer.DrawFormLabel("Target Platform");
-        TextDrawer.DrawColoredText(
-            PlatformDetection.GetPlatformDisplayName(_selectedPlatform),
-            EditorUIConstants.InfoColor);
+        var platformDisplay = PlatformDetection.GetPlatformDisplayName(_selectedPlatform);
+        LayoutDrawer.DrawComboBox(
+            "##platform",
+            platformDisplay,
+            PlatformDisplayNames,
+            selected =>
+            {
+                for (var i = 0; i < PlatformDisplayNames.Length; i++)
+                {
+                    if (PlatformDisplayNames[i] == selected)
+                    {
+                        _selectedPlatform = PlatformDetection.SupportedRuntimeIdentifiers[i];
+                        break;
+                    }
+                }
+            },
+            width: ImGui.GetContentRegionAvail().X);
 
         ImGui.Spacing();
         LayoutDrawer.DrawFormLabel("Export Path");
