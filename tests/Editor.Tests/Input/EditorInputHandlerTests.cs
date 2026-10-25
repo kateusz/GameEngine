@@ -1,8 +1,12 @@
+using ECS.Systems;
+using Editor.Features.History;
 using Editor.Features.Scene;
 using Editor.Features.Viewport;
 using Editor.Input;
 using Engine.Events.Input;
+using Engine.Project;
 using Engine.Scene;
+using Engine.Scene.Serializer;
 using Input;
 using NSubstitute;
 using Shouldly;
@@ -11,8 +15,19 @@ namespace Editor.Tests.Input;
 
 public class EditorInputHandlerTests
 {
+    // ponytail: only IsLoading is read; idle service via substituted SceneManager (ctor args unused)
+    private static EditorSceneLoadService IdleLoadService() =>
+        new(Substitute.For<SceneManager>(
+            Substitute.For<ISceneContext>(),
+            Substitute.For<ISceneSerializer>(),
+            null!,
+            static () => Array.Empty<IGameSystem>(),
+            Substitute.For<IProjectContext>(),
+            null!,
+            Substitute.For<IEditorHistory>()));
+
     private static EditorInputHandler Create(ISceneContext sceneContext, ShortcutManager shortcuts, IEditorViewport viewport) =>
-        new(sceneContext, shortcuts, viewport, null!);
+        new(sceneContext, shortcuts, viewport, IdleLoadService());
 
     private static ISceneContext Context(SceneState state)
     {

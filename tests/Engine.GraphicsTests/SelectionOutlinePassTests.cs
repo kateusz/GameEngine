@@ -31,7 +31,8 @@ public class SelectionOutlinePassTests(HeadlessGraphicsContextFixture fixture)
         var gl = SilkNetContext.GL;
         scene.Bind();
         gl.Enable(EnableCap.ScissorTest);
-        gl.Scissor(48, 16, 8, 8);
+        // height 16 so sample row GL y=24 is orthogonally adjacent (shader is 4-connected)
+        gl.Scissor(48, 16, 8, 16);
         scene.ClearAttachment(1, 20);
         gl.Disable(EnableCap.ScissorTest);
         scene.Unbind();

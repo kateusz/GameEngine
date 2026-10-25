@@ -671,9 +671,9 @@
             0
           ],
           "Scale": [
-            24.0,
-            7.0,
-            1.0
+            25.6,
+            7,
+            1
           ],
           "Visible": true,
           "Name": "TransformComponent"
@@ -718,9 +718,9 @@
             0
           ],
           "Scale": [
-            16.0,
-            3.6,
-            1.0
+            11.1,
+            2.6,
+            1
           ],
           "Visible": true,
           "Name": "TransformComponent"
@@ -765,9 +765,9 @@
             0
           ],
           "Scale": [
-            14.0,
+            14,
             1.6,
-            1.0
+            1
           ],
           "Visible": true,
           "Name": "TransformComponent"
@@ -779,7 +779,7 @@
             1,
             1
           ],
-          "TexturePath": "Original/bg/near.png",
+          "TexturePath": "Original/tiles/mud.png",
           "TilingFactor": 1,
           "SortOrder": -10,
           "Name": "SpriteRendererComponent"
