@@ -7,6 +7,7 @@ using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
+using Engine.Scene;
 using Ui.ImGui;
 
 namespace Benchmark;
@@ -21,6 +22,7 @@ public class BenchmarkApplication(
     IShaderFactory shaderFactory,
     IMeshFactory meshFactory,
     IModelFactory modelFactory,
+    ISceneContext sceneContext,
     IImGuiLayer imGuiLayer)
     : Application(gameWindow, rendererApi, graphics2D, audio, graphics3D, textureFactory, shaderFactory, meshFactory,
-        modelFactory, imGuiLayer, imGuiLayer);
+        modelFactory, sceneContext, imGuiLayer, imGuiLayer);

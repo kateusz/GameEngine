@@ -32,6 +32,7 @@ Scaffold: Content Browser **Add System**. Injected services:
 | `IPhysicsQueries` | `Raycast` / `OverlapCircle` |
 | `ICameraQueries` | `ScreenToWorld2D` |
 | `IAudio` / `IAudioPlayback` | One-shots and `AudioSourceComponent` |
+| `ISceneContext` | `RequestLoad("assets/scenes/level2.scene")` — deferred mid-play scene swap |
 
 `IEntityHierarchy` (the active scene) for parent/child: `GetParent`, `GetChildren`, `SetParent`, `GetWorldPosition`.
 

@@ -7,6 +7,7 @@ using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
+using Engine.Scene;
 using Input;
 
 namespace Runtime;
@@ -21,7 +22,8 @@ public class RuntimeApplication(
     IShaderFactory shaderFactory,
     IMeshFactory meshFactory,
     IModelFactory modelFactory,
+    ISceneContext sceneContext,
     IKeyboardInput keyboardInput,
     IMouseInput mouseInput)
     : Application(gameWindow, rendererApi, graphics2D, audio, graphics3D, textureFactory, shaderFactory, meshFactory,
-        modelFactory, keyboardInput: keyboardInput, mouseInput: mouseInput);
+        modelFactory, sceneContext, keyboardInput: keyboardInput, mouseInput: mouseInput);

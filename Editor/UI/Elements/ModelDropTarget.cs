@@ -27,7 +27,12 @@ public class ModelDropTarget(AssetPathField assetPathField)
             label,
             AssetKind.Model,
             currentModelPath,
-            relative => LoadModel(PathBuilder.Resolve(relative), modelLoadService, onModelDropped, relative));
+            relative =>
+            {
+                if (relative is null)
+                    return;
+                LoadModel(PathBuilder.Resolve(relative), modelLoadService, onModelDropped, relative);
+            });
 
     private static void LoadModel(
         string absolutePath,

@@ -12,14 +12,23 @@ namespace Editor.UI.Elements;
 /// </summary>
 public class AudioDropTarget(IAudio audio, AssetPathField assetPathField)
 {
-    public void Draw(string label, Action<string> onAudioPathChanged, string? currentAudioPath = null) =>
+    public void Draw(string label, Action<string?> onAudioPathChanged, string? currentAudioPath = null) =>
         assetPathField.Draw(
             label,
             AssetKind.Audio,
             currentAudioPath,
-            relative => TryAssign(relative, onAudioPathChanged));
+            relative =>
+            {
+                if (relative is null)
+                {
+                    onAudioPathChanged(null);
+                    return;
+                }
 
-    private void TryAssign(string relativePath, Action<string> onAudioPathChanged)
+                TryAssign(relative, onAudioPathChanged);
+            });
+
+    private void TryAssign(string relativePath, Action<string?> onAudioPathChanged)
     {
         var audioPath = PathBuilder.Resolve(relativePath);
         try

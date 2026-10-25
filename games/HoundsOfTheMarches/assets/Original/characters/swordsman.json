@@ -1,0 +1,182 @@
+{
+  "animations": {
+    "idle": [
+      {
+        "texture": "Original/characters/swordsman.png",
+        "u0": 0,
+        "u1": 0.1,
+        "vBottom": 0,
+        "vTop": 1
+      }
+    ],
+    "run": [
+      {
+        "texture": "Original/characters/swordsman.png",
+        "u0": 0.1,
+        "u1": 0.2,
+        "vBottom": 0,
+        "vTop": 1
+      },
+      {
+        "texture": "Original/characters/swordsman.png",
+        "u0": 0.2,
+        "u1": 0.3,
+        "vBottom": 0,
+        "vTop": 1
+      }
+    ],
+    "air": [
+      {
+        "texture": "Original/characters/swordsman.png",
+        "u0": 0.3,
+        "u1": 0.4,
+        "vBottom": 0,
+        "vTop": 1
+      }
+    ],
+    "lightWindup": [
+      {
+        "texture": "Original/characters/swordsman.png",
+        "u0": 0.3,
+        "u1": 0.4,
+        "vBottom": 0,
+        "vTop": 1
+      }
+    ],
+    "light": [
+      {
+        "texture": "Original/characters/swordsman.png",
+        "u0": 0.4,
+        "u1": 0.5,
+        "vBottom": 0,
+        "vTop": 1
+      }
+    ],
+    "heavyWindup": [
+      {
+        "texture": "Original/characters/swordsman.png",
+        "u0": 0.5,
+        "u1": 0.6,
+        "vBottom": 0,
+        "vTop": 1
+      }
+    ],
+    "heavy": [
+      {
+        "texture": "Original/characters/swordsman.png",
+        "u0": 0.6,
+        "u1": 0.7,
+        "vBottom": 0,
+        "vTop": 1
+      }
+    ],
+    "dodge": [
+      {
+        "texture": "Original/characters/swordsman.png",
+        "u0": 0.7,
+        "u1": 0.8,
+        "vBottom": 0,
+        "vTop": 1
+      }
+    ],
+    "block": [
+      {
+        "texture": "Original/characters/swordsman.png",
+        "u0": 0.8,
+        "u1": 0.9,
+        "vBottom": 0,
+        "vTop": 1
+      }
+    ],
+    "hurt": [
+      {
+        "texture": "Original/characters/swordsman.png",
+        "u0": 0.9,
+        "u1": 1,
+        "vBottom": 0,
+        "vTop": 1
+      }
+    ],
+    "recover": [
+      {
+        "texture": "Original/characters/swordsman.png",
+        "u0": 0.4,
+        "u1": 0.5,
+        "vBottom": 0,
+        "vTop": 1
+      }
+    ],
+    "windup": [
+      {
+        "texture": "Original/characters/swordsman.png",
+        "u0": 0.5,
+        "u1": 0.6,
+        "vBottom": 0,
+        "vTop": 1
+      }
+    ],
+    "active": [
+      {
+        "texture": "Original/characters/swordsman.png",
+        "u0": 0.6,
+        "u1": 0.7,
+        "vBottom": 0,
+        "vTop": 1
+      }
+    ],
+    "slashWindup": [
+      {
+        "texture": "Original/characters/swordsman.png",
+        "u0": 0.5,
+        "u1": 0.6,
+        "vBottom": 0,
+        "vTop": 1
+      }
+    ],
+    "slash": [
+      {
+        "texture": "Original/characters/swordsman.png",
+        "u0": 0.6,
+        "u1": 0.7,
+        "vBottom": 0,
+        "vTop": 1
+      }
+    ],
+    "thrustWindup": [
+      {
+        "texture": "Original/characters/swordsman.png",
+        "u0": 0.3,
+        "u1": 0.4,
+        "vBottom": 0,
+        "vTop": 1
+      }
+    ],
+    "thrust": [
+      {
+        "texture": "Original/characters/swordsman.png",
+        "u0": 0.4,
+        "u1": 0.5,
+        "vBottom": 0,
+        "vTop": 1
+      }
+    ],
+    "leap": [
+      {
+        "texture": "Original/characters/swordsman.png",
+        "u0": 0.7,
+        "u1": 0.8,
+        "vBottom": 0,
+        "vTop": 1
+      }
+    ],
+    "phase2": [
+      {
+        "texture": "Original/characters/swordsman.png",
+        "u0": 0.8,
+        "u1": 0.9,
+        "vBottom": 0,
+        "vTop": 1
+      }
+    ]
+  }
+}

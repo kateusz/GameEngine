@@ -9,6 +9,7 @@ using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
+using Engine.Scene;
 using Input;
 using Serilog;
 
@@ -26,6 +27,7 @@ public abstract class Application : IApplication
     private readonly IShaderFactory _shaderFactory;
     private readonly IMeshFactory _meshFactory;
     private readonly IModelFactory _modelFactory;
+    private readonly ISceneContext _sceneContext;
     private readonly IFrameCompositor? _frameCompositor;
     private readonly IAudio _audio;
     private readonly KeyboardInputState? _keyboardState;
@@ -45,6 +47,7 @@ public abstract class Application : IApplication
         IShaderFactory shaderFactory,
         IMeshFactory meshFactory,
         IModelFactory modelFactory,
+        ISceneContext sceneContext,
         IFrameCompositor? frameCompositor = null,
         ILayer? inputOverlay = null,
         IKeyboardInput? keyboardInput = null,
@@ -59,6 +62,7 @@ public abstract class Application : IApplication
         _shaderFactory = shaderFactory;
         _meshFactory = meshFactory;
         _modelFactory = modelFactory;
+        _sceneContext = sceneContext;
         _frameCompositor = frameCompositor;
         _keyboardState = keyboardInput as KeyboardInputState;
         _mouseState = mouseInput as MouseInputState;
@@ -152,6 +156,8 @@ public abstract class Application : IApplication
 
         for (var index = _layersStack.Count - 1; index >= 0; index--)
             _layersStack[index].OnUpdate(elapsed);
+
+        _sceneContext.FlushPendingLoad();
 
         _audio.Update(elapsed);
 

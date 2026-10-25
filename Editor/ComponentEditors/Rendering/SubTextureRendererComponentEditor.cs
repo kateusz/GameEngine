@@ -18,7 +18,7 @@ public class SubTextureRendererComponentEditor(
     protected override void DrawContent(SubTextureRendererComponent component, Entity entity)
     {
         textureDropTarget.Draw("Texture",
-            relativePath => MultiField.WriteEach(entity, (Entity e, string path) =>
+            relativePath => MultiField.WriteEach(entity, (Entity e, string? path) =>
             {
                 e.GetComponent<SubTextureRendererComponent>().TexturePath = path;
             }, relativePath),

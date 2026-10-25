@@ -83,6 +83,11 @@ public static class GameAssemblyContainerRegistration
 
     private static void Register(Container container, Type implementationType, Type serviceType, GameIocLifetime lifetime)
     {
+        // IGameSystem holds scene Context / IPhysicsQueries from the constructor.
+        // Singletons keep the first scene after RequestLoad and break movement/AI.
+        if (serviceType == typeof(IGameSystem))
+            lifetime = GameIocLifetime.Transient;
+
         var reuse = lifetime switch
         {
             GameIocLifetime.Singleton => Reuse.Singleton,
@@ -90,7 +95,6 @@ public static class GameAssemblyContainerRegistration
             GameIocLifetime.Scoped => Reuse.Scoped,
             _ => throw new ArgumentOutOfRangeException(nameof(lifetime), lifetime, null)
         };
-
 
         container.Register(serviceType, implementationType, reuse);
     }

@@ -21,7 +21,7 @@ public class SpriteRendererComponentEditor(
             UIPropertyRenderer.SameVector4);
 
         textureDropTarget.Draw("Texture",
-            relativePath => MultiField.WriteEach(entity, (Entity e, string path) =>
+            relativePath => MultiField.WriteEach(entity, (Entity e, string? path) =>
             {
                 e.GetComponent<SpriteRendererComponent>().TexturePath = path;
             }, relativePath),

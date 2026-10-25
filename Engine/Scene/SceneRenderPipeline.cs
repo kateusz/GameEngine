@@ -20,6 +20,9 @@ internal static class SceneRenderPipeline
     private static readonly ILogger Logger = Log.ForContext(typeof(SceneRenderPipeline));
 
     private static readonly HashSet<string> WarnedFailedModels = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly HashSet<string> WarnedFailedSprites = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly List<OrderedSprite> SpriteDrawList = new(256);
+    private static readonly Comparison<OrderedSprite> SpriteDrawOrder = CompareSprites;
 
     private static readonly Vector2[] DefaultTextureCoords =
     [
@@ -53,6 +56,24 @@ internal static class SceneRenderPipeline
         Render3D(context, graphics3D, textureFactory, modelFactory, view);
     }
     
+    private struct OrderedSprite
+    {
+        public float Order;
+        public int EntityId;
+        public byte Kind;
+        public Matrix4x4 Transform;
+        public Vector4 Color;
+        public float Tiling;
+        public string? Path;
+        public Vector2[]? TexCoords;
+    }
+
+    private static int CompareSprites(OrderedSprite a, OrderedSprite b)
+    {
+        var order = a.Order.CompareTo(b.Order);
+        return order != 0 ? order : a.EntityId.CompareTo(b.EntityId);
+    }
+
     private static void RenderSpritesAndSubTextures(
         Context context,
         IGraphics2D graphics2D,
@@ -60,68 +81,98 @@ internal static class SceneRenderPipeline
         in SceneView view)
     {
         graphics2D.BeginScene(view);
-        RenderSpritesInternal(context, graphics2D, textureFactory);
-        RenderSubTexturesInternal(context, graphics2D, textureFactory);
+        CollectSprites(context, textureFactory);
+        SpriteDrawList.Sort(SpriteDrawOrder);
+        for (var i = 0; i < SpriteDrawList.Count; i++)
+        {
+            var draw = SpriteDrawList[i];
+            if (draw.Kind == 0)
+            {
+                if (draw.Path != null && textureFactory != null)
+                    graphics2D.DrawQuad(draw.Transform, textureFactory.Create(draw.Path), DefaultTextureCoords,
+                        draw.Tiling, draw.Color, draw.EntityId);
+                else
+                    graphics2D.DrawQuad(draw.Transform, draw.Color, draw.EntityId);
+            }
+            else if (draw.TexCoords != null && textureFactory != null && draw.Path != null)
+            {
+                graphics2D.DrawQuad(draw.Transform, textureFactory.Create(draw.Path), draw.TexCoords, 1.0f,
+                    draw.Color, draw.EntityId);
+            }
+        }
+
         graphics2D.EndScene();
     }
 
-    private static void RenderSpritesInternal(
-        Context context,
-        IGraphics2D graphics2D,
-        ITextureFactory? textureFactory)
+    private static void CollectSprites(Context context, ITextureFactory? textureFactory)
     {
-        foreach (var (entity, spriteRendererComponent, transformComponent) in
+        SpriteDrawList.Clear();
+        foreach (var (entity, sprite, transformComponent) in
                  context.View<SpriteRendererComponent, TransformComponent>())
         {
-            if (ShouldSkipForEntityVisibility(entity))
-                continue;
-
-            if (spriteRendererComponent.Color.W <= 0f)
+            if (ShouldSkipForEntityVisibility(entity) || sprite.Color.W <= 0f)
                 continue;
 
             var transform = transformComponent.GetWorldTransform();
-            if (!string.IsNullOrWhiteSpace(spriteRendererComponent.TexturePath) && textureFactory != null)
+            string? path = null;
+            if (!string.IsNullOrWhiteSpace(sprite.TexturePath) && textureFactory != null)
             {
                 try
                 {
-                    var resolved = GetResolvedSpriteTexturePath(spriteRendererComponent);
-                    var texture = textureFactory.Create(resolved);
-                    graphics2D.DrawQuad(transform, texture, DefaultTextureCoords, spriteRendererComponent.TilingFactor,
-                        spriteRendererComponent.Color, entity.Id);
-                    continue;
+                    path = GetResolvedSpriteTexturePath(sprite);
+                    textureFactory.Create(path);
                 }
                 catch (Exception ex)
                 {
-                    Logger.Warning(
-                        ex,
-                        "Failed to load sprite texture '{TexturePath}' — drawing a solid color quad instead",
-                        spriteRendererComponent.TexturePath);
+                    path = null;
+                    if (WarnedFailedSprites.Add(sprite.TexturePath ?? ""))
+                        Logger.Warning(ex, "Failed to load sprite texture '{TexturePath}' — drawing a solid color quad instead",
+                            sprite.TexturePath);
                 }
             }
 
-            graphics2D.DrawQuad(transform, spriteRendererComponent.Color, entity.Id);
+            SpriteDrawList.Add(new OrderedSprite
+            {
+                Order = sprite.SortOrder,
+                EntityId = entity.Id,
+                Kind = 0,
+                Transform = transform,
+                Color = sprite.Color,
+                Tiling = sprite.TilingFactor,
+                Path = path
+            });
         }
-    }
 
-    private static void RenderSubTexturesInternal(
-        Context context,
-        IGraphics2D graphics2D,
-        ITextureFactory? textureFactory)
-    {
-        foreach (var (entity, subtextureComponent, transformComponent) in
+        foreach (var (entity, sub, transformComponent) in
                  context.View<SubTextureRendererComponent, TransformComponent>())
         {
-            if (ShouldSkipForEntityVisibility(entity))
+            if (ShouldSkipForEntityVisibility(entity) || sub.Color.W <= 0f)
+                continue;
+            if (textureFactory == null || string.IsNullOrWhiteSpace(sub.TexturePath))
                 continue;
 
-            if (textureFactory == null || string.IsNullOrWhiteSpace(subtextureComponent.TexturePath))
-                continue;
-
-            var texture = textureFactory.Create(PathBuilder.Resolve(subtextureComponent.TexturePath));
-            var transform = transformComponent.GetWorldTransform();
-            var texCoords = GetSubTextureTexCoords(subtextureComponent, texture);
-
-            graphics2D.DrawQuad(transform, texture, texCoords, 1.0f, Vector4.One, entity.Id);
+            try
+            {
+                var resolved = PathBuilder.Resolve(sub.TexturePath);
+                var texture = textureFactory.Create(resolved);
+                var texCoords = GetSubTextureTexCoords(sub, texture);
+                SpriteDrawList.Add(new OrderedSprite
+                {
+                    Order = sub.SortOrder,
+                    EntityId = entity.Id,
+                    Kind = 1,
+                    Transform = transformComponent.GetWorldTransform(),
+                    Color = sub.Color,
+                    Tiling = 1f,
+                    Path = resolved,
+                    TexCoords = texCoords
+                });
+            }
+            catch (Exception ex)
+            {
+                if (WarnedFailedSprites.Add(sub.TexturePath))
+                    Logger.Warning(ex, "Failed to load subtexture '{TexturePath}' — skipping sprite", sub.TexturePath);
+            }
         }
     }
     

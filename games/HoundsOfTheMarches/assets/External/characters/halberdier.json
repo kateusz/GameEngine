@@ -1,0 +1,102 @@
+{
+  "animations": {
+    "idle": [
+      {
+        "texture": "External/kenney/Players/alienYellow_stand.png"
+      }
+    ],
+    "run": [
+      {
+        "texture": "External/kenney/Players/alienYellow_walk1.png"
+      },
+      {
+        "texture": "External/kenney/Players/alienYellow_walk2.png"
+      }
+    ],
+    "air": [
+      {
+        "texture": "External/kenney/Players/alienYellow_jump.png"
+      }
+    ],
+    "lightWindup": [
+      {
+        "texture": "External/kenney/Players/alienYellow_jump.png"
+      }
+    ],
+    "light": [
+      {
+        "texture": "External/kenney/Players/alienYellow_hit.png"
+      }
+    ],
+    "heavyWindup": [
+      {
+        "texture": "External/kenney/Players/alienYellow_jump.png"
+      }
+    ],
+    "heavy": [
+      {
+        "texture": "External/kenney/Players/alienYellow_hit.png"
+      }
+    ],
+    "dodge": [
+      {
+        "texture": "External/kenney/Players/alienYellow_duck.png"
+      }
+    ],
+    "block": [
+      {
+        "texture": "External/kenney/Players/alienYellow_front.png"
+      }
+    ],
+    "hurt": [
+      {
+        "texture": "External/kenney/Players/alienYellow_hit.png"
+      }
+    ],
+    "recover": [
+      {
+        "texture": "External/kenney/Players/alienYellow_stand.png"
+      }
+    ],
+    "windup": [
+      {
+        "texture": "External/kenney/Players/alienYellow_jump.png"
+      }
+    ],
+    "active": [
+      {
+        "texture": "External/kenney/Players/alienYellow_hit.png"
+      }
+    ],
+    "slashWindup": [
+      {
+        "texture": "External/kenney/Players/alienYellow_jump.png"
+      }
+    ],
+    "slash": [
+      {
+        "texture": "External/kenney/Players/alienYellow_hit.png"
+      }
+    ],
+    "thrustWindup": [
+      {
+        "texture": "External/kenney/Players/alienYellow_jump.png"
+      }
+    ],
+    "thrust": [
+      {
+        "texture": "External/kenney/Players/alienYellow_hit.png"
+      }
+    ],
+    "leap": [
+      {
+        "texture": "External/kenney/Players/alienYellow_jump.png"
+      }
+    ],
+    "phase2": [
+      {
+        "texture": "External/kenney/Players/alienYellow_front.png"
+      }
+    ]
+  }
+}

@@ -63,7 +63,7 @@ public class ModelRendererComponentEditor(
 
         textureDropTarget.Draw("Texture",
             relativePath => MultiField.WriteEach(entity,
-                (Entity e, string path) => { e.GetComponent<ModelRendererComponent>().TexturePath = path; },
+                (Entity e, string? path) => { e.GetComponent<ModelRendererComponent>().TexturePath = path; },
                 relativePath),
             MultiField.UniformPath(entity, e => e.GetComponent<ModelRendererComponent>().TexturePath));
 

@@ -71,6 +71,12 @@ public class SubTextureRendererComponent : IComponent
     /// If set, these will be used directly instead of calculating from Coords/CellSize/SpriteSize.
     /// Order: [bottom-left, bottom-right, top-right, top-left]
     /// </summary>
+    /// <summary>Tint multiplied in the 2D batch. Defaults to white so existing scenes stay opaque.</summary>
+    public Vector4 Color { get; set; } = Vector4.One;
+
+    /// <summary>See <see cref="SpriteRendererComponent.SortOrder"/>.</summary>
+    public float SortOrder { get; set; }
+
     public Vector2[]? TexCoords
     {
         get;
@@ -93,6 +99,8 @@ public class SubTextureRendererComponent : IComponent
             SpriteSize = SpriteSize,
             TexCoords = (Vector2[])TexCoords?.Clone(),
             TexCoordsCacheKey = TexCoordsCacheKey,
+            Color = Color,
+            SortOrder = SortOrder,
         };
     }
 }

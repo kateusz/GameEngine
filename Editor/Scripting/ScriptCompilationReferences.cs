@@ -23,7 +23,8 @@ internal static class ScriptCompilationReferences
         "System.Private.CoreLib.dll", "System.Runtime.dll", "System.Collections.dll", "System.Console.dll",
         "System.Linq.dll", "System.Numerics.dll", "System.Numerics.Vectors.dll", "netstandard.dll",
         "mscorlib.dll", "System.Collections.Concurrent.dll", "System.ComponentModel.dll",
-        "System.Collections.Immutable.dll", "System.Memory.dll", "System.Runtime.InteropServices.dll"
+        "System.Collections.Immutable.dll", "System.Memory.dll", "System.Runtime.InteropServices.dll",
+        "System.Text.Json.dll", "System.IO.Compression.dll"
     ];
 
     public static MetadataReference[] GetMetadataReferences(string? scriptsDirectory = null)
