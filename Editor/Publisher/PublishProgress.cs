@@ -11,6 +11,7 @@ public class PublishProgress : IProgress<string>
 
     public string CurrentStep { get; private set; } = "";
     public string? ErrorMessage { get; private set; }
+    public string? OutputPath { get; private set; }
     public float Progress { get; private set; }
     public bool IsComplete { get; private set; }
     public bool HasError { get; private set; }
@@ -45,6 +46,7 @@ public class PublishProgress : IProgress<string>
             HasError = false;
             IsComplete = true;
             ErrorMessage = null;
+            OutputPath = outputPath;
             CurrentStep = "Publish completed successfully";
             Progress = 1.0f;
         }

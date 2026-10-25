@@ -1,9 +1,11 @@
+using System.Diagnostics;
 using System.Numerics;
 using Editor.Platform;
 using Editor.UI.Constants;
 using Editor.UI.Drawers;
 using Engine.Project;
 using ImGuiNET;
+using Serilog;
 
 namespace Editor.Publisher;
 
@@ -11,6 +13,8 @@ public class PublishSettingsUI(
     IGamePublisher gamePublisher,
     IProjectContext projectContext)
 {
+    private static readonly ILogger Logger = Log.ForContext<PublishSettingsUI>();
+
     private const float LabelWidth = 130f;
     
     private static readonly Vector2 ExportProgressModalSize = new(600f, 500f);
@@ -67,12 +71,28 @@ public class PublishSettingsUI(
                 TextDrawer.DrawErrorText(_errorMessage);
             }
 
+            if (ExportPathAlreadyExists())
+            {
+                LayoutDrawer.DrawSeparatorWithSpacing();
+                ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.ErrorColor);
+                ImGui.TextWrapped(
+                    "A build already exists at this export path. Exporting will delete and replace everything in that folder.");
+                ImGui.PopStyleColor();
+            }
+
             LayoutDrawer.DrawSeparatorWithSpacing();
             if (ButtonDrawer.DrawCenteredModalButton("Export", disabled: projectContext.Root is null))
                 _ = StartExport();
 
             ModalDrawer.EndModal();
         }
+    }
+
+    private bool ExportPathAlreadyExists()
+    {
+        if (projectContext.Root is null)
+            return false;
+        return Directory.Exists(ResolveOutputPath(projectContext.Root));
     }
 
     private void RenderBuildFields()
@@ -190,21 +210,54 @@ public class PublishSettingsUI(
 
     private void RenderProgressButtons(bool isComplete, bool hasError)
     {
-        if (isComplete || hasError)
+        if (isComplete && !hasError)
         {
-            if (hasError)
-            {
-                if (ButtonDrawer.DrawColoredButton("Close", MessageType.Error))
-                    ClearExportProgress();
-            }
-            else if (ButtonDrawer.DrawModalButton("Close"))
-            {
-                ClearExportProgress();
-            }
+            var openLabel = OpenFolderLabel();
+            var openWidth = System.Math.Max(
+                EditorUIConstants.StandardButtonWidth,
+                ImGui.CalcTextSize(openLabel).X + 24f);
+            var spacing = ImGui.GetStyle().ItemSpacing.X;
+            ButtonDrawer.BeginCenteredModalButtons(
+                openWidth + spacing + EditorUIConstants.StandardButtonWidth);
+
+            ButtonDrawer.DrawModalButton(openLabel, OpenOutputFolder, width: openWidth);
+            ImGui.SameLine();
+            ButtonDrawer.DrawModalButton("Close", ClearExportProgress);
         }
-        else if (ButtonDrawer.DrawModalButton("Cancel"))
+        else if (hasError)
         {
-            _publishCts?.Cancel();
+            ButtonDrawer.BeginCenteredModalButtons(EditorUIConstants.StandardButtonWidth);
+            ButtonDrawer.DrawColoredButton("Close", MessageType.Error, ClearExportProgress);
+        }
+        else
+        {
+            ButtonDrawer.DrawCenteredModalButton("Cancel", () => _publishCts?.Cancel());
+        }
+    }
+
+    private static string OpenFolderLabel() =>
+        OperatingSystem.IsMacOS() ? "Open in Finder"
+        : OperatingSystem.IsWindows() ? "Open in Explorer"
+        : "Open Folder";
+
+    private void OpenOutputFolder()
+    {
+        var path = _publishProgress?.OutputPath;
+        if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+            return;
+
+        try
+        {
+            if (OperatingSystem.IsWindows())
+                Process.Start("explorer.exe", path);
+            else if (OperatingSystem.IsMacOS())
+                Process.Start("open", path);
+            else
+                Process.Start("xdg-open", path);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to open export folder: {Path}", path);
         }
     }
 

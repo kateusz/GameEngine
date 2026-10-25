@@ -28,6 +28,7 @@
             1,
             1
           ],
+          "Visible": true,
           "Name": "TransformComponent"
         },
         {
@@ -105,6 +106,7 @@
             5.12,
             1
           ],
+          "Visible": true,
           "Name": "TransformComponent"
         },
         {
@@ -140,6 +142,7 @@
             1.12,
             1
           ],
+          "Visible": true,
           "Name": "TransformComponent"
         },
         {
@@ -175,6 +178,7 @@
             1.12,
             1
           ],
+          "Visible": true,
           "Name": "TransformComponent"
         },
         {
@@ -210,6 +214,7 @@
             1.12,
             1
           ],
+          "Visible": true,
           "Name": "TransformComponent"
         },
         {
@@ -245,6 +250,7 @@
             1.12,
             1
           ],
+          "Visible": true,
           "Name": "TransformComponent"
         },
         {
@@ -280,6 +286,7 @@
             0.24,
             1
           ],
+          "Visible": true,
           "Name": "TransformComponent"
         },
         {
@@ -315,6 +322,7 @@
             3.2,
             1
           ],
+          "Visible": true,
           "Name": "TransformComponent"
         },
         {
@@ -355,6 +363,7 @@
             3.2,
             1
           ],
+          "Visible": true,
           "Name": "TransformComponent"
         },
         {
@@ -395,6 +404,7 @@
             3.2,
             1
           ],
+          "Visible": true,
           "Name": "TransformComponent"
         },
         {
@@ -435,6 +445,7 @@
             3.2,
             1
           ],
+          "Visible": true,
           "Name": "TransformComponent"
         },
         {
@@ -475,6 +486,7 @@
             3.2,
             1
           ],
+          "Visible": true,
           "Name": "TransformComponent"
         },
         {
@@ -515,6 +527,7 @@
             3.2,
             1
           ],
+          "Visible": true,
           "Name": "TransformComponent"
         },
         {
@@ -555,6 +568,7 @@
             0.36,
             1
           ],
+          "Visible": true,
           "Name": "TransformComponent"
         },
         {
@@ -594,6 +608,7 @@
             0.36,
             1
           ],
+          "Visible": true,
           "Name": "TransformComponent"
         },
         {
@@ -633,6 +648,7 @@
             0.36,
             1
           ],
+          "Visible": true,
           "Name": "TransformComponent"
         },
         {
@@ -672,6 +688,7 @@
             2.67,
             1
           ],
+          "Visible": true,
           "Name": "TransformComponent"
         },
         {
@@ -707,6 +724,7 @@
             0.42,
             1
           ],
+          "Visible": true,
           "Name": "TransformComponent"
         },
         {

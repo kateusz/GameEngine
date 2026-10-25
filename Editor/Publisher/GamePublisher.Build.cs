@@ -101,6 +101,10 @@ public partial class GamePublisher
                    "--self-contained true " +
                    "/p:PublishSingleFile=true";
 
+        // Release: hide console. Custom prop — /p:OutputType would force WinExe on library refs too.
+        if (string.Equals(settings.Configuration, "Release", StringComparison.OrdinalIgnoreCase))
+            args += " /p:PublishNoConsole=true";
+
         return args;
     }
 }
