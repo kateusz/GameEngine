@@ -5,7 +5,11 @@ namespace Editor.Publisher;
 public static class PlatformDetection
 {
     public static readonly string[] SupportedRuntimeIdentifiers =
-        ["win-x64", "win-x86", "win-arm64", "osx-x64", "osx-arm64"];
+    [
+        "win-x64", "win-x86", "win-arm64",
+        "osx-x64", "osx-arm64",
+        "linux-x64", "linux-arm64",
+    ];
 
     public static string DetectCurrentPlatform()
     {
@@ -16,6 +20,10 @@ public static class PlatformDetection
         if (OperatingSystem.IsMacOS())
             return RuntimeInformation.ProcessArchitecture == Architecture.Arm64
                 ? "osx-arm64" : "osx-x64";
+
+        if (OperatingSystem.IsLinux())
+            return RuntimeInformation.ProcessArchitecture == Architecture.Arm64
+                ? "linux-arm64" : "linux-x64";
 
         throw new PlatformNotSupportedException($"Unsupported platform: {RuntimeInformation.OSDescription}");
     }
@@ -29,6 +37,8 @@ public static class PlatformDetection
             "win-arm64" => "Windows (ARM64)",
             "osx-x64" => "macOS (Intel)",
             "osx-arm64" => "macOS (Apple Silicon)",
+            "linux-x64" => "Linux (x64)",
+            "linux-arm64" => "Linux (ARM64)",
             _ => runtimeIdentifier
         };
     }

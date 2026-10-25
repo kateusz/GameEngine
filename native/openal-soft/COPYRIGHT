@@ -1,0 +1,218 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: openal-soft
+Upstream-Contact: Chris Robinson <chris.kcat@gmail.com>
+Source: https://github.com/kcat/openal-soft
+
+Files: *
+Copyright:
+ © 1999-2014 the OpenAL team
+ © 2008-2015 Christopher Fitzgerald
+ © 2009-2015 Chris Robinson
+ © 2013 Anis A. Hireche
+ © 2013 Nasca Octavian Paul
+ © 2013 Mike Gorchak
+ © 2014 Timothy Arceri
+License: LGPL-2+
+
+Files: al/auxeffectslot.cpp
+  al/buffer.cpp
+  al/effect.cpp
+  al/error.cpp
+  al/extension.cpp
+  al/filter.cpp
+  al/listener.cpp
+  al/source.cpp
+  al/state.cpp
+  alc/alc.cpp
+  alc/alconfig.cpp
+  alc/alu.cpp
+  alc/helpers.cpp
+  alc/panning.cpp
+  alc/voice.cpp
+  alc/backends/alsa.cpp
+  alc/backends/coreaudio.cpp
+  alc/backends/dsound.cpp
+  alc/backends/jack.cpp
+  alc/backends/oss.cpp
+  alc/backends/portaudio.cpp
+  alc/backends/sdl2.cpp
+  alc/backends/sndio.cpp
+  alc/backends/solaris.cpp
+  alc/backends/wasapi.cpp
+  alc/backends/wave.cpp
+  alc/backends/winmm.cpp
+Copyright: 1999-2011, 2018, authors.
+License: LGPL-2+
+
+Files: alc/backends/loopback.cpp
+  alc/backends/null.cpp
+  alc/backends/pulseaudio.cpp
+Copyright: 2010, 2011, Chris Robinson
+License: LGPL-2+
+
+Files: alc/backends/opensl.*
+Copyright: 2011, The Android Open Source Project
+License: Apache-2.0
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+ .
+ http://www.apache.org/licenses/LICENSE-2.0
+ .
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+
+Files: alc/effects/autowah.cpp
+  alc/effects/fshifter.cpp
+  alc/effects/pshifter.cpp
+  alc/effects/chorus.cpp
+  alc/effects/distortion.cpp
+  alc/effects/equalizer.cpp
+  alc/effects/compressor.cpp
+  alc/effects/vmorpher.cpp
+  alc/effects/dedicated.cpp
+  alc/effects/echo.cpp
+  alc/effects/modulator.cpp
+  alc/effects/reverb.cpp
+Copyright: 2018, Raul Herraiz.
+ 2013, Mike Gorchak
+ 2013, 2019, Anis A. Hireche
+ 2009, 2011, 2017 Chris Robinson
+ 2017 Christopher Fitzgerald
+License: LGPL-2+
+
+Files: alc/hrtf.cpp
+Copyright: 2010, 2011, Chris Robinson
+License: LGPL-2+
+
+Files: common/ringbuffer.cpp
+  common/threads.cpp
+Copyright: 1999-2011, 2018, authors.
+License: LGPL-2+
+
+Files: core/bs2b.cpp
+  core/bs2b.h
+Copyright: 2005, Boris Mikhaylov
+License: Expat
+
+Files: core/mixer/mixer_sse2.cpp
+  core/mixer/mixer_sse41.cpp
+Copyright: 2014, Timothy Arceri <t_arceri@yahoo.com.au>.
+License: LGPL-2+
+
+Files: debian/*
+Copyright: 2008-2014, Debian Games Team
+License: GPL-3+
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ On a Debian system a full copy of the GPL version 3 is available in
+ /usr/share/common-licenses/GPL-3.
+
+Files: examples/*
+Copyright: 2010-2013, 2015, 2017, 2018, 2020, Chris Robinson <chris.kcat@gmail.com>
+License: Expat
+
+Files: examples/alffplay.cpp
+Copyright:
+ © 2003 Fabrice Bellard
+ © Martin Bohme
+License: LGPL-2+
+
+Files: include/AL/alext.h
+Copyright: 1999-2011, 2018, authors.
+License: LGPL-2+
+
+Files: utils/getopt.c
+Copyright: 1987, 1993, 1994, The Regents of the University of California.
+License: BSD-3-clause
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Library General Public
+ License as published by the Free Software Foundation; either
+ version 2 of the License, or (at your option) any later version.
+ .
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Library General Public License for more details.
+ .
+ You should have received a copy of the GNU Library General Public
+ License along with this library; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA  02110-1301 USA
+
+Files: utils/makemhr/*
+Copyright: 2011-2019, Christopher Fitzgerald
+License: GPL-2+
+
+Files: utils/openal-info.c
+Copyright: 2010-2013, 2015, 2017, 2018, 2020, Chris Robinson <chris.kcat@gmail.com>
+License: Expat
+
+Files: utils/sofa-info.cpp
+Copyright: 2011-2019, Christopher Fitzgerald
+License: GPL-2+
+
+Files: utils/sofa-support.cpp
+Copyright: 2019, Christopher Robinson
+  2018, 2019, Christopher Fitzgerald
+License: GPL-2+
+
+License: GPL-2+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Library General Public
+ License as published by the Free Software Foundation; either
+ version 2 of the License, or (at your option) any later version.
+ .
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Library General Public License for more details.
+ .
+ You should have received a copy of the GNU Library General Public
+ License along with this library; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA  02110-1301 USA
+
+License: Expat
+ Permission is hereby granted, free of charge, to any person obtaining
+ a copy of this software and associated documentation files (the
+ "Software"), to deal in the Software without restriction, including
+ without limitation the rights to use, copy, modify, merge, publish,
+ distribute, sublicense, and/or sell copies of the Software, and to
+ permit persons to whom the Software is furnished to do so, subject to
+ the following conditions:
+ .
+ The above copyright notice and this permission notice shall be
+ included in all copies or substantial portions of the Software.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+ CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+License: LGPL-2+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Library General Public
+ License as published by the Free Software Foundation; either
+ version 2 of the License, or (at your option) any later version.
+ .
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Library General Public License for more details.
+ .
+ You should have received a copy of the GNU Library General Public
+ License along with this library; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA  02110-1301 USA

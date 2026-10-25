@@ -9,7 +9,11 @@ public class PlatformDetectionTests
     public void SupportedRuntimeIdentifiers_lists_all_publish_targets()
     {
         PlatformDetection.SupportedRuntimeIdentifiers.ShouldBe(
-            ["win-x64", "win-x86", "win-arm64", "osx-x64", "osx-arm64"]);
+        [
+            "win-x64", "win-x86", "win-arm64",
+            "osx-x64", "osx-arm64",
+            "linux-x64", "linux-arm64",
+        ]);
     }
 
     [Fact]
@@ -22,6 +26,20 @@ public class PlatformDetectionTests
     public void GetPublishedExecutableName_osx_keeps_spaces_no_extension()
     {
         PlatformDetection.GetPublishedExecutableName("osx-arm64", "Flappy Bird").ShouldBe("Flappy Bird");
+    }
+
+    [Fact]
+    public void GetPublishedExecutableName_linux_has_no_exe_extension()
+    {
+        PlatformDetection.GetPublishedExecutableName("linux-x64", "Snake").ShouldBe("Snake");
+    }
+
+    [Theory]
+    [InlineData("linux-x64", "Linux (x64)")]
+    [InlineData("linux-arm64", "Linux (ARM64)")]
+    public void GetPlatformDisplayName_linux_targets(string rid, string expected)
+    {
+        PlatformDetection.GetPlatformDisplayName(rid).ShouldBe(expected);
     }
 
     [Fact]

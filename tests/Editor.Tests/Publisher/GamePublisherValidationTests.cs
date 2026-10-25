@@ -34,7 +34,7 @@ public class GamePublisherValidationTests : IDisposable
         var settings = new PublishSettings
         {
             OutputPath = Path.Combine(_tempRoot, "out"),
-            RuntimeIdentifier = "linux-x64",
+            RuntimeIdentifier = "freebsd-x64",
             Configuration = "Release"
         };
         var config = new GameConfiguration
@@ -47,7 +47,7 @@ public class GamePublisherValidationTests : IDisposable
         var result = await publisher.PublishAsync(settings, config);
 
         result.Success.ShouldBeFalse();
-        result.ErrorMessage.ShouldNotBeNull().ShouldContain("linux-x64");
+        result.ErrorMessage.ShouldNotBeNull().ShouldContain("freebsd-x64");
     }
 
     [Fact]

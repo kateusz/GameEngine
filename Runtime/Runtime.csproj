@@ -31,10 +31,15 @@
         <Copy SourceFiles="$(OpenALNativePath)" DestinationFolder="$(OutputPath)" Condition="Exists('$(OpenALNativePath)')" />
     </Target>
 
-    <!-- Natives follow publish RID, not host OS. OpenAL.Soft ships Windows DLLs only (nested Release/). -->
+    <!-- Natives follow publish RID, not host OS.
+         Windows: OpenAL.Soft NuGet (DLLs only). macOS: Homebrew dylib on the build machine.
+         Linux: vendored OpenAL Soft 1.24.2 (Debian libopenal1). Needs glibc >= 2.38 (Ubuntu 24.04+).
+         Pulse/ALSA are dlopened, not NEEDED. Silk.NET loads libopenal.so then libopenal.so.1. -->
     <Target Name="AddOpenALToPublish" BeforeTargets="ComputeFilesToPublish">
         <PropertyGroup>
             <OpenALWinPath>$(NuGetPackageRoot)openal.soft/1.23.1/runtimes/$(RuntimeIdentifier)/native/Release/OpenAL32.dll</OpenALWinPath>
+            <OpenALLinuxPath>$(MSBuildThisFileDirectory)../native/openal-soft/$(RuntimeIdentifier)/libopenal.so.1</OpenALLinuxPath>
+            <OpenALLinuxLicense>$(MSBuildThisFileDirectory)../native/openal-soft/COPYRIGHT</OpenALLinuxLicense>
             <OpenALSoftPathARM>/opt/homebrew/opt/openal-soft/lib/libopenal.1.dylib</OpenALSoftPathARM>
             <OpenALSoftPathARMLib>/opt/homebrew/lib/libopenal.1.dylib</OpenALSoftPathARMLib>
             <OpenALSoftPathX86>/usr/local/opt/openal-soft/lib/libopenal.1.dylib</OpenALSoftPathX86>
@@ -47,6 +52,23 @@
         <ItemGroup Condition="$([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('win')) AND Exists('$(OpenALWinPath)')">
             <ResolvedFileToPublish Include="$(OpenALWinPath)">
                 <RelativePath>OpenAL32.dll</RelativePath>
+                <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+            </ResolvedFileToPublish>
+        </ItemGroup>
+        <Error
+            Text="Linux OpenAL library missing at $(OpenALLinuxPath). Published build would have no audio."
+            Condition="$([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('linux')) AND !Exists('$(OpenALLinuxPath)')" />
+        <ItemGroup Condition="$([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('linux')) AND Exists('$(OpenALLinuxPath)')">
+            <ResolvedFileToPublish Include="$(OpenALLinuxPath)">
+                <RelativePath>libopenal.so</RelativePath>
+                <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+            </ResolvedFileToPublish>
+            <ResolvedFileToPublish Include="$(OpenALLinuxPath)">
+                <RelativePath>libopenal.so.1</RelativePath>
+                <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+            </ResolvedFileToPublish>
+            <ResolvedFileToPublish Include="$(OpenALLinuxLicense)" Condition="Exists('$(OpenALLinuxLicense)')">
+                <RelativePath>OpenAL-Soft-LICENSE.txt</RelativePath>
                 <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
             </ResolvedFileToPublish>
         </ItemGroup>
