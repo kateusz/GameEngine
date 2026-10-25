@@ -7,11 +7,12 @@ in vec2 v_TexCoord;
 uniform sampler2D u_Color;
 uniform sampler2D u_Bloom;
 uniform int u_BloomEnabled;
+uniform float u_Exposure;
 
 void main()
 {
     vec4 sampleColor = texture(u_Color, v_TexCoord);
-    vec3 light = sampleColor.rgb;
+    vec3 light = sampleColor.rgb * u_Exposure;
     if (u_BloomEnabled != 0)
         light += texture(u_Bloom, v_TexCoord).rgb;
     vec3 rgb = light / (light + vec3(1.0));

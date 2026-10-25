@@ -61,6 +61,7 @@ public static class EngineIoCContainer
         container.Register<IGraphics3D, Graphics3D>(Reuse.Singleton);
         container.Register<FxaaPass>(Reuse.Singleton);
         container.Register<TonemapPass>(Reuse.Singleton);
+        container.Register<SsaoPass>(Reuse.Singleton);
         container.RegisterDelegate<AL>(_ => AL.GetApi(true), Reuse.Singleton);
         container.RegisterDelegate<ALContext>(_ => ALContext.GetApi(true), Reuse.Singleton);
         container.Register<IAudio, OpenALAudioEngine>(Reuse.Singleton);

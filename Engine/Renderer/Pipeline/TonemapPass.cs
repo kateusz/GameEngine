@@ -36,27 +36,28 @@ public sealed class TonemapPass(
         }
     }
 
-    public IFrameBuffer? Resolve(IFrameBuffer scene)
+    public IFrameBuffer? Resolve(IFrameBuffer scene, float exposure = 1f)
     {
         var spec = scene.GetSpecification();
         if (!Available || spec.Width == 0 || spec.Height == 0 || !Ensure(spec.Width, spec.Height))
             return _output;
 
-        Draw(scene.GetColorAttachmentRendererId(), spec.Width, spec.Height, _output);
+        Draw(scene.GetColorAttachmentRendererId(), spec.Width, spec.Height, _output, exposure);
         return _output;
     }
 
-    public void Draw(uint sourceTextureId, uint width, uint height, IFrameBuffer? dest)
+    public void Draw(uint sourceTextureId, uint width, uint height, IFrameBuffer? dest, float exposure = 1f)
     {
         if (!Available || width == 0 || height == 0 || _shader == null || _triangle == null)
             return;
 
+        var exposed = float.IsFinite(exposure) && exposure > 0f ? exposure : 1f;
         rendererApi.SetDepthTest(false);
         rendererApi.SetBlend(false);
         rendererApi.SetFaceCulling(false);
         try
         {
-            var bloomId = Bloom(sourceTextureId, width, height);
+            var bloomId = Bloom(sourceTextureId, width, height, exposed);
             if (dest != null)
                 dest.Bind();
             else
@@ -64,6 +65,7 @@ public sealed class TonemapPass(
 
             rendererApi.SetViewport(0, 0, width, height);
             _shader.Bind();
+            _shader.SetFloat("u_Exposure", exposed);
             _shader.SetInt("u_BloomEnabled", bloomId != 0 ? 1 : 0);
             rendererApi.BindTexture2D(sourceTextureId);
             if (bloomId != 0)
@@ -146,11 +148,12 @@ public sealed class TonemapPass(
         }
     }
 
-    private uint Bloom(uint sourceTextureId, uint width, uint height)
+    private uint Bloom(uint sourceTextureId, uint width, uint height, float exposure)
     {
         if (_extract == null || _blur == null || !EnsureBloom(width, height))
             return 0;
 
+        _extract.SetFloat("u_Exposure", exposure);
         Blit(_extract, sourceTextureId, width, height, _bright!, horizontal: null);
         var horizontal = true;
         var first = true;

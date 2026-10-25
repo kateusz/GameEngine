@@ -39,7 +39,8 @@ public class SceneSystemsFactoryTests
             Substitute.For<IAudio>(),
             new AudioPlaybackService(),
             worldFactory,
-            Substitute.For<IModelFactory>());
+            Substitute.For<IModelFactory>(),
+            ssao: null!);
 
         var systemManager = new SystemManager();
         factory.PopulateSystemManager(

@@ -20,7 +20,7 @@
           ],
           "Rotation": [
             -1.4546169,
-            0.056449216,
+            0.05644921,
             0
           ],
           "Scale": [
@@ -42,6 +42,10 @@
           "AspectRatio": 1.7777778,
           "Primary": true,
           "FixedAspectRatio": false,
+          "Ssao": true,
+          "SsaoRadius": 0.5,
+          "SsaoStrength": 1,
+          "Exposure": 1,
           "Name": "CameraComponent"
         },
         {

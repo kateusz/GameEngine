@@ -11,7 +11,8 @@ internal sealed class SceneRenderSystem(
     IGraphics3D graphics3D,
     ITextureFactory textureFactory,
     Context context,
-    IModelFactory modelFactory) : ISystem
+    IModelFactory modelFactory,
+    SsaoPass ssao) : ISystem
 {
     public int Priority => 150;
 
@@ -20,8 +21,13 @@ internal sealed class SceneRenderSystem(
         if (!CameraQueries.TryGetPrimaryView(context, out var view))
             return;
 
+        view = view with
+        {
+            TargetWidth = graphics3D.SceneTargetWidth,
+            TargetHeight = graphics3D.SceneTargetHeight
+        };
         SceneRenderPipeline.RenderScene(
             context, graphics2D, graphics3D, textureFactory, modelFactory,
-            view);
+            view, ssao);
     }
 }
