@@ -22,7 +22,7 @@ That builds the engine `Runtime`, compiles `assets/scripts` into `GameAssembly.d
 
 `./run.sh --no-run` (or `.\run.ps1 -NoRun`) stages the build without launching. `CONFIG=Debug ./run.sh` builds the Debug runtime.
 
-You can also open this folder as an editor project and press Play. The startup scene is `assets/scenes/level1.scene`.
+You can also open this folder as an editor project and press Play. The startup scene is `assets/scenes/level1.scene`. Editor Play needs the same cooked `.mesh` siblings as the standalone player — run `.\run.ps1 -NoRun` (or `./run.sh --no-run`) once after cloning or changing models.
 
 A logic check (collision sweep, manifest parsing, level reachability) runs with:
 
@@ -69,7 +69,7 @@ games/IslandDash/
   tools/MeshCook/           writes the .mesh files the runtime loads
 ```
 
-Gameplay code is under `assets/scripts/` and is the same source the editor compiles into the game assembly. `ProceduralAnimatorComponent` plus `IAnimationDriver` is the animation front end: gameplay only sets parameters and fires events (`Jump`, `Land`, `Spin`, `Die`, `Pop`, ...). Replace a driver in `AnimationDrivers` to hand-animate or to plug in skeletal animation later; gameplay code does not change.
+Gameplay code is under `assets/scripts/` and is the same source the editor compiles into the game assembly. `ProceduralAnimatorComponent` plus `IAnimationDriver` is the animation front end: gameplay only sets parameters and fires events (`Jump`, `Land`, `Die`, `Pop`, ...). Swap a driver in `AnimationDrivers` to hand-animate or to plug in skeletal animation later; gameplay code does not change.
 
 ## Level kit
 

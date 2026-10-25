@@ -47,8 +47,6 @@ public sealed class AssetManifest
     private readonly Dictionary<string, ModelEntry> _entries = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _warned = new(StringComparer.OrdinalIgnoreCase);
 
-    public IReadOnlyCollection<ModelEntry> Entries => _entries.Values;
-
     public static AssetManifest Load(string relativePath)
     {
         var path = AssetPaths.Resolve(relativePath);

@@ -59,15 +59,13 @@ public sealed class EnemyComponent : IGameComponent
     public IComponent Clone() => (EnemyComponent)MemberwiseClone();
 }
 
-/// <summary>Kinematic platform following a sine offset or ping-pong waypoints from its origin.</summary>
+/// <summary>Kinematic platform following a sine offset from its origin.</summary>
 public sealed class MovingPlatformComponent : IGameComponent
 {
     public Vector3 Origin { get; set; }
     public Vector3 Amplitude { get; set; }
     public float Period { get; set; } = 4f;
     public float Phase { get; set; }
-    public List<Vector3> Waypoints { get; set; } = [];
-    public float Speed { get; set; } = 2f;
     public float Time { get; set; }
     public IComponent Clone() => (MovingPlatformComponent)MemberwiseClone();
 }

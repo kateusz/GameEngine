@@ -10,7 +10,7 @@
 #   kill_plane x y z                    fall death below y
 #   ground x y z size=w,h,d [model=]    tiled floor, one collider
 #   block / platform x y z size=w,h,d [model=]
-#   mover x y z size= amp= period= phase= speed= [path=x,y,z;...] [model=]
+#   mover x y z size= amp= period= phase= [model=]
 #   vanish x y z size= on= off= phase= [model=]
 #   faller x y z size= delay= respawn= [model=]
 #   crate x y z [crystals=]             spin or stomp to break

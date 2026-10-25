@@ -23,18 +23,16 @@ public enum AnimationEvent
     Jump = 1 << 0,
     AirJump = 1 << 1,
     Land = 1 << 2,
-    Spin = 1 << 3,
-    Die = 1 << 4,
-    Respawn = 1 << 5,
+    Die = 1 << 3,
+    Respawn = 1 << 4,
     /// <summary>Rise, spin and shrink away (collected crystal, broken crate reward).</summary>
-    Pop = 1 << 6,
-    Squash = 1 << 7
+    Pop = 1 << 5,
+    Squash = 1 << 6
 }
 
 /// <summary>Which <see cref="IAnimationDriver"/> evaluates an animator. See <see cref="AnimationDrivers"/>.</summary>
 public enum AnimationDriverKind
 {
-    Static,
     Player,
     Collectible,
     Enemy,
@@ -47,8 +45,8 @@ public enum AnimationDriverKind
 /// an <see cref="IAnimationDriver"/> turns them into a <see cref="Pose"/> that
 /// <see cref="ProceduralAnimationSystem"/> applies to the separate visual entity (<see cref="VisualEntityId"/>).
 /// The gameplay transform and colliders are never touched by animation.
-/// To animate by hand or with a skeletal system later, register a different driver for the same
-/// <see cref="AnimationDriverKind"/>; gameplay code does not change.
+/// To animate by hand or with a skeletal system later, swap the driver for the same
+/// <see cref="AnimationDriverKind"/> in <see cref="AnimationDrivers"/>; gameplay code does not change.
 /// </summary>
 public sealed class ProceduralAnimatorComponent : IGameComponent
 {

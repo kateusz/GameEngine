@@ -50,8 +50,6 @@ public static class GameMath
         return new Vector3(x, y, z);
     }
 
-    public static Quaternion FromEngineEuler(Vector3 euler) => MathHelpers.QuaternionFromEuler(euler);
-
     public static float Get(Vector3 v, int axis) => axis switch { 0 => v.X, 1 => v.Y, _ => v.Z };
 
     public static Vector3 With(Vector3 v, int axis, float value) => axis switch

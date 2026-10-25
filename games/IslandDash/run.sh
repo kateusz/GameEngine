@@ -16,6 +16,19 @@ dotnet build "$ENGINE_DIR/Runtime/Runtime.csproj" "${BUILD_FLAGS[@]}" -o "$STAGE
 dotnet build "$GAME_DIR/IslandDash.csproj" "${BUILD_FLAGS[@]}" -o "$GAME_DIR/.build/game-$CONFIG"
 dotnet build "$GAME_DIR/tools/MeshCook/MeshCook.csproj" "${BUILD_FLAGS[@]}" -o "$GAME_DIR/.build/meshcook-$CONFIG"
 
+# Linux: Silk.NET only probes system paths for GLFW/Assimp, so point it at the natives shipped in runtimes/.
+if [ "$(uname -s)" = "Linux" ]; then
+    case "$(uname -m)" in
+        aarch64|arm64) rid=linux-arm64 ;;
+        armv7l) rid=linux-arm ;;
+        *) rid=linux-x64 ;;
+    esac
+    export LD_LIBRARY_PATH="$GAME_DIR/.build/meshcook-$CONFIG/runtimes/$rid/native:$STAGE/runtimes/$rid/native:${LD_LIBRARY_PATH:-}"
+fi
+
+# Cook into source assets first so editor Play and the staged Runtime share the same siblings.
+dotnet "$GAME_DIR/.build/meshcook-$CONFIG/MeshCook.dll" "$GAME_DIR/assets/models"
+
 cp "$GAME_DIR/.build/game-$CONFIG/GameAssembly.dll" "$GAME_DIR/.build/game-$CONFIG/GameAssembly.pdb" "$STAGE/"
 cp "$GAME_DIR/game.config.json" "$STAGE/"
 for dir in "$GAME_DIR"/assets/*/; do
@@ -24,19 +37,6 @@ for dir in "$GAME_DIR"/assets/*/; do
     mkdir -p "$STAGE/assets/$name"
     cp -R "$dir." "$STAGE/assets/$name/"
 done
-
-# Linux: Silk.NET only probes system paths for GLFW/Assimp, so point it at the natives shipped in runtimes/.
-if [ "$(uname -s)" = "Linux" ]; then
-    case "$(uname -m)" in
-        aarch64|arm64) rid=linux-arm64 ;;
-        armv7l) rid=linux-arm ;;
-        *) rid=linux-x64 ;;
-    esac
-    export LD_LIBRARY_PATH="$STAGE/runtimes/$rid/native:$GAME_DIR/.build/meshcook-$CONFIG/runtimes/$rid/native:${LD_LIBRARY_PATH:-}"
-fi
-
-# The Runtime loads cooked "<model>.mesh" siblings only; (re)cook any that are missing or stale.
-dotnet "$GAME_DIR/.build/meshcook-$CONFIG/MeshCook.dll" "$STAGE/assets/models"
 
 if [ "${1:-}" = "--no-run" ]; then
     echo "Staged to $STAGE"

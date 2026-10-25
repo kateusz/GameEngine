@@ -45,32 +45,24 @@ public class InteractionSystem(Context context, IKeyboardInput keyboard, IMouseI
 
     private void Crystals(in Box box, GameStateComponent state, GameSettingsComponent settings)
     {
-        var collected = new List<Entity>();
         foreach (var (entity, collectible, transform) in context.View<CollectibleComponent, TransformComponent>())
         {
             if (collectible.Collected)
                 continue;
             var center = transform.Translation + new Vector3(0f, CrystalCenterHeight, 0f);
             if (box.DistanceSquaredTo(center) <= collectible.Radius * collectible.Radius)
-                collected.Add(entity);
+                GameRules.Collect(entity, state, settings, audio);
         }
-
-        foreach (var crystal in collected)
-            GameRules.Collect(crystal, state, settings, audio);
     }
 
     private void SpinAttack(Vector3 center, PlayerTuningComponent tuning, GameStateComponent state, GameSettingsComponent settings)
     {
         var radiusSq = tuning.SpinRadius * tuning.SpinRadius;
-        var crates = new List<Entity>();
         foreach (var (entity, crate, transform) in context.View<CrateComponent, TransformComponent>())
         {
             if (!crate.Broken && Collision.WorldBox(transform, entity.GetComponent<ColliderComponent>()).DistanceSquaredTo(center) <= radiusSq)
-                crates.Add(entity);
+                GameRules.BreakCrate(context, entity, state, settings, audio);
         }
-
-        foreach (var crate in crates)
-            GameRules.BreakCrate(context, crate, state, settings, audio);
 
         foreach (var (entity, enemy, transform) in context.View<EnemyComponent, TransformComponent>())
         {

@@ -95,8 +95,8 @@ public class LevelSystem(Context context) : IGameSystem
                 case "start": Start(p); break;
                 case "kill_plane": state.KillY = p.Position.Y; break;
                 case "ground": Ground(p); break;
-                case "block": Solid(p, p.Text("model", "block"), AnimationDriverKind.Static); break;
-                case "platform": Solid(p, p.Text("model", "platform"), AnimationDriverKind.Static); break;
+                case "block": SolidStatic(p, p.Text("model", "block")); break;
+                case "platform": SolidStatic(p, p.Text("model", "platform")); break;
                 case "mover": Mover(p); break;
                 case "vanish": Vanish(p); break;
                 case "faller": Faller(p); break;
@@ -153,12 +153,21 @@ public class LevelSystem(Context context) : IGameSystem
             }
         }
 
-        /// <summary>Position = top-center; one unit-size model stretched to <c>size</c>.</summary>
-        private Entity Solid(PieceSpec p, string modelName, AnimationDriverKind driver)
+        /// <summary>Position = top-center; collider + a static model (no animator).</summary>
+        private void SolidStatic(PieceSpec p, string modelName)
+        {
+            var size = p.Vector("size", Vector3.One);
+            CreateSolid(modelName, p.Position, size);
+            Spawner.CreateModel(context, modelName, manifest.Get(modelName), p.Position - new Vector3(0f, size.Y, 0f), size);
+        }
+
+        /// <summary>Position = top-center; collider + animated visual (movers / vanish / fallers).</summary>
+        private Entity Solid(PieceSpec p, string modelName)
         {
             var size = p.Vector("size", Vector3.One);
             var entity = CreateSolid(modelName, p.Position, size);
-            Spawner.AttachAnimatedModel(context, entity, manifest.Get(modelName), driver, size, ownerToModelBase: new Vector3(0f, -size.Y, 0f));
+            Spawner.AttachAnimatedModel(context, entity, manifest.Get(modelName), AnimationDriverKind.Platform, size,
+                ownerToModelBase: new Vector3(0f, -size.Y, 0f));
             return entity;
         }
 
@@ -171,22 +180,19 @@ public class LevelSystem(Context context) : IGameSystem
 
         private void Mover(PieceSpec p)
         {
-            var entity = Solid(p, p.Text("model", "mover"), AnimationDriverKind.Platform);
-            var path = p.Path("path");
+            var entity = Solid(p, p.Text("model", "mover"));
             entity.AddComponent(new MovingPlatformComponent
             {
                 Origin = p.Position,
                 Amplitude = p.Vector("amp", Vector3.Zero),
                 Period = p.Float("period", 4f),
-                Phase = p.Float("phase", 0f),
-                Waypoints = path.Count > 0 ? [Vector3.Zero, .. path] : [],
-                Speed = p.Float("speed", 2.5f)
+                Phase = p.Float("phase", 0f)
             });
         }
 
         private void Vanish(PieceSpec p)
         {
-            var entity = Solid(p, p.Text("model", "vanish"), AnimationDriverKind.Platform);
+            var entity = Solid(p, p.Text("model", "vanish"));
             entity.AddComponent(new VanishingPlatformComponent
             {
                 OnTime = p.Float("on", 2.5f),
@@ -197,7 +203,7 @@ public class LevelSystem(Context context) : IGameSystem
 
         private void Faller(PieceSpec p)
         {
-            var entity = Solid(p, p.Text("model", "faller"), AnimationDriverKind.Platform);
+            var entity = Solid(p, p.Text("model", "faller"));
             entity.AddComponent(new FallingPlatformComponent
             {
                 Origin = p.Position,
@@ -269,14 +275,17 @@ public class LevelSystem(Context context) : IGameSystem
                     Solid = false,
                     BlocksCamera = false
                 });
+                tile.AddComponent(model.CreateRenderer());
+                var transform = tile.GetComponent<TransformComponent>();
+                transform.Translation = position + model.Pivot * model.Scale;
+                transform.Scale = model.Scale;
                 tile.AddComponent(new TimedSpikesComponent
                 {
                     UpTime = p.Float("up", 1.2f),
                     DownTime = p.Float("down", 1.2f),
                     Phase = p.Float("phase", 0f) + ix * p.Float("wave", 0f),
-                    FloorY = position.Y
+                    FloorY = transform.Translation.Y
                 });
-                Spawner.AttachAnimatedModel(context, tile, model, AnimationDriverKind.Static, Vector3.One);
             }
         }
 
