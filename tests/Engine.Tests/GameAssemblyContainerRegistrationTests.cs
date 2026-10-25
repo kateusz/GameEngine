@@ -13,6 +13,7 @@ public class GameAssemblyContainerRegistrationTests
     public void TryRegisterContainer_RegistersMultipleGameSystems()
     {
         var container = new Container();
+        container.RegisterDelegate<Context>(_ => new Context());
         var registered = GameAssemblyContainerRegistration.TryRegisterContainer(
             container,
             typeof(StubGameSystemA).Assembly);
@@ -20,15 +21,17 @@ public class GameAssemblyContainerRegistrationTests
         registered.ShouldBeTrue();
 
         var systems = container.ResolveMany<IGameSystem>().ToArray();
-        systems.Length.ShouldBe(2);
+        systems.Length.ShouldBe(3);
         systems.ShouldContain(s => s is StubGameSystemA);
         systems.ShouldContain(s => s is StubGameSystemB);
+        systems.ShouldContain(s => s is NeedsContextSystemMarked);
     }
 
     [Fact]
     public void FuncOfGameSystems_ResolvesWithoutRegisterDelegate()
     {
         var container = new Container();
+        container.RegisterDelegate<Context>(_ => new Context());
         container.Register<NeedsGameSystems>(Reuse.Singleton);
         container.ValidateAndThrow();
         container.Resolve<NeedsGameSystems>().Get().ShouldBeEmpty();
@@ -36,13 +39,14 @@ public class GameAssemblyContainerRegistrationTests
         GameAssemblyContainerRegistration.TryRegisterContainer(
             container,
             typeof(StubGameSystemA).Assembly);
-        container.Resolve<Func<IEnumerable<IGameSystem>>>()().Count().ShouldBe(2);
+        container.Resolve<Func<IEnumerable<IGameSystem>>>()().Count().ShouldBe(3);
     }
 
     [Fact]
     public void CapturedFunc_SeesGameSystemsRegisteredAfterConsumerResolved()
     {
         var container = new Container();
+        container.RegisterDelegate<Context>(_ => new Context());
         GameAssemblyContainerRegistration.RegisterGameSystemsResolver(container);
         container.Register<NeedsGameSystems>(Reuse.Singleton);
 
@@ -53,7 +57,7 @@ public class GameAssemblyContainerRegistrationTests
             container,
             typeof(StubGameSystemA).Assembly);
 
-        needs.Get().Count().ShouldBe(2);
+        needs.Get().Count().ShouldBe(3);
     }
 
     [Fact]
@@ -69,6 +73,25 @@ public class GameAssemblyContainerRegistrationTests
         var systems = container.Resolve<NeedsGameSystems>().Get().ToArray();
         systems.Length.ShouldBe(1);
         systems[0].ShouldBeOfType<NeedsContextSystem>();
+    }
+
+    [Fact]
+    public void TryRegisterContainer_ForcesTransientGameSystems_SoRequestLoadGetsFreshContext()
+    {
+        var container = new Container();
+        var current = new Context();
+        container.RegisterDelegate<Context>(_ => current);
+        GameAssemblyContainerRegistration.TryRegisterContainer(
+            container,
+            typeof(NeedsContextSystemMarked).Assembly);
+
+        var first = container.ResolveMany<IGameSystem>().OfType<NeedsContextSystemMarked>().Single();
+        first.Context.ShouldBe(current);
+
+        current = new Context();
+        var second = container.ResolveMany<IGameSystem>().OfType<NeedsContextSystemMarked>().Single();
+        second.Context.ShouldBe(current);
+        ReferenceEquals(first, second).ShouldBeFalse();
     }
 
     private sealed class NeedsGameSystems(Func<IEnumerable<IGameSystem>> resolve)
@@ -93,6 +116,14 @@ public class GameAssemblyContainerRegistrationTests
     private sealed class NeedsContextSystem(Context context) : IGameSystem
     {
         public int Priority => 1;
+        public void OnUpdate(TimeSpan deltaTime) { }
+        public Context Context => context;
+    }
+
+    [Register(typeof(IGameSystem))]
+    private sealed class NeedsContextSystemMarked(Context context) : IGameSystem
+    {
+        public int Priority => 3;
         public void OnUpdate(TimeSpan deltaTime) { }
         public Context Context => context;
     }

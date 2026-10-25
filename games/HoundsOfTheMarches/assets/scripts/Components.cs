@@ -25,8 +25,14 @@ public sealed class MarchGameComponent : IGameComponent
     public float RespawnY { get; set; }
     public string LastRoom { get; set; } = "";
     public float KillY { get; set; } = -3f;
+    public float CamMin { get; set; }
+    public float CamMax { get; set; } = 100f;
+    public float CamY { get; set; } = 3.2f;
+    /// <summary>When the player crosses this X, load <see cref="NextScene"/>.</summary>
+    public float ExitX { get; set; } = float.PositiveInfinity;
+    /// <summary>Scene path relative to project, e.g. assets/scenes/2 - bridge.scene.</summary>
+    public string NextScene { get; set; } = "";
 
-    [JsonIgnore] public List<RoomInfo> Rooms { get; set; } = [];
     [JsonIgnore] public AssetPack? Pack { get; set; }
 
     public IComponent Clone() => new MarchGameComponent
@@ -49,7 +55,12 @@ public sealed class MarchGameComponent : IGameComponent
         RespawnX = RespawnX,
         RespawnY = RespawnY,
         LastRoom = LastRoom,
-        KillY = KillY
+        KillY = KillY,
+        CamMin = CamMin,
+        CamMax = CamMax,
+        CamY = CamY,
+        ExitX = ExitX,
+        NextScene = NextScene
     };
 }
 

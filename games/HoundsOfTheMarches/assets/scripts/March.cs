@@ -15,7 +15,7 @@ static class March
     public static MarchGameComponent? Game(Context context)
     {
         foreach (var (_, game) in context.View<MarchGameComponent>())
-            return game.Built ? game : null;
+            return game.Pack != null ? game : null;
         return null;
     }
 
@@ -35,22 +35,13 @@ static class March
         return null;
     }
 
-    public static RoomInfo Room(MarchGameComponent game)
+    public static RoomInfo Room(MarchGameComponent game) => new()
     {
-        foreach (var room in game.Rooms)
-            if (room.Id == game.LastRoom)
-                return room;
-        return game.Rooms.Count > 0 ? game.Rooms[0] : new RoomInfo();
-    }
-
-    public static RoomInfo RoomAt(MarchGameComponent game, float x)
-    {
-        RoomInfo? found = null;
-        foreach (var room in game.Rooms)
-            if (x >= room.MinX && x < room.MaxX)
-                found = room;
-        return found ?? (game.Rooms.Count > 0 ? game.Rooms[^1] : new RoomInfo());
-    }
+        Id = game.LastRoom,
+        CamMin = game.CamMin,
+        CamMax = game.CamMax,
+        CamY = game.CamY
+    };
 
     public static Vector4 Fallback(string key) => key switch
     {

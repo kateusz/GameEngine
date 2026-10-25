@@ -2,6 +2,7 @@ using System.Numerics;
 using Audio;
 using ECS;
 using ECS.Systems;
+using Engine.Scene;
 using Input;
 using SceneComponents;
 using SceneComponents.Physics;
@@ -10,9 +11,10 @@ using Scripting;
 namespace Hounds.Marches;
 
 [Register(typeof(IGameSystem))]
-public sealed class FlowSystem(Context context, IKeyboardInput keyboard, IAudio audio) : IGameSystem
+public sealed class FlowSystem(Context context, IKeyboardInput keyboard, IAudio audio, ISceneContext scenes) : IGameSystem
 {
     private bool _deathSent;
+    private bool _exitRequested;
 
     public int Priority => 96;
 
@@ -74,15 +76,11 @@ public sealed class FlowSystem(Context context, IKeyboardInput keyboard, IAudio 
             game.BannerTimer -= dt;
         game.Fade = MathF.Max(0f, game.Fade - dt * 1.5f);
 
-        var room = March.RoomAt(game, feetX);
-        if (game.LastRoom.Length == 0)
-            game.LastRoom = room.Id;
-        else if (room.Id != game.LastRoom)
+        if (!_exitRequested && game.NextScene.Length > 0 && feetX >= game.ExitX && combat.Action != "dead")
         {
-            game.LastRoom = room.Id;
-            game.Fade = 1f;
-            game.BannerKey = room.Title;
-            game.BannerTimer = 2.2f;
+            _exitRequested = true;
+            scenes.RequestLoad(game.NextScene);
+            return;
         }
 
         game.ProximityKey = "";

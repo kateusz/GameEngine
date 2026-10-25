@@ -7,6 +7,7 @@ using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Shaders;
 using Engine.Renderer.Textures;
+using Engine.Scene;
 using Input;
 using Ui.ImGui;
 
@@ -22,8 +23,9 @@ public class Editor(
     IShaderFactory shaderFactory,
     IMeshFactory meshFactory,
     IModelFactory modelFactory,
+    ISceneContext sceneContext,
     IImGuiLayer imGuiLayer,
     IKeyboardInput keyboardInput,
     IMouseInput mouseInput)
     : Application(gameWindow, rendererApi, graphics2D, audio, graphics3D, textureFactory, shaderFactory, meshFactory,
-        modelFactory, imGuiLayer, imGuiLayer, keyboardInput, mouseInput);
+        modelFactory, sceneContext, imGuiLayer, imGuiLayer, keyboardInput, mouseInput);

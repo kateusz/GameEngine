@@ -1,5 +1,5 @@
 {
-  "Scene": "marches",
+  "Scene": "1 - start",
   "BackgroundColor": [
     0.06,
     0.07,
@@ -51,7 +51,7 @@
       "Name": "March",
       "Components": [
         {
-          "Built": true,
+          "Built": false,
           "Art": "original",
           "Stingers": 0,
           "BloodAmount": 0,
@@ -59,17 +59,22 @@
           "BloodY": 0,
           "BloodActive": false,
           "Hitstop": 0,
-          "Fade": 0,
+          "Fade": 1,
           "DeathTimer": -1,
           "Won": false,
           "BannerKey": "",
           "BannerTimer": 0,
-          "ProximityKey": "title_rest",
-          "HelpTimer": -0.0113959275,
+          "ProximityKey": "",
+          "HelpTimer": 6,
           "RespawnX": 4,
           "RespawnY": 2,
           "LastRoom": "village",
           "KillY": -3,
+          "CamMin": 8,
+          "CamMax": 22,
+          "CamY": 3.2,
+          "ExitX": 30,
+          "NextScene": "assets/scenes/2 - bridge.scene",
           "Name": "MarchGameComponent"
         }
       ]
@@ -657,7 +662,7 @@
         {
           "Translation": [
             12.800003,
-            3.2,
+            3.5,
             0
           ],
           "Rotation": [
@@ -666,9 +671,9 @@
             0
           ],
           "Scale": [
-            32,
-            8.8,
-            1
+            24.0,
+            7.0,
+            1.0
           ],
           "Visible": true,
           "Name": "TransformComponent"
@@ -689,7 +694,7 @@
           "Kind": "parallax",
           "Factor": 0.12,
           "Anchor": 48,
-          "BaseY": 3.2,
+          "BaseY": 3.5,
           "Amount": 0,
           "ImageKey": "parallax_far",
           "Taken": false,
@@ -704,7 +709,7 @@
         {
           "Translation": [
             23.200003,
-            3.2,
+            3.8,
             0
           ],
           "Rotation": [
@@ -713,9 +718,9 @@
             0
           ],
           "Scale": [
-            30,
-            8.8,
-            1
+            16.0,
+            3.6,
+            1.0
           ],
           "Visible": true,
           "Name": "TransformComponent"
@@ -727,7 +732,7 @@
             1,
             1
           ],
-          "TexturePath": "Original/bg/mid.png",
+          "TexturePath": "Original/bg/far.png",
           "TilingFactor": 1,
           "SortOrder": -20,
           "Name": "SpriteRendererComponent"
@@ -736,7 +741,7 @@
           "Kind": "parallax",
           "Factor": 0.38,
           "Anchor": 48,
-          "BaseY": 3.2,
+          "BaseY": 3.8,
           "Amount": 0,
           "ImageKey": "parallax_mid",
           "Taken": false,
@@ -751,7 +756,7 @@
         {
           "Translation": [
             32.800003,
-            1.2,
+            0.9,
             0
           ],
           "Rotation": [
@@ -760,9 +765,9 @@
             0
           ],
           "Scale": [
-            28,
-            3.2,
-            1
+            14.0,
+            1.6,
+            1.0
           ],
           "Visible": true,
           "Name": "TransformComponent"
@@ -783,7 +788,7 @@
           "Kind": "parallax",
           "Factor": 0.62,
           "Anchor": 48,
-          "BaseY": 1.2,
+          "BaseY": 0.9,
           "Amount": 0,
           "ImageKey": "parallax_near",
           "Taken": false,

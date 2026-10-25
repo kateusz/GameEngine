@@ -51,26 +51,31 @@
       "Name": "March",
       "Components": [
         {
-          "Built": true,
+          "Built": false,
           "Art": "original",
           "Stingers": 8,
           "BloodAmount": 0,
           "BloodX": 0,
           "BloodY": 0,
           "BloodActive": false,
-          "Hitstop": -2.1100044E-05,
-          "Fade": 0,
+          "Hitstop": -2.1100044e-05,
+          "Fade": 1,
           "DeathTimer": -1,
           "Won": false,
-          "BannerKey": "title_courtyard",
-          "BannerTimer": -0.0021931063,
-          "ProximityKey": "inscribe_gate",
-          "HelpTimer": -0.012374513,
-          "RespawnX": 4,
+          "BannerKey": "",
+          "BannerTimer": 0,
+          "ProximityKey": "",
+          "HelpTimer": 0,
+          "RespawnX": 60,
           "RespawnY": 2,
           "LastRoom": "courtyard",
           "KillY": -3,
-          "Name": "MarchGameComponent"
+          "Name": "MarchGameComponent",
+          "CamMin": 66,
+          "CamMax": 88,
+          "CamY": 3.2,
+          "ExitX": 9999,
+          "NextScene": ""
         }
       ]
     },
@@ -657,7 +662,7 @@
         {
           "Translation": [
             63.83997,
-            3.2,
+            3.5,
             0
           ],
           "Rotation": [
@@ -666,9 +671,9 @@
             0
           ],
           "Scale": [
-            32,
-            8.8,
-            1
+            24.0,
+            7.0,
+            1.0
           ],
           "Visible": true,
           "Name": "TransformComponent"
@@ -689,7 +694,7 @@
           "Kind": "parallax",
           "Factor": 0.12,
           "Anchor": 48,
-          "BaseY": 3.2,
+          "BaseY": 3.5,
           "Amount": 0,
           "ImageKey": "parallax_far",
           "Taken": false,
@@ -704,7 +709,7 @@
         {
           "Translation": [
             59.15998,
-            3.2,
+            3.8,
             0
           ],
           "Rotation": [
@@ -713,9 +718,9 @@
             0
           ],
           "Scale": [
-            30,
-            8.8,
-            1
+            16.0,
+            3.6,
+            1.0
           ],
           "Visible": true,
           "Name": "TransformComponent"
@@ -736,7 +741,7 @@
           "Kind": "parallax",
           "Factor": 0.38,
           "Anchor": 48,
-          "BaseY": 3.2,
+          "BaseY": 3.8,
           "Amount": 0,
           "ImageKey": "parallax_mid",
           "Taken": false,
@@ -751,7 +756,7 @@
         {
           "Translation": [
             54.83999,
-            1.2,
+            0.9,
             0
           ],
           "Rotation": [
@@ -760,9 +765,9 @@
             0
           ],
           "Scale": [
-            28,
-            3.2,
-            1
+            14.0,
+            1.6,
+            1.0
           ],
           "Visible": true,
           "Name": "TransformComponent"
@@ -783,7 +788,7 @@
           "Kind": "parallax",
           "Factor": 0.62,
           "Anchor": 48,
-          "BaseY": 1.2,
+          "BaseY": 0.9,
           "Amount": 0,
           "ImageKey": "parallax_near",
           "Taken": false,

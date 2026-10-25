@@ -1,6 +1,6 @@
 {
   "GameAssemblyPath": "GameAssembly.dll",
-  "StartupScenePath": "assets/scenes/marches.scene",
+  "StartupScenePath": "assets/scenes/1 - start.scene",
   "WindowWidth": 1920,
   "WindowHeight": 1080,
   "Fullscreen": false,
