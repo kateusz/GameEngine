@@ -20,7 +20,7 @@ public class AudioSourceComponentEditor(
     protected override void DrawContent(AudioSourceComponent component, Entity entity)
     {
         audioDropTarget.Draw("Audio Clip",
-            relativePath => MultiField.WriteEach(entity, (Entity e, string path) =>
+            relativePath => MultiField.WriteEach(entity, (Entity e, string? path) =>
             {
                 e.GetComponent<AudioSourceComponent>().AudioClipPath = path;
             }, relativePath),

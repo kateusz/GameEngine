@@ -78,9 +78,11 @@ public sealed class LevelSystem(Context context, ISceneContext scenes) : IGameSy
             }
         }
 
-        Parallax(scene, game.Pack!, "far", 0.12f, 48f, 7.2f, 52f, 16f, -30f);
-        Parallax(scene, game.Pack!, "mid", 0.38f, 48f, 6.4f, 48f, 14f, -20f);
-        Parallax(scene, game.Pack!, "near", 0.62f, 48f, 5.2f, 46f, 12f, -10f);
+        // OrthographicSize 4.4 → visible height ~8.8. Keep BG aspect ~16:9 so art isn't stretched.
+        // Mid must leave sky transparent or far never shows (opaque mid sits in front).
+        Parallax(scene, game.Pack!, "far", 0.12f, 48f, 3.2f, 32f, 8.8f, -30f);
+        Parallax(scene, game.Pack!, "mid", 0.38f, 48f, 3.2f, 30f, 8.8f, -20f);
+        Parallax(scene, game.Pack!, "near", 0.62f, 48f, 1.2f, 28f, 3.2f, -10f);
 
         foreach (var ladder in level.Ladders)
             Zone(scene, game.Pack!, "ladder", "ladder", ladder.X, ladder.Y, ladder.W, ladder.H, 0.55f, ladder.H);

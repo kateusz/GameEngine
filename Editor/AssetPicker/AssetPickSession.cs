@@ -149,8 +149,44 @@ public sealed class AssetPickSession(IProjectContext projectContext)
                 .Select(g => new AssetFolderGroup(g.Key, [.. g]))
         ];
 
-        if (SelectedIndex >= _filtered.Count)
-            SelectedIndex = _filtered.Count > 0 ? 0 : -1;
+        // Keep the field's current asset highlighted when the browser opens / filter changes.
+        SelectedIndex = IndexOfCurrentPath();
+    }
+
+    private int IndexOfCurrentPath()
+    {
+        if (string.IsNullOrWhiteSpace(_currentPathHint) || _filtered.Count == 0)
+            return -1;
+
+        string? wantAbsolute = null;
+        try
+        {
+            wantAbsolute = Path.GetFullPath(PathBuilder.Resolve(_currentPathHint));
+        }
+        catch (InvalidOperationException)
+        {
+            // PathBuilder not wired (tests) — fall through to display-path compare.
+        }
+
+        var hint = _currentPathHint.Replace('\\', '/').TrimStart('/');
+        for (var i = 0; i < _filtered.Count; i++)
+        {
+            var entry = _filtered[i];
+            if (wantAbsolute is not null
+                && string.Equals(
+                    Path.GetFullPath(entry.AbsolutePath),
+                    wantAbsolute,
+                    StringComparison.OrdinalIgnoreCase))
+                return i;
+
+            var display = entry.DisplayPath.Replace('\\', '/');
+            if (string.Equals(display, hint, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(display, "assets/" + hint, StringComparison.OrdinalIgnoreCase)
+                || display.EndsWith('/' + hint, StringComparison.OrdinalIgnoreCase))
+                return i;
+        }
+
+        return -1;
     }
 
     private string? BrowseOs(AssetKind kind, string? currentAssetRelativePath)

@@ -21,12 +21,14 @@ public sealed class AssetBrowserDialog(AssetPickSession session, AssetThumbnailC
     private static readonly Vector2 MinSize = new(640f, 480f);
 
     private bool _open;
+    private bool _scrollSelectionIntoView;
 
     public void Open(AssetKind kind, Action<string> onPicked, string? currentAssetRelativePath = null)
     {
         thumbnails.Clear();
         session.Open(kind, onPicked, currentAssetRelativePath);
         _open = true;
+        _scrollSelectionIntoView = session.SelectedIndex >= 0;
     }
 
     public void Render()
@@ -169,6 +171,12 @@ public sealed class AssetBrowserDialog(AssetPickSession session, AssetThumbnailC
             if (selected && !session.ShowsImageThumbnails)
                 ImGui.PopStyleColor();
 
+            if (selected && _scrollSelectionIntoView)
+            {
+                ImGui.SetScrollHereY(0.25f);
+                _scrollSelectionIntoView = false;
+            }
+
             if (clicked)
             {
                 session.SelectedIndex = index;
@@ -220,6 +228,7 @@ public sealed class AssetBrowserDialog(AssetPickSession session, AssetThumbnailC
     private void Close()
     {
         _open = false;
+        _scrollSelectionIntoView = false;
         session.Close();
         thumbnails.Clear();
     }

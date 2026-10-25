@@ -1,0 +1,2822 @@
+{
+  "Scene": "main \u2014 kopia",
+  "BackgroundColor": [
+    0.06,
+    0.07,
+    0.1,
+    1
+  ],
+  "Dimension": "TwoD",
+  "Entities": [
+    {
+      "Id": 1,
+      "Name": "Camera",
+      "Components": [
+        {
+          "Translation": [
+            33.999985,
+            3.1109009,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "ProjectionType": "Orthographic",
+          "OrthographicSize": 4.4,
+          "OrthographicNear": -20,
+          "OrthographicFar": 20,
+          "PerspectiveFOV": 0.7853982,
+          "PerspectiveNear": 0.01,
+          "PerspectiveFar": 1000,
+          "AspectRatio": 1.7777778,
+          "Primary": true,
+          "FixedAspectRatio": false,
+          "Name": "CameraComponent"
+        }
+      ]
+    },
+    {
+      "Id": 2,
+      "Name": "March",
+      "Components": [
+        {
+          "Built": true,
+          "Art": "original",
+          "Stingers": 8,
+          "BloodAmount": 0,
+          "BloodX": 0,
+          "BloodY": 0,
+          "BloodActive": false,
+          "Hitstop": 0,
+          "Fade": 0,
+          "DeathTimer": -1,
+          "Won": false,
+          "BannerKey": "title_bridge",
+          "BannerTimer": -0.002323119,
+          "ProximityKey": "",
+          "HelpTimer": -0.0015414618,
+          "RespawnX": 4,
+          "RespawnY": 2,
+          "LastRoom": "bridge",
+          "KillY": -3,
+          "Name": "MarchGameComponent"
+        }
+      ]
+    },
+    {
+      "Id": 3,
+      "Name": "ground",
+      "Components": [
+        {
+          "Translation": [
+            11.5,
+            3.5,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            7,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/tiles/palisade.png",
+          "TilingFactor": 7,
+          "SortOrder": 8,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "BodyType": "Static",
+          "FixedRotation": true,
+          "GravityScale": 1,
+          "IsBullet": false,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 0,
+          "Friction": 0.95,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 4,
+      "Name": "ground",
+      "Components": [
+        {
+          "Translation": [
+            11.5,
+            2.5,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            7,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/tiles/palisade.png",
+          "TilingFactor": 7,
+          "SortOrder": 8,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "BodyType": "Static",
+          "FixedRotation": true,
+          "GravityScale": 1,
+          "IsBullet": false,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 0,
+          "Friction": 0.95,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 5,
+      "Name": "ground",
+      "Components": [
+        {
+          "Translation": [
+            15,
+            1.5,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            30,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/tiles/mud.png",
+          "TilingFactor": 30,
+          "SortOrder": 8,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "BodyType": "Static",
+          "FixedRotation": true,
+          "GravityScale": 1,
+          "IsBullet": false,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 0,
+          "Friction": 0.95,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 6,
+      "Name": "ground",
+      "Components": [
+        {
+          "Translation": [
+            33,
+            1.5,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            6,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/tiles/bridge.png",
+          "TilingFactor": 6,
+          "SortOrder": 8,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "BodyType": "Static",
+          "FixedRotation": true,
+          "GravityScale": 1,
+          "IsBullet": false,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 0,
+          "Friction": 0.95,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 7,
+      "Name": "ground",
+      "Components": [
+        {
+          "Translation": [
+            46,
+            1.5,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            8,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/tiles/bridge.png",
+          "TilingFactor": 8,
+          "SortOrder": 8,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "BodyType": "Static",
+          "FixedRotation": true,
+          "GravityScale": 1,
+          "IsBullet": false,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 0,
+          "Friction": 0.95,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 8,
+      "Name": "ground",
+      "Components": [
+        {
+          "Translation": [
+            56,
+            1.5,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            4,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/tiles/bridge.png",
+          "TilingFactor": 4,
+          "SortOrder": 8,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "BodyType": "Static",
+          "FixedRotation": true,
+          "GravityScale": 1,
+          "IsBullet": false,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 0,
+          "Friction": 0.95,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 9,
+      "Name": "ground",
+      "Components": [
+        {
+          "Translation": [
+            77,
+            1.5,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            38,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/tiles/stone.png",
+          "TilingFactor": 38,
+          "SortOrder": 8,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "BodyType": "Static",
+          "FixedRotation": true,
+          "GravityScale": 1,
+          "IsBullet": false,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 0,
+          "Friction": 0.95,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 10,
+      "Name": "ground",
+      "Components": [
+        {
+          "Translation": [
+            15,
+            0.5,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            30,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/tiles/mud.png",
+          "TilingFactor": 30,
+          "SortOrder": 8,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "BodyType": "Static",
+          "FixedRotation": true,
+          "GravityScale": 1,
+          "IsBullet": false,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 0,
+          "Friction": 0.95,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 11,
+      "Name": "ground",
+      "Components": [
+        {
+          "Translation": [
+            77,
+            0.5,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            38,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/tiles/stone.png",
+          "TilingFactor": 38,
+          "SortOrder": 8,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "BodyType": "Static",
+          "FixedRotation": true,
+          "GravityScale": 1,
+          "IsBullet": false,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.5,
+            0.5
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 0,
+          "Friction": 0.95,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 12,
+      "Name": "parallax-far",
+      "Components": [
+        {
+          "Translation": [
+            35.679985,
+            3.2,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            32,
+            8.8,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/bg/far.png",
+          "TilingFactor": 1,
+          "SortOrder": -30,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "Kind": "parallax",
+          "Factor": 0.12,
+          "Anchor": 48,
+          "BaseY": 3.2,
+          "Amount": 0,
+          "ImageKey": "parallax_far",
+          "Taken": false,
+          "Name": "PropComponent"
+        }
+      ]
+    },
+    {
+      "Id": 13,
+      "Name": "parallax-mid",
+      "Components": [
+        {
+          "Translation": [
+            39.319992,
+            3.2,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            30,
+            8.8,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/bg/mid.png",
+          "TilingFactor": 1,
+          "SortOrder": -20,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "Kind": "parallax",
+          "Factor": 0.38,
+          "Anchor": 48,
+          "BaseY": 3.2,
+          "Amount": 0,
+          "ImageKey": "parallax_mid",
+          "Taken": false,
+          "Name": "PropComponent"
+        }
+      ]
+    },
+    {
+      "Id": 14,
+      "Name": "parallax-near",
+      "Components": [
+        {
+          "Translation": [
+            42.679993,
+            1.2,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            28,
+            3.2,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/bg/near.png",
+          "TilingFactor": 1,
+          "SortOrder": -10,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "Kind": "parallax",
+          "Factor": 0.62,
+          "Anchor": 48,
+          "BaseY": 1.2,
+          "Amount": 0,
+          "ImageKey": "parallax_near",
+          "Taken": false,
+          "Name": "PropComponent"
+        }
+      ]
+    },
+    {
+      "Id": 15,
+      "Name": "ladder",
+      "Components": [
+        {
+          "Translation": [
+            7.6499996,
+            3.8,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.55,
+            3.6,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/props/ladder.png",
+          "TilingFactor": 1,
+          "SortOrder": 14,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "Kind": "ladder",
+          "W": 0.9,
+          "H": 3.6,
+          "Name": "ZoneComponent"
+        }
+      ]
+    },
+    {
+      "Id": 16,
+      "Name": "puddle",
+      "Components": [
+        {
+          "Translation": [
+            21.6,
+            2.225,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            3.2,
+            0.45,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/props/puddle.png",
+          "TilingFactor": 1,
+          "SortOrder": 14,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "Kind": "puddle",
+          "W": 3.2,
+          "H": 0.45,
+          "Name": "ZoneComponent"
+        }
+      ]
+    },
+    {
+      "Id": 17,
+      "Name": "banner",
+      "Components": [
+        {
+          "Translation": [
+            12,
+            4.95,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.75,
+            1.9,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/props/banner.png",
+          "TilingFactor": 1,
+          "SortOrder": 18,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "Kind": "banner",
+          "Factor": 0,
+          "Anchor": 0,
+          "BaseY": 0,
+          "Amount": 0,
+          "ImageKey": "banner",
+          "Taken": false,
+          "Name": "PropComponent"
+        }
+      ]
+    },
+    {
+      "Id": 18,
+      "Name": "shield",
+      "Components": [
+        {
+          "Translation": [
+            14.2,
+            4.475,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.7,
+            0.95,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/props/shield.png",
+          "TilingFactor": 1,
+          "SortOrder": 18,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "Kind": "shield",
+          "Factor": 0,
+          "Anchor": 0,
+          "BaseY": 0,
+          "Amount": 0,
+          "ImageKey": "shield",
+          "Taken": false,
+          "Name": "PropComponent"
+        }
+      ]
+    },
+    {
+      "Id": 19,
+      "Name": "gate",
+      "Components": [
+        {
+          "Translation": [
+            58.6,
+            3.7,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            2.4,
+            3.4,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/props/gate.png",
+          "TilingFactor": 1,
+          "SortOrder": 18,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "Kind": "gate",
+          "Factor": 0,
+          "Anchor": 0,
+          "BaseY": 0,
+          "Amount": 0,
+          "ImageKey": "gate",
+          "Taken": false,
+          "Name": "PropComponent"
+        }
+      ]
+    },
+    {
+      "Id": 20,
+      "Name": "banner",
+      "Components": [
+        {
+          "Translation": [
+            72,
+            2.95,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.75,
+            1.9,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/props/banner.png",
+          "TilingFactor": 1,
+          "SortOrder": 18,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "Kind": "banner",
+          "Factor": 0,
+          "Anchor": 0,
+          "BaseY": 0,
+          "Amount": 0,
+          "ImageKey": "banner",
+          "Taken": false,
+          "Name": "PropComponent"
+        }
+      ]
+    },
+    {
+      "Id": 21,
+      "Name": "shield",
+      "Components": [
+        {
+          "Translation": [
+            82,
+            2.475,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.7,
+            0.95,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/props/shield.png",
+          "TilingFactor": 1,
+          "SortOrder": 18,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "Kind": "shield",
+          "Factor": 0,
+          "Anchor": 0,
+          "BaseY": 0,
+          "Amount": 0,
+          "ImageKey": "shield",
+          "Taken": false,
+          "Name": "PropComponent"
+        }
+      ]
+    },
+    {
+      "Id": 22,
+      "Name": "shrine-ashmere-shrine",
+      "Components": [
+        {
+          "Translation": [
+            5,
+            2.85,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1.15,
+            1.7,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/props/shrine.png",
+          "TilingFactor": 1,
+          "SortOrder": 17,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "Id": "ashmere-shrine",
+          "Index": 0,
+          "Name": "CheckpointComponent"
+        }
+      ]
+    },
+    {
+      "Id": 23,
+      "Name": "shrine-courtyard-shrine",
+      "Components": [
+        {
+          "Translation": [
+            64,
+            2.85,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1.15,
+            1.7,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/props/shrine.png",
+          "TilingFactor": 1,
+          "SortOrder": 17,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "Id": "courtyard-shrine",
+          "Index": 1,
+          "Name": "CheckpointComponent"
+        }
+      ]
+    },
+    {
+      "Id": 24,
+      "Name": "stingers",
+      "Components": [
+        {
+          "Translation": [
+            26,
+            2.35,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.55,
+            0.55,
+            1
+          ],
+          "Visible": false,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/props/stinger.png",
+          "TilingFactor": 1,
+          "SortOrder": 22,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "Kind": "pickup",
+          "Factor": 0,
+          "Anchor": 0,
+          "BaseY": 0,
+          "Amount": 8,
+          "ImageKey": "coin",
+          "Taken": true,
+          "Name": "PropComponent"
+        }
+      ]
+    },
+    {
+      "Id": 25,
+      "Name": "stingers",
+      "Components": [
+        {
+          "Translation": [
+            56,
+            2.35,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.55,
+            0.55,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/props/stinger.png",
+          "TilingFactor": 1,
+          "SortOrder": 22,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "Kind": "pickup",
+          "Factor": 0,
+          "Anchor": 0,
+          "BaseY": 0,
+          "Amount": 12,
+          "ImageKey": "coin",
+          "Taken": false,
+          "Name": "PropComponent"
+        }
+      ]
+    },
+    {
+      "Id": 26,
+      "Name": "inscription",
+      "Components": [
+        {
+          "Translation": [
+            11,
+            4.7,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.7,
+            0.9,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/props/banner.png",
+          "TilingFactor": 1,
+          "SortOrder": 19,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "Kind": "inscription",
+          "Factor": 0,
+          "Anchor": 0,
+          "BaseY": 0,
+          "Amount": 0,
+          "ImageKey": "inscribe_oath",
+          "Taken": false,
+          "Name": "PropComponent"
+        }
+      ]
+    },
+    {
+      "Id": 27,
+      "Name": "inscription",
+      "Components": [
+        {
+          "Translation": [
+            61,
+            2.7,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.7,
+            0.9,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/props/banner.png",
+          "TilingFactor": 1,
+          "SortOrder": 19,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "Kind": "inscription",
+          "Factor": 0,
+          "Anchor": 0,
+          "BaseY": 0,
+          "Amount": 0,
+          "ImageKey": "inscribe_gate",
+          "Taken": false,
+          "Name": "PropComponent"
+        }
+      ]
+    },
+    {
+      "Id": 28,
+      "Name": "swordsman",
+      "Components": [
+        {
+          "Translation": [
+            17.470661,
+            1.74,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Kind": "swordsman",
+          "Team": 1,
+          "Facing": -1,
+          "HalfW": 0.3,
+          "HalfH": 0.74,
+          "SpawnX": 18,
+          "SpawnY": 2,
+          "VisualId": 29,
+          "Coyote": 0,
+          "JumpBuffer": 0,
+          "Grounded": true,
+          "OnLadder": false,
+          "InPuddle": false,
+          "KnockVx": 0,
+          "Flash": 0,
+          "StingerValue": 6,
+          "Rewarded": false,
+          "Sheet": "swordsman",
+          "Name": "ActorComponent"
+        },
+        {
+          "Current": 55,
+          "Max": 55,
+          "Poise": 22,
+          "PoiseMax": 22,
+          "PoiseDelay": 0,
+          "Name": "HealthComponent"
+        },
+        {
+          "Action": "none",
+          "Frame": 0,
+          "HitDone": false,
+          "Phase2": false,
+          "Cooldown": 0,
+          "Invuln": 0,
+          "Pattern": 0,
+          "Name": "CombatComponent"
+        },
+        {
+          "State": "patrol",
+          "Left": 14.5,
+          "Right": 21.5,
+          "Dir": -1,
+          "Aggro": 7,
+          "Leash": 13,
+          "Name": "AIBrainComponent"
+        }
+      ]
+    },
+    {
+      "Id": 29,
+      "Name": "swordsman.sprite",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1.5,
+            1.85,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Coords": [
+            0,
+            0
+          ],
+          "TexturePath": "Original/characters/swordsman.png",
+          "CellSize": [
+            16,
+            16
+          ],
+          "SpriteSize": [
+            1,
+            1
+          ],
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "SortOrder": 138.26,
+          "TexCoords": [
+            [
+              0.1,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              1
+            ],
+            [
+              0.1,
+              1
+            ]
+          ],
+          "Name": "SubTextureRendererComponent"
+        },
+        {
+          "Clip": "idle",
+          "Frame": 0,
+          "Timer": 0.0326242,
+          "FrameTime": 0.14,
+          "Loop": true,
+          "Sheet": "swordsman",
+          "Name": "Animator2DComponent"
+        },
+        {
+          "ParentId": 28,
+          "Name": "ParentComponent"
+        }
+      ]
+    },
+    {
+      "Id": 30,
+      "Name": "halberdier",
+      "Components": [
+        {
+          "Translation": [
+            44.107693,
+            2.82,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Kind": "halberdier",
+          "Team": 1,
+          "Facing": -1,
+          "HalfW": 0.38,
+          "HalfH": 0.82,
+          "SpawnX": 46,
+          "SpawnY": 2,
+          "VisualId": 31,
+          "Coyote": 0,
+          "JumpBuffer": 0,
+          "Grounded": true,
+          "OnLadder": false,
+          "InPuddle": false,
+          "KnockVx": 0,
+          "Flash": 0,
+          "StingerValue": 10,
+          "Rewarded": false,
+          "Sheet": "halberdier",
+          "Name": "ActorComponent"
+        },
+        {
+          "Current": 110,
+          "Max": 110,
+          "Poise": 50,
+          "PoiseMax": 50,
+          "PoiseDelay": 0,
+          "Name": "HealthComponent"
+        },
+        {
+          "Action": "none",
+          "Frame": 0,
+          "HitDone": false,
+          "Phase2": false,
+          "Cooldown": 0,
+          "Invuln": 0,
+          "Pattern": 0,
+          "Name": "CombatComponent"
+        },
+        {
+          "State": "patrol",
+          "Left": 43.8,
+          "Right": 48.2,
+          "Dir": -1,
+          "Aggro": 7,
+          "Leash": 13,
+          "Name": "AIBrainComponent"
+        }
+      ]
+    },
+    {
+      "Id": 31,
+      "Name": "halberdier.sprite",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1.9,
+            2.1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Coords": [
+            0,
+            0
+          ],
+          "TexturePath": "Original/characters/halberdier.png",
+          "CellSize": [
+            16,
+            16
+          ],
+          "SpriteSize": [
+            1,
+            1
+          ],
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "SortOrder": 137.18,
+          "TexCoords": [
+            [
+              0.1,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              1
+            ],
+            [
+              0.1,
+              1
+            ]
+          ],
+          "Name": "SubTextureRendererComponent"
+        },
+        {
+          "Clip": "idle",
+          "Frame": 0,
+          "Timer": 0.0326242,
+          "FrameTime": 0.14,
+          "Loop": true,
+          "Sheet": "halberdier",
+          "Name": "Animator2DComponent"
+        },
+        {
+          "ParentId": 30,
+          "Name": "ParentComponent"
+        }
+      ]
+    },
+    {
+      "Id": 32,
+      "Name": "swordsman",
+      "Components": [
+        {
+          "Translation": [
+            65.48269,
+            1.74,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Kind": "swordsman",
+          "Team": 1,
+          "Facing": -1,
+          "HalfW": 0.3,
+          "HalfH": 0.74,
+          "SpawnX": 68,
+          "SpawnY": 2,
+          "VisualId": 33,
+          "Coyote": 0,
+          "JumpBuffer": 0,
+          "Grounded": true,
+          "OnLadder": false,
+          "InPuddle": false,
+          "KnockVx": 0,
+          "Flash": 0,
+          "StingerValue": 6,
+          "Rewarded": false,
+          "Sheet": "swordsman",
+          "Name": "ActorComponent"
+        },
+        {
+          "Current": 55,
+          "Max": 55,
+          "Poise": 22,
+          "PoiseMax": 22,
+          "PoiseDelay": 0,
+          "Name": "HealthComponent"
+        },
+        {
+          "Action": "none",
+          "Frame": 0,
+          "HitDone": false,
+          "Phase2": false,
+          "Cooldown": 0,
+          "Invuln": 0,
+          "Pattern": 0,
+          "Name": "CombatComponent"
+        },
+        {
+          "State": "patrol",
+          "Left": 65,
+          "Right": 71,
+          "Dir": -1,
+          "Aggro": 7,
+          "Leash": 13,
+          "Name": "AIBrainComponent"
+        }
+      ]
+    },
+    {
+      "Id": 33,
+      "Name": "swordsman.sprite",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1.5,
+            1.85,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Coords": [
+            0,
+            0
+          ],
+          "TexturePath": "Original/characters/swordsman.png",
+          "CellSize": [
+            16,
+            16
+          ],
+          "SpriteSize": [
+            1,
+            1
+          ],
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "SortOrder": 138.26,
+          "TexCoords": [
+            [
+              0.1,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              1
+            ],
+            [
+              0.1,
+              1
+            ]
+          ],
+          "Name": "SubTextureRendererComponent"
+        },
+        {
+          "Clip": "idle",
+          "Frame": 0,
+          "Timer": 0.0326242,
+          "FrameTime": 0.14,
+          "Loop": true,
+          "Sheet": "swordsman",
+          "Name": "Animator2DComponent"
+        },
+        {
+          "ParentId": 32,
+          "Name": "ParentComponent"
+        }
+      ]
+    },
+    {
+      "Id": 34,
+      "Name": "halberdier",
+      "Components": [
+        {
+          "Translation": [
+            75.31886,
+            2.82,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Kind": "halberdier",
+          "Team": 1,
+          "Facing": -1,
+          "HalfW": 0.38,
+          "HalfH": 0.82,
+          "SpawnX": 76,
+          "SpawnY": 2,
+          "VisualId": 35,
+          "Coyote": 0,
+          "JumpBuffer": 0,
+          "Grounded": true,
+          "OnLadder": false,
+          "InPuddle": false,
+          "KnockVx": 0,
+          "Flash": 0,
+          "StingerValue": 10,
+          "Rewarded": false,
+          "Sheet": "halberdier",
+          "Name": "ActorComponent"
+        },
+        {
+          "Current": 110,
+          "Max": 110,
+          "Poise": 50,
+          "PoiseMax": 50,
+          "PoiseDelay": 0,
+          "Name": "HealthComponent"
+        },
+        {
+          "Action": "none",
+          "Frame": 0,
+          "HitDone": false,
+          "Phase2": false,
+          "Cooldown": 0,
+          "Invuln": 0,
+          "Pattern": 0,
+          "Name": "CombatComponent"
+        },
+        {
+          "State": "patrol",
+          "Left": 73.5,
+          "Right": 78.5,
+          "Dir": -1,
+          "Aggro": 7,
+          "Leash": 13,
+          "Name": "AIBrainComponent"
+        }
+      ]
+    },
+    {
+      "Id": 35,
+      "Name": "halberdier.sprite",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1.9,
+            2.1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Coords": [
+            0,
+            0
+          ],
+          "TexturePath": "Original/characters/halberdier.png",
+          "CellSize": [
+            16,
+            16
+          ],
+          "SpriteSize": [
+            1,
+            1
+          ],
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "SortOrder": 137.18,
+          "TexCoords": [
+            [
+              0.1,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              1
+            ],
+            [
+              0.1,
+              1
+            ]
+          ],
+          "Name": "SubTextureRendererComponent"
+        },
+        {
+          "Clip": "idle",
+          "Frame": 0,
+          "Timer": 0.0326242,
+          "FrameTime": 0.14,
+          "Loop": true,
+          "Sheet": "halberdier",
+          "Name": "Animator2DComponent"
+        },
+        {
+          "ParentId": 34,
+          "Name": "ParentComponent"
+        }
+      ]
+    },
+    {
+      "Id": 36,
+      "Name": "boss",
+      "Components": [
+        {
+          "Translation": [
+            89.452065,
+            2.95,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Kind": "boss",
+          "Team": 1,
+          "Facing": -1,
+          "HalfW": 0.42,
+          "HalfH": 0.95,
+          "SpawnX": 88,
+          "SpawnY": 2,
+          "VisualId": 37,
+          "Coyote": 0,
+          "JumpBuffer": 0,
+          "Grounded": true,
+          "OnLadder": false,
+          "InPuddle": false,
+          "KnockVx": 0,
+          "Flash": 0,
+          "StingerValue": 40,
+          "Rewarded": false,
+          "Sheet": "boss",
+          "Name": "ActorComponent"
+        },
+        {
+          "Current": 260,
+          "Max": 260,
+          "Poise": 80,
+          "PoiseMax": 80,
+          "PoiseDelay": 0,
+          "Name": "HealthComponent"
+        },
+        {
+          "Action": "none",
+          "Frame": 0,
+          "HitDone": false,
+          "Phase2": false,
+          "Cooldown": 0,
+          "Invuln": 0,
+          "Pattern": 0,
+          "Name": "CombatComponent"
+        },
+        {
+          "State": "patrol",
+          "Left": 84,
+          "Right": 92,
+          "Dir": -1,
+          "Aggro": 9,
+          "Leash": 16,
+          "Name": "AIBrainComponent"
+        }
+      ]
+    },
+    {
+      "Id": 37,
+      "Name": "boss.sprite",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            2.2,
+            2.45,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Coords": [
+            0,
+            0
+          ],
+          "TexturePath": "Original/characters/boss.png",
+          "CellSize": [
+            16,
+            16
+          ],
+          "SpriteSize": [
+            1,
+            1
+          ],
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "SortOrder": 137.05,
+          "TexCoords": [
+            [
+              0.1,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              1
+            ],
+            [
+              0.1,
+              1
+            ]
+          ],
+          "Name": "SubTextureRendererComponent"
+        },
+        {
+          "Clip": "idle",
+          "Frame": 0,
+          "Timer": 0.0326242,
+          "FrameTime": 0.14,
+          "Loop": true,
+          "Sheet": "boss",
+          "Name": "Animator2DComponent"
+        },
+        {
+          "ParentId": 36,
+          "Name": "ParentComponent"
+        }
+      ]
+    },
+    {
+      "Id": 38,
+      "Name": "Player",
+      "Components": [
+        {
+          "Translation": [
+            33.75997,
+            2.7949996,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Kind": "player",
+          "Team": 0,
+          "Facing": 1,
+          "HalfW": 0.32,
+          "HalfH": 0.78,
+          "SpawnX": 4,
+          "SpawnY": 2,
+          "VisualId": 39,
+          "Coyote": 0.1,
+          "JumpBuffer": 0,
+          "Grounded": true,
+          "OnLadder": false,
+          "InPuddle": false,
+          "KnockVx": 0,
+          "Flash": 0,
+          "StingerValue": 0,
+          "Rewarded": false,
+          "Sheet": "player",
+          "Name": "ActorComponent"
+        },
+        {
+          "Current": 120,
+          "Max": 120,
+          "Poise": 40,
+          "PoiseMax": 40,
+          "PoiseDelay": 0,
+          "Name": "HealthComponent"
+        },
+        {
+          "Action": "none",
+          "Frame": 0,
+          "HitDone": false,
+          "Phase2": false,
+          "Cooldown": 0,
+          "Invuln": 0,
+          "Pattern": 0,
+          "Name": "CombatComponent"
+        },
+        {
+          "Current": 100,
+          "Max": 100,
+          "RegenDelay": 0,
+          "Name": "StaminaComponent"
+        },
+        {
+          "BodyType": "Dynamic",
+          "FixedRotation": true,
+          "GravityScale": 1,
+          "IsBullet": true,
+          "Velocity": [
+            0,
+            0
+          ],
+          "Name": "RigidBody2DComponent"
+        },
+        {
+          "Size": [
+            0.32,
+            0.78
+          ],
+          "Offset": [
+            0,
+            0
+          ],
+          "Density": 1,
+          "Friction": 0,
+          "Restitution": 0,
+          "RestitutionThreshold": 0.5,
+          "IsTrigger": false,
+          "Name": "BoxCollider2DComponent"
+        }
+      ]
+    },
+    {
+      "Id": 39,
+      "Name": "Player.sprite",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1.6,
+            1.9,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Coords": [
+            0,
+            0
+          ],
+          "TexturePath": "Original/characters/player.png",
+          "CellSize": [
+            16,
+            16
+          ],
+          "SpriteSize": [
+            1,
+            1
+          ],
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "SortOrder": 137.205,
+          "TexCoords": [
+            [
+              0,
+              0
+            ],
+            [
+              0.1,
+              0
+            ],
+            [
+              0.1,
+              1
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "Name": "SubTextureRendererComponent"
+        },
+        {
+          "Clip": "idle",
+          "Frame": 0,
+          "Timer": 0.1334214,
+          "FrameTime": 0.14,
+          "Loop": true,
+          "Sheet": "player",
+          "Name": "Animator2DComponent"
+        },
+        {
+          "ParentId": 38,
+          "Name": "ParentComponent"
+        }
+      ]
+    },
+    {
+      "Id": 40,
+      "Name": "Bloodstain",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0.2,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.9,
+            0.45,
+            1
+          ],
+          "Visible": false,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/props/blood.png",
+          "TilingFactor": 1,
+          "SortOrder": 21,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "Kind": "blood",
+          "Factor": 0,
+          "Anchor": 0,
+          "BaseY": 0,
+          "Amount": 0,
+          "ImageKey": "",
+          "Taken": false,
+          "Name": "PropComponent"
+        }
+      ]
+    },
+    {
+      "Id": 41,
+      "Name": "HpBack",
+      "Components": [
+        {
+          "Translation": [
+            -3.3,
+            3.55,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            2.7,
+            0.28,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.08,
+            0.07,
+            0.08,
+            0.92
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "SortOrder": 2100,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "ParentId": 1,
+          "Name": "ParentComponent"
+        }
+      ]
+    },
+    {
+      "Id": 42,
+      "Name": "HpFill",
+      "Components": [
+        {
+          "Translation": [
+            -3.35,
+            3.55,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            2.5,
+            0.16,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.72,
+            0.16,
+            0.14,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "SortOrder": 2101,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "ParentId": 1,
+          "Name": "ParentComponent"
+        }
+      ]
+    },
+    {
+      "Id": 43,
+      "Name": "StamBack",
+      "Components": [
+        {
+          "Translation": [
+            -3.3,
+            3.18,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            2.7,
+            0.22,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.08,
+            0.07,
+            0.08,
+            0.92
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "SortOrder": 2100,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "ParentId": 1,
+          "Name": "ParentComponent"
+        }
+      ]
+    },
+    {
+      "Id": 44,
+      "Name": "StamFill",
+      "Components": [
+        {
+          "Translation": [
+            -3.35,
+            3.18,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            2.5,
+            0.12,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.78,
+            0.62,
+            0.28,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "SortOrder": 2101,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "ParentId": 1,
+          "Name": "ParentComponent"
+        }
+      ]
+    },
+    {
+      "Id": 45,
+      "Name": "Heart",
+      "Components": [
+        {
+          "Translation": [
+            -5.05,
+            3.55,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.48,
+            0.48,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/hud/heart.png",
+          "TilingFactor": 1,
+          "SortOrder": 2102,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "ParentId": 1,
+          "Name": "ParentComponent"
+        }
+      ]
+    },
+    {
+      "Id": 46,
+      "Name": "Coin",
+      "Components": [
+        {
+          "Translation": [
+            3.15,
+            3.55,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.42,
+            0.42,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/props/stinger.png",
+          "TilingFactor": 1,
+          "SortOrder": 2102,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "ParentId": 1,
+          "Name": "ParentComponent"
+        }
+      ]
+    },
+    {
+      "Id": 47,
+      "Name": "Digit0",
+      "Components": [
+        {
+          "Translation": [
+            3.55,
+            3.55,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.34,
+            0.42,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "SortOrder": 2103,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "ParentId": 1,
+          "Name": "ParentComponent"
+        }
+      ]
+    },
+    {
+      "Id": 48,
+      "Name": "Digit1",
+      "Components": [
+        {
+          "Translation": [
+            3.9299998,
+            3.55,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.34,
+            0.42,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "SortOrder": 2103,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "ParentId": 1,
+          "Name": "ParentComponent"
+        }
+      ]
+    },
+    {
+      "Id": 49,
+      "Name": "Digit2",
+      "Components": [
+        {
+          "Translation": [
+            4.31,
+            3.55,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            0.34,
+            0.42,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": "Original/hud/d8.png",
+          "TilingFactor": 1,
+          "SortOrder": 2103,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "ParentId": 1,
+          "Name": "ParentComponent"
+        }
+      ]
+    },
+    {
+      "Id": 50,
+      "Name": "Banner",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            2.45,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            6.8,
+            0.62,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "TexturePath": "shared/title_bridge.png",
+          "TilingFactor": 1,
+          "SortOrder": 2200,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "ParentId": 1,
+          "Name": "ParentComponent"
+        }
+      ]
+    },
+    {
+      "Id": 51,
+      "Name": "Fade",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            22,
+            14,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.02,
+            0.02,
+            0.03,
+            0
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "SortOrder": 3000,
+          "Name": "SpriteRendererComponent"
+        },
+        {
+          "ParentId": 1,
+          "Name": "ParentComponent"
+        }
+      ]
+    }
+  ]
+}
