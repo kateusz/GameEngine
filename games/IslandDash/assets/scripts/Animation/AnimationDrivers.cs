@@ -6,12 +6,11 @@ public interface IAnimationDriver
     Pose Evaluate(ProceduralAnimatorComponent animator, float dt);
 }
 
-/// <summary>Driver registry. Replace an entry (e.g. with a skeletal or keyframe driver) to change how a kind animates.</summary>
+/// <summary>Driver lookup. Replace an entry (e.g. with a skeletal or keyframe driver) to change how a kind animates.</summary>
 public static class AnimationDrivers
 {
     private static readonly Dictionary<AnimationDriverKind, IAnimationDriver> Drivers = new()
     {
-        [AnimationDriverKind.Static] = new StaticDriver(),
         [AnimationDriverKind.Player] = new PlayerDriver(),
         [AnimationDriverKind.Collectible] = new CollectibleDriver(),
         [AnimationDriverKind.Enemy] = new EnemyDriver(),
@@ -20,8 +19,6 @@ public static class AnimationDrivers
     };
 
     public static IAnimationDriver For(AnimationDriverKind kind) => Drivers[kind];
-
-    public static void Register(AnimationDriverKind kind, IAnimationDriver driver) => Drivers[kind] = driver;
 }
 
 /// <summary>Shared building blocks for the procedural drivers.</summary>
@@ -55,15 +52,6 @@ public static class Procedural
         t = 1f - System.Math.Clamp(t, 0f, 1f);
         return 1f - t * t * t;
     }
-
-    /// <summary>Rest yaw first, then a local spin around Y; common pose for props.</summary>
-    public static Quaternion Yaw(float yaw) => GameMath.YawRotation(yaw);
-}
-
-/// <summary>Follows the owner with the rest pose only.</summary>
-public sealed class StaticDriver : IAnimationDriver
-{
-    public Pose Evaluate(ProceduralAnimatorComponent a, float dt) => Pose.At(Procedural.Yaw(a.RestYaw));
 }
 
 /// <summary>
@@ -191,7 +179,7 @@ public sealed class CollectibleDriver : IAnimationDriver
             a.StartSequence(AnimationEvent.Pop);
 
         a.SpinAngle += a.SpinSpeed * dt;
-        var pose = Pose.At(Procedural.Yaw(a.RestYaw + a.SpinAngle));
+        var pose = Pose.At(GameMath.YawRotation(a.RestYaw + a.SpinAngle));
         pose.Offset = new Vector3(0f, (MathF.Sin(a.Time * BobRate + a.Phase) * 0.5f + 0.5f) * a.BobHeight, 0f);
 
         if (a.Sequence == AnimationEvent.Pop)
@@ -216,7 +204,7 @@ public sealed class PopDriver : IAnimationDriver
         if (a.Consume(AnimationEvent.Squash))
             a.StartSequence(AnimationEvent.Squash);
 
-        var pose = Pose.At(Procedural.Yaw(a.RestYaw));
+        var pose = Pose.At(GameMath.YawRotation(a.RestYaw));
         if (a.Sequence == AnimationEvent.Squash)
         {
             a.SequenceTime += dt;
@@ -238,7 +226,7 @@ public sealed class PopDriver : IAnimationDriver
         a.SequenceTime += dt;
         var t = a.SequenceTime / PopDuration;
         a.SpinAngle += PopSpinRate * dt;
-        pose.Rotation = Procedural.Yaw(a.RestYaw + a.SpinAngle);
+        pose.Rotation = GameMath.YawRotation(a.RestYaw + a.SpinAngle);
         pose.Offset += new Vector3(0f, Procedural.EaseOutCubic(t) * PopRise, 0f);
         var grow = t < 0.25f ? 1f + t * 1.6f : 1.4f * (1f - (t - 0.25f) / 0.75f);
         pose.Scale *= MathF.Max(0f, grow);
@@ -325,7 +313,7 @@ public sealed class PlatformDriver : IAnimationDriver
         if (a.Consume(AnimationEvent.Respawn))
             a.StartSequence(AnimationEvent.Respawn);
 
-        var pose = Pose.At(Procedural.Yaw(a.RestYaw));
+        var pose = Pose.At(GameMath.YawRotation(a.RestYaw));
         if (a.Shake > 0f)
         {
             var t = a.Time * ShakeRate;

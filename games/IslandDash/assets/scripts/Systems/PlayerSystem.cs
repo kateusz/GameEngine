@@ -165,7 +165,6 @@ public class PlayerSystem(Context context, IKeyboardInput keyboard, IMouseInput 
             return;
 
         pc.SpinTime = tuning.SpinDuration;
-        animator.Fire(AnimationEvent.Spin);
         audio.PlaySfx(Sfx.Spin, 0.5f);
     }
 

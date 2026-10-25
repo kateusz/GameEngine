@@ -7,11 +7,7 @@ public readonly record struct Box(Vector3 Min, Vector3 Max)
 
     public Vector3 Center => (Min + Max) * 0.5f;
 
-    public Vector3 HalfExtents => (Max - Min) * 0.5f;
-
     public Box Translate(Vector3 delta) => new(Min + delta, Max + delta);
-
-    public Box Inflate(float amount) => new(Min - new Vector3(amount), Max + new Vector3(amount));
 
     /// <summary>Strict overlap: boxes that only touch (within <paramref name="epsilon"/>) do not overlap.</summary>
     public bool Overlaps(in Box other, float epsilon = 0f) =>

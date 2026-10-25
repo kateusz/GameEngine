@@ -13,7 +13,6 @@ public class PlatformSystem(Context context) : IGameSystem
     private const float FallDistance = 30f;
     private const float SpikeRetractDepth = 0.45f;
     private const float SpikeMoveSpeed = 6f;
-    private const float WaypointArrival = 0.01f;
 
     // Crusher cycle as fractions of its period.
     private const float CrusherHoldUp = 0.45f;
@@ -56,34 +55,8 @@ public class PlatformSystem(Context context) : IGameSystem
         foreach (var (entity, mover) in context.View<MovingPlatformComponent>())
         {
             mover.Time += dt;
-            var target = mover.Waypoints.Count > 1
-                ? mover.Origin + PingPong(mover.Waypoints, mover.Time * mover.Speed)
-                : mover.Origin + mover.Amplitude * MathF.Sin(MathF.Tau * (mover.Time / mover.Period + mover.Phase));
-            MoveTo(entity, target);
+            MoveTo(entity, mover.Origin + mover.Amplitude * MathF.Sin(MathF.Tau * (mover.Time / mover.Period + mover.Phase)));
         }
-    }
-
-    /// <summary>Point at <paramref name="distance"/> along the polyline, bouncing back at the ends.</summary>
-    private static Vector3 PingPong(List<Vector3> points, float distance)
-    {
-        var length = 0f;
-        for (var i = 1; i < points.Count; i++)
-            length += Vector3.Distance(points[i - 1], points[i]);
-        if (length < WaypointArrival)
-            return points[0];
-
-        var d = distance % (2f * length);
-        if (d > length)
-            d = 2f * length - d;
-        for (var i = 1; i < points.Count; i++)
-        {
-            var segment = Vector3.Distance(points[i - 1], points[i]);
-            if (d <= segment)
-                return Vector3.Lerp(points[i - 1], points[i], segment > 0f ? d / segment : 0f);
-            d -= segment;
-        }
-
-        return points[^1];
     }
 
     private void UpdateVanishing(float dt)

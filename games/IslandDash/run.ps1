@@ -16,6 +16,12 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 dotnet build "$GameDir\tools\MeshCook\MeshCook.csproj" @BuildFlags -o $CookOut
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+# Cook into source assets first so editor Play and the staged Runtime share the same siblings.
+$rid = if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "win-arm64" } else { "win-x64" }
+$env:PATH = "$CookOut\runtimes\$rid\native;$env:PATH"
+dotnet "$CookOut\MeshCook.dll" "$GameDir\assets\models"
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
 Copy-Item "$GameOut\GameAssembly.dll", "$GameOut\GameAssembly.pdb", "$GameDir\game.config.json" $Stage -Force
 Get-ChildItem "$GameDir\assets" -Directory | Where-Object { $_.Name -ne "scripts" } | ForEach-Object {
     $target = "$Stage\assets\$($_.Name)"
@@ -23,12 +29,7 @@ Get-ChildItem "$GameDir\assets" -Directory | Where-Object { $_.Name -ne "scripts
     Copy-Item "$($_.FullName)\*" $target -Recurse -Force
 }
 
-# The Runtime loads cooked "<model>.mesh" siblings only; (re)cook any that are missing or stale.
-dotnet "$CookOut\MeshCook.dll" "$Stage\assets\models"
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
 if ($NoRun) { Write-Host "Staged to $Stage"; exit 0 }
-$rid = if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "win-arm64" } else { "win-x64" }
 $env:PATH = "$Stage\runtimes\$rid\native;$env:PATH"
 Push-Location $Stage
 try { dotnet Runtime.dll } finally { Pop-Location }

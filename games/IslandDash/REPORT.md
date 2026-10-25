@@ -28,7 +28,7 @@ Filled in game code, not in the engine:
 | No gamepad or rebinding service. | Keyboard and mouse only, in `GameInput`. |
 | No way for a script to spawn an entity. Scripts only receive the ECS `Context`. | `Spawner` allocates ids from 1,000,000 up and registers the entity. |
 | No asset-root API for files the game reads itself. | `AssetPaths` walks up from the assembly to `game.config.json`. Model, texture, and audio paths are still resolved by the engine. |
-| The standalone player loads cooked `.mesh` siblings only. The editor cooks them; a game that spawns models from code never opens them in a scene, so nothing cooked them. | `tools/MeshCook`, run by `run.sh` / `run.ps1`. |
+| The standalone player and editor Play both load cooked `.mesh` siblings only. The editor UI cooks models opened in a scene; this game spawns models from code, so nothing cooked them. | `tools/MeshCook`, run by `run.sh` / `run.ps1` into `assets/models` (then copied to the stage). |
 | Tonemap has no exposure. A bright HDRI crosses the bloom threshold of 1 and washes the frame out. | The shipped HDR is the Poly Haven file scaled to 55%. |
 
 ## Engine changes
@@ -51,7 +51,7 @@ Two, both required for the standalone player to draw a frame on this Mesa driver
 
 ## Worth animating by hand
 
-The drivers are the list. Replacing one is `AnimationDrivers.Register`. In order of how much it shows:
+The drivers are the list (`AnimationDrivers.For`). In order of how much it shows:
 
 1. Player run: legs and arms, instead of the whole-body bob and waddle.
 2. Player jump, double jump, and landing squash. The events `Jump`, `AirJump`, and `Land` already fire, with `LandImpact` set from the fall speed.
