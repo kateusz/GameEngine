@@ -43,8 +43,6 @@ public sealed class AnimationSystem(Context context, IEntityHierarchy hierarchy)
                 continue;
             var frames = sheet.Get(clip);
             if (frames.Length == 0)
-                frames = sheet.Get("idle");
-            if (frames.Length == 0)
                 continue;
 
             if (animator.Clip != clip)

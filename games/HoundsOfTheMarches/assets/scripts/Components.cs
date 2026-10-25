@@ -6,7 +6,6 @@ namespace Hounds.Marches;
 [SerializableComponent]
 public sealed class MarchGameComponent : IGameComponent
 {
-    public bool Started { get; set; }
     public bool Built { get; set; }
     public string Art { get; set; } = "original";
     public int Stingers { get; set; }
@@ -22,7 +21,6 @@ public sealed class MarchGameComponent : IGameComponent
     public float BannerTimer { get; set; }
     public string ProximityKey { get; set; } = "";
     public float HelpTimer { get; set; } = 6f;
-    public int ActiveCheck { get; set; }
     public float RespawnX { get; set; }
     public float RespawnY { get; set; }
     public string LastRoom { get; set; } = "";
@@ -33,7 +31,6 @@ public sealed class MarchGameComponent : IGameComponent
 
     public IComponent Clone() => new MarchGameComponent
     {
-        Started = Started,
         Built = Built,
         Art = Art,
         Stingers = Stingers,
@@ -49,7 +46,6 @@ public sealed class MarchGameComponent : IGameComponent
         BannerTimer = BannerTimer,
         ProximityKey = ProximityKey,
         HelpTimer = HelpTimer,
-        ActiveCheck = ActiveCheck,
         RespawnX = RespawnX,
         RespawnY = RespawnY,
         LastRoom = LastRoom,

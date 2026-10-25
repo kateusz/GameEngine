@@ -128,7 +128,6 @@ public sealed class FlowSystem(Context context, IKeyboardInput keyboard, IAudio 
                     continue;
                 if (Vector2.Distance(new Vector2(feetX, transform.Translation.Y), new Vector2(shrine.Translation.X, shrine.Translation.Y)) > 1.45f)
                     continue;
-                game.ActiveCheck = checkpoint.Index;
                 game.RespawnX = shrine.Translation.X;
                 game.RespawnY = shrine.Translation.Y - 0.85f;
                 health.Current = health.Max;

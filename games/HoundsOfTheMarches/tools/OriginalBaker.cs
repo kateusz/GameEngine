@@ -1,12 +1,10 @@
-using System.Globalization;
 using System.IO;
-using System.Text;
+using System.Text.Json;
 
 namespace Hounds.Marches;
 
 /// <summary>
-/// Writes the original art pack: thick-outline silhouettes, tiles, parallax, HUD, and placeholder tones.
-/// Re-running keeps existing files unless <paramref name="force"/> is set.
+/// Offline baker for the original art pack. Run via BakeProgram — not loaded in Play.
 /// </summary>
 public static class OriginalAssetBaker
 {
@@ -41,14 +39,6 @@ public static class OriginalAssetBaker
         ("thrustWindup", [3]), ("thrust", [4]),
         ("leap", [7]), ("phase2", [8])
     ];
-
-    public static void Ensure(string assetsRoot, bool force = false)
-    {
-        var marker = Path.Combine(assetsRoot, "Original", "characters", "player.png");
-        if (!force && File.Exists(marker) && File.Exists(Path.Combine(assetsRoot, "audio", "hit.wav")))
-            return;
-        Bake(assetsRoot);
-    }
 
     public static void Bake(string assetsRoot)
     {
@@ -371,71 +361,68 @@ public static class OriginalAssetBaker
 
     private static void WritePackJson(string original)
     {
-        var images = new StringBuilder();
-        void Img(string key, string path)
+        var images = new Dictionary<string, string>
         {
-            if (images.Length > 0)
-                images.Append(",\n");
-            images.Append(CultureInfo.InvariantCulture, $"    \"{key}\": \"{path}\"");
-        }
-
-        Img("mud", "Original/tiles/mud.png");
-        Img("stone", "Original/tiles/stone.png");
-        Img("bridge", "Original/tiles/bridge.png");
-        Img("palisade", "Original/tiles/palisade.png");
-        Img("puddle", "Original/props/puddle.png");
-        Img("ladder", "Original/props/ladder.png");
-        Img("gate", "Original/props/gate.png");
-        Img("shrine", "Original/props/shrine.png");
-        Img("banner", "Original/props/banner.png");
-        Img("shield", "Original/props/shield.png");
-        Img("blood", "Original/props/blood.png");
-        Img("coin", "Original/props/stinger.png");
-        Img("heart", "Original/hud/heart.png");
-        Img("parallax_far", "Original/bg/far.png");
-        Img("parallax_mid", "Original/bg/mid.png");
-        Img("parallax_near", "Original/bg/near.png");
+            ["mud"] = "Original/tiles/mud.png",
+            ["stone"] = "Original/tiles/stone.png",
+            ["bridge"] = "Original/tiles/bridge.png",
+            ["palisade"] = "Original/tiles/palisade.png",
+            ["puddle"] = "Original/props/puddle.png",
+            ["ladder"] = "Original/props/ladder.png",
+            ["gate"] = "Original/props/gate.png",
+            ["shrine"] = "Original/props/shrine.png",
+            ["banner"] = "Original/props/banner.png",
+            ["shield"] = "Original/props/shield.png",
+            ["blood"] = "Original/props/blood.png",
+            ["coin"] = "Original/props/stinger.png",
+            ["heart"] = "Original/hud/heart.png",
+            ["parallax_far"] = "Original/bg/far.png",
+            ["parallax_mid"] = "Original/bg/mid.png",
+            ["parallax_near"] = "Original/bg/near.png"
+        };
         for (var d = 0; d <= 9; d++)
-            Img($"digit{d}", $"Original/hud/d{d}.png");
+            images[$"digit{d}"] = $"Original/hud/d{d}.png";
         foreach (var key in new[]
                  {
                      "title_village", "title_bridge", "title_courtyard", "title_victory", "title_rest",
                      "title_dead", "title_blood", "title_help", "title_phase", "inscribe_oath", "inscribe_gate"
                  })
-            Img(key, "shared/" + key + ".png");
+            images[key] = "shared/" + key + ".png";
 
-        var json = "{\n  \"id\": \"original\",\n  \"sheets\": {\n" +
-                   "    \"player\": \"Original/characters/player.json\",\n" +
-                   "    \"swordsman\": \"Original/characters/swordsman.json\",\n" +
-                   "    \"halberdier\": \"Original/characters/halberdier.json\",\n" +
-                   "    \"boss\": \"Original/characters/boss.json\"\n" +
-                   "  },\n  \"images\": {\n" + images + "\n  }\n}\n";
-        File.WriteAllText(Path.Combine(original, "pack.json"), json);
+        var pack = new
+        {
+            id = "original",
+            sheets = new Dictionary<string, string>
+            {
+                ["player"] = "Original/characters/player.json",
+                ["swordsman"] = "Original/characters/swordsman.json",
+                ["halberdier"] = "Original/characters/halberdier.json",
+                ["boss"] = "Original/characters/boss.json"
+            },
+            images
+        };
+        File.WriteAllText(Path.Combine(original, "pack.json"),
+            JsonSerializer.Serialize(pack, new JsonSerializerOptions { WriteIndented = true }));
     }
 
     private static void WriteSheetJson(string path, string texture)
     {
-        var sb = new StringBuilder();
-        sb.Append("{\n  \"animations\": {\n");
-        for (var i = 0; i < Clips.Length; i++)
+        var sheetW = CellW * Frames;
+        var animations = new Dictionary<string, object[]>();
+        foreach (var clip in Clips)
         {
-            var clip = Clips[i];
-            sb.Append(CultureInfo.InvariantCulture, $"    \"{clip.Name}\": [");
-            for (var f = 0; f < clip.Frames.Length; f++)
+            animations[clip.Name] = clip.Frames.Select(index => (object)new
             {
-                if (f > 0)
-                    sb.Append(", ");
-                var index = clip.Frames[f];
-                sb.Append(CultureInfo.InvariantCulture,
-                    $"{{\"texture\": \"{texture}\", \"x\": {index * CellW}, \"y\": 0, \"w\": {CellW}, \"h\": {CellH}}}");
-            }
-            sb.Append(']');
-            if (i + 1 < Clips.Length)
-                sb.Append(',');
-            sb.Append('\n');
+                texture,
+                u0 = index * CellW / (float)sheetW,
+                u1 = (index + 1) * CellW / (float)sheetW,
+                vBottom = 0f,
+                vTop = 1f
+            }).ToArray();
         }
-        sb.Append("  }\n}\n");
-        File.WriteAllText(path, sb.ToString());
+
+        File.WriteAllText(path,
+            JsonSerializer.Serialize(new { animations }, new JsonSerializerOptions { WriteIndented = true }));
     }
 
     private static void Edge(Raster raster, Rgba color)

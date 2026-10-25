@@ -22,18 +22,16 @@ public sealed class LevelSystem(Context context, ISceneContext scenes) : IGameSy
 
     public void OnUpdate(TimeSpan deltaTime)
     {
-        foreach (var (_, existing) in context.View<MarchGameComponent>())
-            if (existing.Started)
-                return;
+        foreach (var _ in context.View<MarchGameComponent>())
+            return;
         if (scenes.ActiveScene is not { } scene)
             return;
 
         var gameEntity = scene.CreateEntity("March");
-        var game = gameEntity.AddComponent(new MarchGameComponent { Started = true });
+        var game = gameEntity.AddComponent(new MarchGameComponent());
         try
         {
             var root = PathBuilder.AssetsPath;
-            OriginalAssetBaker.Ensure(root);
             game.Art = AssetPack.Select(root, Environment.GetCommandLineArgs());
             game.Pack = AssetPack.Load(root, game.Art);
             var level = LevelData.Load(Path.Combine(root, "levels", "marches.json"));

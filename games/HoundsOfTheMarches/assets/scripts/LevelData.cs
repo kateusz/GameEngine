@@ -5,6 +5,12 @@ namespace Hounds.Marches;
 
 public sealed class LevelData
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        ReadCommentHandling = JsonCommentHandling.Skip
+    };
+
     public float KillY { get; init; }
     public float SpawnX { get; init; }
     public float SpawnY { get; init; }
@@ -23,31 +29,28 @@ public sealed class LevelData
 
     public static LevelData Load(string path)
     {
-        using var doc = JsonDocument.Parse(File.ReadAllText(path));
-        var root = doc.RootElement;
+        var raw = JsonSerializer.Deserialize<LevelFile>(File.ReadAllText(path), JsonOptions)
+                  ?? throw new InvalidOperationException("Empty level: " + path);
         var legend = new Dictionary<char, string>();
-        if (root.TryGetProperty("legend", out var legendEl))
-        {
-            foreach (var prop in legendEl.EnumerateObject())
-                if (prop.Name.Length > 0)
-                    legend[prop.Name[0]] = prop.Value.GetString() ?? "";
-        }
+        foreach (var (key, value) in raw.Legend)
+            if (key.Length > 0)
+                legend[key[0]] = value;
 
         return new LevelData
         {
-            KillY = Num(root, "killY", -3f),
-            SpawnX = root.GetProperty("spawn").GetProperty("x").GetSingle(),
-            SpawnY = root.GetProperty("spawn").GetProperty("y").GetSingle(),
-            Rows = Strings(root, "rows"),
+            KillY = raw.KillY,
+            SpawnX = raw.Spawn.X,
+            SpawnY = raw.Spawn.Y,
+            Rows = raw.Rows,
             Legend = legend,
-            Rooms = RoomsOf(root),
-            Actors = Spawns(root, "actors"),
-            Pickups = Spawns(root, "pickups"),
-            Inscriptions = Spawns(root, "inscriptions"),
-            Checkpoints = Spawns(root, "checkpoints"),
-            Ladders = Spawns(root, "ladders"),
-            Puddles = Spawns(root, "puddles"),
-            Props = Spawns(root, "props")
+            Rooms = raw.Rooms,
+            Actors = Map(raw.Actors),
+            Pickups = Map(raw.Pickups),
+            Inscriptions = Map(raw.Inscriptions),
+            Checkpoints = Map(raw.Checkpoints),
+            Ladders = Map(raw.Ladders),
+            Puddles = Map(raw.Puddles),
+            Props = Map(raw.Props)
         };
     }
 
@@ -55,8 +58,6 @@ public sealed class LevelData
     {
         if (Rooms.Length < 3)
             throw new InvalidOperationException("Level needs village, bridge, and courtyard.");
-        if (Rooms.Length - 1 < 2)
-            throw new InvalidOperationException("Level needs two room transitions.");
         var kinds = Actors.Select(a => a.Kind).ToHashSet(StringComparer.Ordinal);
         foreach (var need in new[] { "swordsman", "halberdier", "boss" })
             if (!kinds.Contains(need))
@@ -67,49 +68,39 @@ public sealed class LevelData
             throw new InvalidOperationException("Level row is too short for a multi-screen march.");
     }
 
-    private static RoomInfo[] RoomsOf(JsonElement root)
+    private static Spawn[] Map(SpawnFile[] items) =>
+        items.Select(s => new Spawn(s.Kind, s.X, s.Y, s.W, s.H, s.Amount, s.Text)).ToArray();
+
+    private sealed class LevelFile
     {
-        if (!root.TryGetProperty("rooms", out var arr))
-            return [];
-        var list = new List<RoomInfo>();
-        foreach (var el in arr.EnumerateArray())
-            list.Add(new RoomInfo
-            {
-                Id = el.GetProperty("id").GetString() ?? "",
-                MinX = el.GetProperty("minX").GetSingle(),
-                MaxX = el.GetProperty("maxX").GetSingle(),
-                CamMin = el.GetProperty("camMin").GetSingle(),
-                CamMax = el.GetProperty("camMax").GetSingle(),
-                CamY = el.GetProperty("camY").GetSingle(),
-                Title = el.GetProperty("title").GetString() ?? ""
-            });
-        return list.ToArray();
+        public float KillY { get; set; } = -3f;
+        public SpawnPoint Spawn { get; set; } = new();
+        public Dictionary<string, string> Legend { get; set; } = new();
+        public string[] Rows { get; set; } = [];
+        public RoomInfo[] Rooms { get; set; } = [];
+        public SpawnFile[] Actors { get; set; } = [];
+        public SpawnFile[] Pickups { get; set; } = [];
+        public SpawnFile[] Inscriptions { get; set; } = [];
+        public SpawnFile[] Checkpoints { get; set; } = [];
+        public SpawnFile[] Ladders { get; set; } = [];
+        public SpawnFile[] Puddles { get; set; } = [];
+        public SpawnFile[] Props { get; set; } = [];
     }
 
-    private static Spawn[] Spawns(JsonElement root, string name)
+    private sealed class SpawnPoint
     {
-        if (!root.TryGetProperty(name, out var arr))
-            return [];
-        var list = new List<Spawn>();
-        foreach (var el in arr.EnumerateArray())
-            list.Add(new Spawn(
-                el.TryGetProperty("kind", out var k) ? k.GetString() ?? "" : "",
-                el.TryGetProperty("x", out var x) ? x.GetSingle() : 0,
-                el.TryGetProperty("y", out var y) ? y.GetSingle() : 0,
-                el.TryGetProperty("w", out var w) ? w.GetSingle() : 1,
-                el.TryGetProperty("h", out var h) ? h.GetSingle() : 1,
-                el.TryGetProperty("amount", out var a) ? a.GetInt32() : 0,
-                el.TryGetProperty("text", out var t) ? t.GetString() ?? "" : ""));
-        return list.ToArray();
+        public float X { get; set; }
+        public float Y { get; set; }
     }
 
-    private static string[] Strings(JsonElement root, string name)
+    private sealed class SpawnFile
     {
-        if (!root.TryGetProperty(name, out var arr))
-            return [];
-        return arr.EnumerateArray().Select(e => e.GetString() ?? "").ToArray();
+        public string Kind { get; set; } = "";
+        public float X { get; set; }
+        public float Y { get; set; }
+        public float W { get; set; } = 1f;
+        public float H { get; set; } = 1f;
+        public int Amount { get; set; }
+        public string Text { get; set; } = "";
     }
-
-    private static float Num(JsonElement root, string name, float fallback) =>
-        root.TryGetProperty(name, out var el) ? el.GetSingle() : fallback;
 }
