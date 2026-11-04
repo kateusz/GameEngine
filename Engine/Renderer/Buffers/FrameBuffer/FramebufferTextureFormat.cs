@@ -9,5 +9,7 @@ public enum FrameBufferTextureFormat
     DEPTH24STENCIL8 = 4,
     Depth = DEPTH24STENCIL8,
     DepthComponent = 5,
-    DepthCubemap = 6
+    DepthCubemap = 6,
+    /// <summary>Depth that a shader can sample. Not a shadow compare map.</summary>
+    SampledDepth = 7
 }

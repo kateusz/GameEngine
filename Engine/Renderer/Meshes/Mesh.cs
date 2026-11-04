@@ -53,8 +53,10 @@ public class Mesh : IDisposable
     public Texture2D? EmissiveTexture { get; set; }
     public bool HasEmissiveMap => EmissiveTexture != null;
     public bool AlphaCutout { get; set; }
+    public bool AlphaBlend { get; set; }
     public bool DoubleSided { get; set; }
     public float AlphaCutoff { get; set; } = 0.5f;
+    public float Opacity { get; set; } = 1f;
 
     public bool HasDiffuseMap => DiffuseTexture != null;
     public bool HasNormalMap => NormalTexture != null;

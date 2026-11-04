@@ -30,8 +30,10 @@ internal sealed class SourceSubmesh
     public string MetallicRoughnessPath { get; set; } = string.Empty;
     public string OcclusionPath { get; set; } = string.Empty;
     public bool AlphaCutout { get; set; }
+    public bool AlphaBlend { get; set; }
     public bool DoubleSided { get; set; }
     public float AlphaCutoff { get; set; } = 0.5f;
+    public float Opacity { get; set; } = 1f;
 }
 
 internal sealed class SourceNode

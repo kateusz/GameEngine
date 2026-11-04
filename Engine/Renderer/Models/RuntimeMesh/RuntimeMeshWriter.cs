@@ -130,8 +130,11 @@ internal static class RuntimeMeshWriter
             surface |= RuntimeMeshFormat.SurfaceAlphaCutout;
         if (mesh.DoubleSided)
             surface |= RuntimeMeshFormat.SurfaceDoubleSided;
+        if (mesh.AlphaBlend)
+            surface |= RuntimeMeshFormat.SurfaceAlphaBlend;
         AppendUInt32(body, surface);
         AppendSingle(body, mesh.AlphaCutoff);
+        AppendSingle(body, mesh.Opacity);
         AppendVector3(body, mesh.Emissive);
         AppendString(body, mesh.EmissivePath);
 

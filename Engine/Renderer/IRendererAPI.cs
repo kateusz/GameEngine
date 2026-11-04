@@ -27,6 +27,11 @@ public interface IRendererAPI
     void SetLineWidth(float width);
     void SetDepthTest(bool enabled);
     void SetBlend(bool enabled);
+    /// <summary>
+    /// Blend only color attachment 0. The entity-id attachment is an integer buffer;
+    /// global GL_BLEND makes the draw fail on that target.
+    /// </summary>
+    void SetColorAttachmentBlend(bool enabled);
     /// <summary>One, One for the emissive add. False restores SrcAlpha, OneMinusSrcAlpha.</summary>
     void SetAdditiveBlend(bool enabled);
     /// <summary>When false, depth buffer is not written (transparent pass).</summary>
@@ -38,4 +43,5 @@ public interface IRendererAPI
     void SetViewport(int x, int y, uint width, uint height);
     void Init();
     int GetError();
+    int MaxFragmentTextureImageUnits { get; }
 }

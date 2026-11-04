@@ -8,6 +8,12 @@ public interface IGraphics3D : IGraphics
 {
     void BeginScene(in SceneView view);
     void EndScene();
+    void SetSceneTargetSize(uint width, uint height);
+    uint SceneTargetWidth { get; }
+    uint SceneTargetHeight { get; }
+    void BeginNormalPass(Matrix4x4 view, Matrix4x4 viewProjection);
+    void EndNormalPass();
+    void SetSsao(uint textureId, float strength);
     void DrawCube(Matrix4x4 transform, Vector4 color, int entityId = -1, Texture2D? texture = null,
         float tilingFactor = 1.0f, float metallic = 0f, float roughness = 0.5f, float ao = 1f,
         Vector3 emissive = default);

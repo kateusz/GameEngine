@@ -43,8 +43,10 @@ public class PbrImportTests
         var model = importer.ImportSource(path);
         model.ShouldNotBeNull();
         var mesh = model!.Submeshes[0];
-        mesh.AlphaCutout.ShouldBeTrue();
+        mesh.AlphaCutout.ShouldBeFalse();
+        mesh.AlphaBlend.ShouldBeTrue();
         mesh.DoubleSided.ShouldBeTrue();
+        mesh.Opacity.ShouldBe(1f, 0.001f);
         mesh.AlphaCutoff.ShouldBe(0.5f, 0.001f);
         mesh.Emissive.ShouldBe(Vector3.Zero);
     }
@@ -53,9 +55,11 @@ public class PbrImportTests
     public void UsesAlphaCutout_MaskAndBlend()
     {
         AssimpModelImporter.UsesAlphaCutout("MASK").ShouldBeTrue();
-        AssimpModelImporter.UsesAlphaCutout("BLEND").ShouldBeTrue();
+        AssimpModelImporter.UsesAlphaCutout("BLEND").ShouldBeFalse();
         AssimpModelImporter.UsesAlphaCutout("OPAQUE").ShouldBeFalse();
         AssimpModelImporter.UsesAlphaCutout(null).ShouldBeFalse();
+        AssimpModelImporter.UsesAlphaBlend("BLEND").ShouldBeTrue();
+        AssimpModelImporter.UsesAlphaBlend("MASK").ShouldBeFalse();
     }
 
     [Fact]

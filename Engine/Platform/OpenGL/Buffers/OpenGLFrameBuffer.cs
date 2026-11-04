@@ -207,6 +207,10 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
                     SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _depthAttachment);
                     AttachShadowDepthTexture(_depthAttachment, _specification.Width, _specification.Height, _depthAttachmentSpec);
                     break;
+                case FrameBufferTextureFormat.SampledDepth:
+                    SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, _depthAttachment);
+                    AttachSampledDepthTexture(_depthAttachment, _specification.Width, _specification.Height, _depthAttachmentSpec);
+                    break;
                 case FrameBufferTextureFormat.DepthCubemap:
                     AttachShadowDepthCubemap(_depthAttachment, _specification.Width, _specification.Height);
                     break;
@@ -331,6 +335,7 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
         {
             FrameBufferTextureFormat.DEPTH24STENCIL8 => true,
             FrameBufferTextureFormat.DepthComponent => true,
+            FrameBufferTextureFormat.SampledDepth => true,
             FrameBufferTextureFormat.DepthCubemap => true,
             _ => false
         };
@@ -396,6 +401,32 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
             FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment,
             TextureTarget.Texture2D, id, 0);
         OpenGLDebug.CheckError(SilkNetContext.GL, "FramebufferTexture2D (shadow depth)");
+    }
+
+    private static unsafe void AttachSampledDepthTexture(
+        uint id, uint width, uint height, FrameBufferTextureSpecification spec)
+    {
+        SilkNetContext.GL.TexImage2D(
+            TextureTarget.Texture2D, 0, InternalFormat.DepthComponent,
+            width, height, 0, PixelFormat.DepthComponent, PixelType.Float, (void*)0);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "TexImage2D (sampled depth)");
+
+        var filter = spec.Filter == FrameBufferTextureFilter.Linear
+            ? (int)GLEnum.Linear
+            : (int)GLEnum.Nearest;
+        SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, filter);
+        SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, filter);
+        SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureCompareMode, (int)GLEnum.None);
+        var wrap = spec.Wrap == FrameBufferTextureWrap.ClampToEdge
+            ? (int)GLEnum.ClampToEdge
+            : (int)GLEnum.ClampToBorder;
+        SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, wrap);
+        SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, wrap);
+
+        SilkNetContext.GL.FramebufferTexture2D(
+            FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment,
+            TextureTarget.Texture2D, id, 0);
+        OpenGLDebug.CheckError(SilkNetContext.GL, "FramebufferTexture2D (sampled depth)");
     }
     
     private static GLEnum TextureFormatToGL(FrameBufferTextureFormat format)

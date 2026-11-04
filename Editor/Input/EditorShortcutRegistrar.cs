@@ -77,7 +77,7 @@ public class EditorShortcutRegistrar(
             sceneSettingsPopup.ShowNewScenePopup,
             key: KeyCodes.N, modifiers: KeyModifiers.CtrlOnly);
         Register(shortcutManager, EditorCommandIds.OpenScene, "Open...", "Scene",
-            sceneSettingsPopup.ShowOpenScenePopup, HasProject);
+            sceneSettingsPopup.ShowOpenScenePopup, HasProject, key: KeyCodes.O, modifiers: KeyModifiers.CtrlOnly);
         Register(shortcutManager, EditorCommandIds.SaveScene, "Save", "Scene",
             () => sceneManager.Save(),
             key: KeyCodes.S, modifiers: KeyModifiers.CtrlOnly);

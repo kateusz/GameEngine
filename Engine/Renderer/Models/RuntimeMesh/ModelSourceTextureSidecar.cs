@@ -14,6 +14,7 @@ internal sealed class ModelSourceTextureSidecar(string sourceFilePath)
 
     private readonly string _sourceDirectory = Path.GetDirectoryName(Path.GetFullPath(sourceFilePath)) ?? string.Empty;
     private readonly string _textureFolder = RuntimeMeshPaths.TextureFolderPath(Path.GetFullPath(sourceFilePath));
+    private readonly Dictionary<uint, string> _embeddedByIndex = new();
 
     public string ToRelativeTexturePath(string? resolvedAbsolutePath)
     {
@@ -32,11 +33,22 @@ internal sealed class ModelSourceTextureSidecar(string sourceFilePath)
 
     public unsafe string PersistEmbeddedTexture(Silk.NET.Assimp.Scene* scene, string embeddedRef)
     {
+        if (!TryParseEmbeddedIndex(embeddedRef, out var index) || scene->MNumTextures <= index)
+            return string.Empty;
+
+        // The same *index is referenced by many materials. Re-copying it later in the
+        // import has come back one bit off, and that PNG is what stb rejects.
+        if (_embeddedByIndex.TryGetValue(index, out var cached))
+            return cached;
+
         var absolute = ExtractEmbeddedTexture(scene, embeddedRef, _textureFolder);
         if (absolute == null)
             return string.Empty;
 
-        return ToRelativeTexturePath(absolute);
+        var relative = ToRelativeTexturePath(absolute);
+        if (relative.Length > 0)
+            _embeddedByIndex[index] = relative;
+        return relative;
     }
 
     internal static unsafe string? ExtractEmbeddedTexture(
@@ -44,15 +56,7 @@ internal sealed class ModelSourceTextureSidecar(string sourceFilePath)
         string embeddedRef,
         string targetDirectory)
     {
-        if (embeddedRef.Length < 2 || embeddedRef[0] != '*')
-            return null;
-
-        var indexSpan = embeddedRef.AsSpan(1);
-        var colon = indexSpan.IndexOf(':');
-        if (colon >= 0)
-            indexSpan = indexSpan[..colon];
-
-        if (!uint.TryParse(indexSpan, out var index) || index >= scene->MNumTextures)
+        if (!TryParseEmbeddedIndex(embeddedRef, out var index) || index >= scene->MNumTextures)
             return null;
 
         var tex = scene->MTextures[index];
@@ -71,18 +75,101 @@ internal sealed class ModelSourceTextureSidecar(string sourceFilePath)
         if (byteCount <= 0 || tex->PcData == null)
             return null;
 
-        var bytes = new byte[byteCount];
-        fixed (byte* dst = bytes)
-            Buffer.MemoryCopy(tex->PcData, dst, byteCount, byteCount);
+        byte[]? bytes = null;
+        for (var attempt = 0; attempt < 3 && bytes == null; attempt++)
+        {
+            var copy = new byte[byteCount];
+            fixed (byte* dst = copy)
+                Buffer.MemoryCopy(tex->PcData, dst, byteCount, byteCount);
+            if (IsIntactImage(copy))
+                bytes = copy;
+        }
+
+        if (bytes == null)
+        {
+            Logger.Warning("Embedded texture {Ref} failed image check", embeddedRef);
+            return null;
+        }
 
         var ext = GuessImageExtension(bytes, ReadFormatHint(tex));
         Directory.CreateDirectory(targetDirectory);
-        var hash = Convert.ToHexString(SHA256.HashData(bytes)).AsSpan(0, 16);
-        var cachePath = Path.Combine(targetDirectory, $"{hash}{ext}");
+        var hash = Convert.ToHexString(SHA256.HashData(bytes))[..16];
+        var cachePath = Path.Combine(targetDirectory, hash + ext);
         if (!File.Exists(cachePath))
             File.WriteAllBytes(cachePath, bytes);
 
         return cachePath;
+    }
+
+    internal static bool IsIntactImage(ReadOnlySpan<byte> bytes)
+    {
+        if (bytes.Length < 8 || bytes[0] != 0x89 || bytes[1] != (byte)'P' || bytes[2] != (byte)'N' || bytes[3] != (byte)'G')
+            return true;
+
+        var pos = 8;
+        var sawEnd = false;
+        while (pos + 12 <= bytes.Length)
+        {
+            var length = ReadBigEndian(bytes, pos);
+            if (pos + 12L + length > bytes.Length)
+                return false;
+
+            var crcAt = pos + 8 + (int)length;
+            var expected = ReadBigEndian(bytes, crcAt);
+            if (expected != Crc32(bytes.Slice(pos + 4, 4 + (int)length)))
+                return false;
+
+            if (bytes[pos + 4] == (byte)'I' && bytes[pos + 5] == (byte)'E' &&
+                bytes[pos + 6] == (byte)'N' && bytes[pos + 7] == (byte)'D')
+            {
+                sawEnd = true;
+                break;
+            }
+
+            pos = crcAt + 4;
+        }
+
+        return sawEnd;
+    }
+
+    private static uint ReadBigEndian(ReadOnlySpan<byte> bytes, int pos) =>
+        ((uint)bytes[pos] << 24) | ((uint)bytes[pos + 1] << 16) | ((uint)bytes[pos + 2] << 8) | bytes[pos + 3];
+
+    private static readonly uint[] CrcTable = CreateCrcTable();
+
+    private static uint Crc32(ReadOnlySpan<byte> data)
+    {
+        var crc = 0xFFFFFFFFu;
+        foreach (var b in data)
+            crc = CrcTable[(crc ^ b) & 0xFF] ^ (crc >> 8);
+        return ~crc;
+    }
+
+    private static uint[] CreateCrcTable()
+    {
+        var table = new uint[256];
+        for (uint i = 0; i < table.Length; i++)
+        {
+            var c = i;
+            for (var bit = 0; bit < 8; bit++)
+                c = (c & 1) != 0 ? 0xEDB88320u ^ (c >> 1) : c >> 1;
+            table[i] = c;
+        }
+
+        return table;
+    }
+
+    private static bool TryParseEmbeddedIndex(string embeddedRef, out uint index)
+    {
+        index = 0;
+        if (embeddedRef.Length < 2 || embeddedRef[0] != '*')
+            return false;
+
+        var indexSpan = embeddedRef.AsSpan(1);
+        var colon = indexSpan.IndexOf(':');
+        if (colon >= 0)
+            indexSpan = indexSpan[..colon];
+        return uint.TryParse(indexSpan, out index);
     }
 
     private static string GuessImageExtension(byte[] bytes, string hint)

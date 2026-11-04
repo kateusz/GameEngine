@@ -1,0 +1,403 @@
+{
+  "Scene": "blend",
+  "BackgroundColor": [
+    0.08,
+    0.09,
+    0.11,
+    1
+  ],
+  "Dimension": "ThreeD",
+  "Entities": [
+    {
+      "Id": 1,
+      "Name": "Camera",
+      "Components": [
+        {
+          "Translation": [
+            2.4805574,
+            3.4998083,
+            2.6374264
+          ],
+          "Rotation": [
+            -0.77218366,
+            0.55000776,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "ProjectionType": "Perspective",
+          "OrthographicSize": 10,
+          "OrthographicNear": -1,
+          "OrthographicFar": 1,
+          "PerspectiveFOV": 1.0471976,
+          "PerspectiveNear": 0.1,
+          "PerspectiveFar": 1000,
+          "AspectRatio": 1.7777778,
+          "Primary": true,
+          "FixedAspectRatio": false,
+          "Ssao": false,
+          "SsaoRadius": 0.5,
+          "SsaoStrength": 1,
+          "Name": "CameraComponent"
+        }
+      ]
+    },
+    {
+      "Id": 2,
+      "Name": "Ambient",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.7,
+            0.75,
+            0.8,
+            1
+          ],
+          "Strength": 0.15,
+          "Name": "AmbientLightComponent"
+        }
+      ]
+    },
+    {
+      "Id": 3,
+      "Name": "Sun",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            5,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Direction": [
+            -0.45,
+            -1,
+            -0.2
+          ],
+          "Color": [
+            1,
+            0.97,
+            0.92,
+            1
+          ],
+          "Intensity": 1.4,
+          "Name": "DirectionalLightComponent"
+        }
+      ]
+    },
+    {
+      "Id": 4,
+      "Name": "Floor",
+      "Components": [
+        {
+          "Translation": [
+            0.6,
+            -0.05,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            8,
+            0.1,
+            6
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.72,
+            0.73,
+            0.75,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.9,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 5,
+      "Name": "Backdrop",
+      "Components": [
+        {
+          "Translation": [
+            -0.2,
+            0.85,
+            -1.15
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1.4,
+            1.5,
+            0.25
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            0.92,
+            0.93,
+            0.95,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": null,
+          "MeshIndex": null,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.7,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 6,
+      "Name": "FarBlend",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": "models/blend-card.gltf",
+          "MeshIndex": 0,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.5,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 7,
+      "Name": "NearBlend",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": "models/blend-card.gltf",
+          "MeshIndex": 1,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.5,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    },
+    {
+      "Id": 8,
+      "Name": "Mask",
+      "Components": [
+        {
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
+          "Visible": true,
+          "Name": "TransformComponent"
+        },
+        {
+          "Color": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "TexturePath": null,
+          "TilingFactor": 1,
+          "ModelPath": "models/blend-card.gltf",
+          "MeshIndex": 2,
+          "Pivot": [
+            0,
+            0,
+            0
+          ],
+          "SuppressDraw": false,
+          "FactorsSeeded": false,
+          "Metallic": 0,
+          "Roughness": 0.5,
+          "Ao": 1,
+          "Emissive": [
+            0,
+            0,
+            0
+          ],
+          "EmissiveStrength": 0,
+          "VisibilityZoneEntityId": -1,
+          "Name": "ModelRendererComponent"
+        }
+      ]
+    }
+  ]
+}

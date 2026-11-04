@@ -11,6 +11,12 @@ internal sealed class MeshDrawRecordingGraphics3D : IGraphics3D
     public void DrawMeshInstances(Engine.Renderer.Meshes.Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances) =>
         MeshDraws++;
 
+    public void SetSceneTargetSize(uint width, uint height) { }
+    public uint SceneTargetWidth => 0;
+    public uint SceneTargetHeight => 0;
+    public void BeginNormalPass(Matrix4x4 view, Matrix4x4 viewProjection) { }
+    public void EndNormalPass() { }
+    public void SetSsao(uint textureId, float strength) { }
     public void BeginScene(in SceneView view) { }
     public void EndScene() { }
     public void DrawCube(Matrix4x4 transform, Vector4 color, int entityId = -1,

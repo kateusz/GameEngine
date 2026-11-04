@@ -84,8 +84,10 @@ internal sealed class AssimpModelImporter : IDisposable
                     submesh.MetallicRoughnessPath = material.MetallicRoughnessPath ?? string.Empty;
                     submesh.OcclusionPath = material.OcclusionPath ?? string.Empty;
                     submesh.AlphaCutout = material.AlphaCutout;
+                    submesh.AlphaBlend = material.AlphaBlend;
                     submesh.DoubleSided = material.DoubleSided;
                     submesh.AlphaCutoff = material.AlphaCutoff;
+                    submesh.Opacity = material.Opacity;
                     submesh.Emissive = material.Emissive;
                     submesh.EmissivePath = material.EmissivePath ?? string.Empty;
                     Logger.Debug(
@@ -450,11 +452,11 @@ internal sealed class AssimpModelImporter : IDisposable
         return null;
     }
 
-    // ponytail: glTF BLEND leaves are cut out at 0.5. Sorted alpha blend needs a second pass.
     internal static bool UsesAlphaCutout(string? alphaMode) =>
-        alphaMode != null && (
-            alphaMode.Equals("MASK", StringComparison.OrdinalIgnoreCase) ||
-            alphaMode.Equals("BLEND", StringComparison.OrdinalIgnoreCase));
+        alphaMode != null && alphaMode.Equals("MASK", StringComparison.OrdinalIgnoreCase);
+
+    internal static bool UsesAlphaBlend(string? alphaMode) =>
+        alphaMode != null && alphaMode.Equals("BLEND", StringComparison.OrdinalIgnoreCase);
 
     internal static float ImportedFactor(bool found, float value, float missing)
     {
@@ -486,7 +488,9 @@ internal sealed class AssimpModelImporter : IDisposable
         bool DoubleSided,
         float AlphaCutoff,
         Vector3 Emissive,
-        string? EmissivePath);
+        string? EmissivePath,
+        bool AlphaBlend,
+        float Opacity);
 
     private unsafe MaterialInfo ExtractMaterialInfo(
         Silk.NET.Assimp.Scene* scene,
@@ -499,7 +503,7 @@ internal sealed class AssimpModelImporter : IDisposable
             Logger.Warning(
                 "Material index {MaterialIndex} out of range (MNumMaterials={MaterialCount})",
                 materialIndex, scene->MNumMaterials);
-            return new MaterialInfo(null, null, null, null, 0f, 0.5f, Vector3.One, false, false, 0.5f, Vector3.Zero, null);
+            return new MaterialInfo(null, null, null, null, 0f, 0.5f, Vector3.One, false, false, 0.5f, Vector3.Zero, null, false, 1f);
         }
 
         var aiMaterial = scene->MMaterials[materialIndex];
@@ -542,14 +546,15 @@ internal sealed class AssimpModelImporter : IDisposable
         var occlusionPath = ResolveTexturePath(scene, aiMaterial, TextureType.AmbientOcclusion, directory, textureSidecar);
         var metallicFactor = ReadFactor(aiMaterial, Assimp.MatkeyMetallicFactor, missing: 0f);
         var roughnessFactor = ReadFactor(aiMaterial, Assimp.MatkeyRoughnessFactor, missing: 0.5f);
-        var baseColor = ReadBaseColor(aiMaterial);
+        var (baseColor, opacity) = ReadBaseColor(aiMaterial);
         var alphaMode = ReadMaterialString(aiMaterial, "$mat.gltf.alphaMode");
         var alphaCutout = UsesAlphaCutout(alphaMode);
+        var alphaBlend = UsesAlphaBlend(alphaMode);
         var alphaCutoff = string.Equals(alphaMode, "MASK", StringComparison.OrdinalIgnoreCase)
             ? ReadFactor(aiMaterial, "$mat.gltf.alphaCutoff", missing: 0.5f)
             : 0.5f;
         // Assimp 5.x does not surface glTF doubleSided. Leaf cards (MASK/BLEND) are two-sided.
-        var doubleSided = ReadFactor(aiMaterial, "$mat.twosided", missing: 0f) > 0.5f || alphaCutout;
+        var doubleSided = ReadFactor(aiMaterial, "$mat.twosided", missing: 0f) > 0.5f || alphaCutout || alphaBlend;
         var emissiveColor = new Vector4();
         var hasEmissive = _assimp.GetMaterialColor(aiMaterial, "$clr.emissive", 0, 0, ref emissiveColor) == Return.Success;
         var emissive = ImportedEmissive(hasEmissive, emissiveColor);
@@ -568,7 +573,9 @@ internal sealed class AssimpModelImporter : IDisposable
             doubleSided,
             alphaCutoff,
             emissive,
-            emissivePath);
+            emissivePath,
+            alphaBlend,
+            opacity);
     }
 
     private unsafe string? ReadMaterialString(Material* material, string key)
@@ -587,16 +594,17 @@ internal sealed class AssimpModelImporter : IDisposable
         return ImportedFactor(found, value, missing);
     }
 
-    private unsafe Vector3 ReadBaseColor(Material* material)
+    private unsafe (Vector3 Color, float Opacity) ReadBaseColor(Material* material)
     {
         var color = new Vector4(1f, 1f, 1f, 1f);
         if (_assimp.GetMaterialColor(material, Assimp.MatkeyBaseColor, 0, 0, ref color) != Return.Success)
-            return Vector3.One;
+            return (Vector3.One, 1f);
 
-        return new Vector3(
+        return (new Vector3(
             System.Math.Clamp(color.X, 0f, 1f),
             System.Math.Clamp(color.Y, 0f, 1f),
-            System.Math.Clamp(color.Z, 0f, 1f));
+            System.Math.Clamp(color.Z, 0f, 1f)),
+            ImportedFactor(true, color.W, 1f));
     }
 
     private unsafe string? ResolveTexturePath(

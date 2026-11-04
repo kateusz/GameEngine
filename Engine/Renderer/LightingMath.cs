@@ -7,6 +7,8 @@ internal static class LightingMath
     private const float DirectionEpsilon = 1e-6f;
     public static readonly Vector3 DefaultDirection = new(0, -1, 0);
     public const int MaxPointLights = 8;
+    public const int SsaoKernelSize = 64;
+    public const float SsaoBias = 0.025f;
     public const float MaxEmissive = 16f;
 
     internal static float ClampEmissive(float value) =>
@@ -14,6 +16,40 @@ internal static class LightingMath
 
     public static Vector3 NormalizeDirection(Vector3 direction) =>
         direction.LengthSquared() < DirectionEpsilon ? DefaultDirection : Vector3.Normalize(direction);
+
+    public static Vector3[] CreateSsaoKernel()
+    {
+        var random = new Random(1);
+        var kernel = new Vector3[SsaoKernelSize];
+        for (var i = 0; i < SsaoKernelSize; i++)
+        {
+            var sample = Vector3.Normalize(new Vector3(
+                (float)random.NextDouble() * 2f - 1f,
+                (float)random.NextDouble() * 2f - 1f,
+                (float)random.NextDouble()));
+            sample *= (float)random.NextDouble();
+            var t = i / (float)SsaoKernelSize;
+            kernel[i] = sample * (0.1f + t * t * 0.9f);
+        }
+
+        return kernel;
+    }
+
+    public static Vector4[] CreateSsaoNoise()
+    {
+        var random = new Random(2);
+        var noise = new Vector4[16];
+        for (var i = 0; i < noise.Length; i++)
+        {
+            noise[i] = new Vector4(
+                (float)random.NextDouble() * 2f - 1f,
+                (float)random.NextDouble() * 2f - 1f,
+                0f,
+                0f);
+        }
+
+        return noise;
+    }
 
     public const int ShadowMapResolution = 1024;
 

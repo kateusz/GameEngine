@@ -19,6 +19,14 @@ internal static class EngineShaderPaths
             return (Path.Combine(dir, "fxaa.vert"), Path.Combine(dir, "bloomExtract.frag"));
         if (shader == ShaderId.BloomBlur)
             return (Path.Combine(dir, "fxaa.vert"), Path.Combine(dir, "bloomBlur.frag"));
+        if (shader == ShaderId.ViewNormal)
+            return (Path.Combine(dir, "viewNormal.vert"), Path.Combine(dir, "viewNormal.frag"));
+        if (shader == ShaderId.ViewNormalModel)
+            return (Path.Combine(dir, "viewNormalModel.vert"), Path.Combine(dir, "viewNormal.frag"));
+        if (shader == ShaderId.Ssao)
+            return (Path.Combine(dir, "fxaa.vert"), Path.Combine(dir, "ssao.frag"));
+        if (shader == ShaderId.SsaoBlur)
+            return (Path.Combine(dir, "fxaa.vert"), Path.Combine(dir, "ssaoBlur.frag"));
         if (shader == ShaderId.Emissive)
             return (Path.Combine(dir, "modelShader.vert"), Path.Combine(dir, "emissive.frag"));
 

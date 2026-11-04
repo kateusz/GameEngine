@@ -110,8 +110,15 @@ public sealed class EditorModelLoadService(IModelFactory modelFactory, ITextureF
             if (unique.ContainsKey(key))
                 continue;
 
-            var (data, width, height) = textureFactory.Decode(absolute, sRgb);
-            unique[key] = new DecodedTexture(absolute, sRgb, data, width, height);
+            try
+            {
+                var (data, width, height) = textureFactory.Decode(absolute, sRgb);
+                unique[key] = new DecodedTexture(absolute, sRgb, data, width, height);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(ex, "Skipping texture {Path}", absolute);
+            }
         }
 
         return [.. unique.Values];

@@ -82,11 +82,11 @@ OpenGL backend behind `IRendererAPI`. Play mode draws through the **Primary** `C
 - **GPU mesh instancing** — repeated geometry batches into instanced draws
 - **Background loading** — scenes, models, and textures can load off the main thread
 - **Transparent cutouts** — GLB alpha channel; sRGB decode bleeds edge color into transparent texels to reduce filtering halos
-- **Not supported yet** — skinning, animation clips, image-based lighting, transparent mesh sort, spot lights
+- **Not supported yet** — skinning, animation clips, transparent mesh sort, spot lights
 
 #### Lighting
 
-Forward **Cook-Torrance** direct lighting (no IBL). The frame uses the first ambient light, the first directional light, and up to **eight** point lights ([lighting architecture](docs/architecture/lighting.md)).
+Forward **Cook-Torrance** direct lighting, plus image-based fill when a sky capture exists. Screen-space ambient occlusion can darken that indirect term only (`SceneView.Ssao`, off by default). The frame uses the first ambient light, the first directional light, and up to **eight** point lights ([lighting architecture](docs/architecture/lighting.md)).
 
 | Component | Role |
 |-----------|------|
