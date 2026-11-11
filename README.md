@@ -205,6 +205,10 @@ cd Editor && dotnet run
 
 For a fuller walkthrough, see the [Developer Guide](docs/guide/index.md).
 
+### Benchmark
+
+Interactive harness and CLI: [docs/guide/benchmark.md](docs/guide/benchmark.md) (`cd Benchmark && dotnet run`).
+
 ## Project Layout
 
 ```
@@ -212,7 +216,7 @@ For a fuller walkthrough, see the [Developer Guide](docs/guide/index.md).
 ├── ECS/             # Entity Component System framework
 ├── Editor/          # Visual editor
 ├── Runtime/         # Standalone game player
-├── Benchmark/       # 2D/3D/lighting/shadow performance harness
+├── Benchmark/       # 2D/3D/lighting/shadow performance harness (incl. project .scene timing)
 ├── games/           # Sample games
 ├── tests/           # Automated tests
 └── docs/            # Guides and architecture docs

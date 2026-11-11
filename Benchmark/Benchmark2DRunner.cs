@@ -90,6 +90,11 @@ public sealed class Benchmark2DRunner(IGraphics2D graphics2D, SceneFactory scene
             _entityCount = 500;
             _duration = 5f;
         }
+        else if (type == BenchmarkTestType.DrawCallOptimization)
+        {
+            _drawCallsPerFrame = settings.Count;
+            _duration = settings.DurationSeconds;
+        }
         else
         {
             _entityCount = settings.Count;

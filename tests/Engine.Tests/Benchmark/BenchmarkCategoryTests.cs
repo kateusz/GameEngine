@@ -60,6 +60,26 @@ public class BenchmarkCategoryTests : IDisposable
     }
 
     [Fact]
+    public void Guess_project_root_from_scene_path()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "bench-proj-" + Guid.NewGuid());
+        var scenes = Path.Combine(root, "assets", "scenes");
+        Directory.CreateDirectory(scenes);
+        var scene = Path.Combine(scenes, "level.scene");
+        File.WriteAllText(scene, "{}");
+
+        try
+        {
+            BenchmarkProjectAccess.TryGuessProjectRoot(scene, out var found).ShouldBeTrue();
+            found.ShouldBe(root);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Plan_matches_lighting_and_shadow_table()
     {
         ScenePlans.Plan("3D", "Cubes").ShouldBe(new ScenePlan("3D_Cubes", false, false, false, 0, false));

@@ -5,7 +5,7 @@ namespace Benchmark;
 /// <summary>
 /// Aggregates per-frame <see cref="Graphics2DStats"/> samples from a benchmark run.
 /// </summary>
-internal sealed class Graphics2DStatsAggregator
+public sealed class Graphics2DStatsAggregator
 {
     private readonly List<Graphics2DStats> _samples = [];
 

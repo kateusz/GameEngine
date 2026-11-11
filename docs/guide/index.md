@@ -66,6 +66,10 @@ Create a project, add a scene (`Ctrl+N`), attach components, add scripts, press 
 - [Scenes and Prefabs](concepts/scenes-and-prefabs.md) — lifecycle and prefab v2
 - [Cameras and Rendering](concepts/cameras-and-rendering.md) — 2D/3D draw rules, lights, shadows
 
+### Tools
+
+- [Benchmark harness](benchmark.md) — interactive app, project scenes, `perf-run` CLI
+
 ### Architecture
 
 - [Architecture overview](../architecture/README.md)

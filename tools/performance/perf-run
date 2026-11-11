@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# shellcheck source=perf-lib.sh
+source "$ROOT/tools/performance/perf-lib.sh"
+
+PRESET=""
+REPETITION=1
+CONFIGURATION="Release"
+WARMUP=5
+MEASURE=5
+SEED=12345
+COUNT=""
+SCENE=""
+EXTRA=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --preset) PRESET="$2"; shift 2 ;;
+    --scene) SCENE="$2"; shift 2 ;;
+    --count) COUNT="$2"; shift 2 ;;
+    --warmup-seconds) WARMUP="$2"; shift 2 ;;
+    --measure-seconds) MEASURE="$2"; shift 2 ;;
+    --repetitions) REPETITION="$2"; shift 2 ;;
+    --output) OUTPUT="$2"; shift 2 ;;
+    --run-dir) RUN_DIR="$2"; shift 2 ;;
+    --configuration) CONFIGURATION="$2"; shift 2 ;;
+    --project-root|--scene-file)
+      EXTRA+=("$1" "$2"); shift 2 ;;
+    -h|--help)
+      echo "perf-run --preset NAME [--output FILE | --run-dir DIR]  (lista: perf-scenes.json)"
+      exit 0 ;;
+    *) echo "Unknown: $1" >&2; exit 1 ;;
+  esac
+done
+
+[[ -z "$PRESET" && -z "$SCENE" ]] && { echo "Pass --preset NAME (see perf-scenes.json)" >&2; exit 1; }
+
+if [[ -n "$PRESET" ]]; then
+  IFS='|' read -r SCENE PRESET_COUNT PROJ SCENEFILE _DIM <<< "$(perf_resolve_preset "$PRESET")"
+  [[ -z "$COUNT" ]] && COUNT="$PRESET_COUNT"
+  [[ -n "$PROJ" ]] && EXTRA+=(--project-root "$PROJ")
+  [[ -n "$SCENEFILE" ]] && EXTRA+=(--scene-file "$SCENEFILE")
+fi
+
+[[ -z "$COUNT" ]] && COUNT=1000
+[[ -z "${OUTPUT:-}" && -z "${RUN_DIR:-}" ]] && { echo "--output or --run-dir required" >&2; exit 1; }
+
+dotnet build "$ROOT/Benchmark/Benchmark.csproj" -c "$CONFIGURATION" -v q >/dev/null
+DLL="$ROOT/Benchmark/bin/$CONFIGURATION/net10.0/Benchmark.dll"
+COMMON=(--perf-run --scene "$SCENE" --count "$COUNT" --warmup-seconds "$WARMUP" --measure-seconds "$MEASURE" --seed "$SEED" --target-fps 0)
+
+failures=0
+for ((i=1; i<=REPETITION; i++)); do
+  OUT="${RUN_DIR:+$RUN_DIR/repetition-${i}.json}"
+  OUT="${OUT:-$OUTPUT}"
+  mkdir -p "$(dirname "$OUT")"
+  echo "Run $i/$REPETITION → $OUT (${PRESET:-$SCENE})"
+  set +e
+  if ((${#EXTRA[@]})); then
+    dotnet exec "$DLL" "${COMMON[@]}" "${EXTRA[@]}" --output "$OUT"
+  else
+    dotnet exec "$DLL" "${COMMON[@]}" --output "$OUT"
+  fi
+  code=$?
+  set -e
+  [[ $code -ne 0 ]] && failures=$((failures + 1))
+done
+
+[[ $failures -gt 0 ]] && exit 2

@@ -41,7 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Player** — `game.config.json` drives window and graphics settings in the standalone player and published builds.
 - **Publishing** — simplified export (self-contained single-file defaults); host RID selection for OpenAL packaging.
 - **Scripting** — leaner runtime graph (Roslyn not required in the player); simplified `IGameSystem` / hot-reload path.
-- **Benchmarks** — opening screen with four categories (2D, 3D, lighting, shadows). A category times only its own scenes; results stay for the session and compare against a baseline. 3D measures geometry with shadows and point lights off; lighting and shadows reuse one cube grid so the extra cost is the lights or the shadow passes.
+- **Benchmarks** — opening screen with four categories (2D, 3D, lighting, shadows). A category times only its own scenes; results stay for the session and compare against a baseline. 3D measures geometry with shadows and point lights off; lighting and shadows reuse one cube grid so the extra cost is the lights or the shadow passes. 3D can load project `.scene` files (`docs/guide/benchmark.md`).
 
 ### Changed
 

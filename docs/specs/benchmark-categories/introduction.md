@@ -11,6 +11,7 @@ The benchmark opens straight into one panel that only stresses 2D sprites and 2D
 - Results collected during the session stay on screen across that return. A run stopped with Back is not recorded. A run that finishes, or that the user stops, is recorded.
 - 2D keeps the five tests it has today, and it keeps drawing them the way it draws them today.
 - 3D times geometry with shadows off and with no point lights: many cubes, many copies of one mesh, and many distinct meshes.
+- 3D can also time a **project scene**: open a game project like in the editor, pick a `.scene`, preview it live, then run **Project scene** with shadows enabled for real content.
 - Lighting times a fixed grid of cubes under three light setups, with both kinds of shadow off: the sun, one point light, and eight point lights.
 - Shadows times that same grid with the matching shadow on: casters under the sun, one point light that casts, and eight point lights that cast.
 - A directional light with a color no longer always draws a shadow. The view can turn that shadow off. Left alone, the view still draws it.
@@ -46,6 +47,8 @@ The benchmark opens straight into one panel that only stresses 2D sprites and 2D
 **Mesh identity** — The path a model is loaded under. Copies of one path are one mesh. A distinct path is a distinct mesh, even when the bytes are the same template.
 
 **Directional shadow switch** — A choice on the view. On, a colored sun draws its depth pass, as it does today. Off, that pass is skipped and the sun still lights the color pass.
+
+**Project scene** — A `.scene` file from an opened project, deserialized through `ISceneSerializer` and drawn through the same pipeline as synthetic 3D tests. Preview keeps the scene visible without starting the harness clock.
 
 ## Patterns and Principles
 

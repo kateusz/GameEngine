@@ -33,7 +33,8 @@ flowchart TD
 | CastsShadow | Existing field on a point light. false skips that lamp's cubemap even when PointShadows is true |
 | Steady grid | 256 unit cubes. 16 columns, 16 rows, spacing 1.5, centered on the origin, sitting on y = 0 |
 | Template mesh | One small glTF shipped with the benchmark. Copied bytes, distinct paths |
-| Result names | 2D keeps today's names. Others: `3D_Cubes`, `3D_InstancedMesh`, `3D_UniqueMeshes`, `Lighting_Sun`, `Lighting_Point1`, `Lighting_Point8`, `Shadows_Directional`, `Shadows_Point1`, `Shadows_Point8` |
+| Result names | 2D keeps today's names. Others: `3D_Cubes`, `3D_InstancedMesh`, `3D_UniqueMeshes`, `3D_GlbModels`, `Lighting_Sun`, `Lighting_Point1`, `Lighting_Point8`, `Shadows_Directional`, `Shadows_Point1`, `Shadows_Point8` |
+| Project scene | Test id `GlbModels`, result `3D_GlbModels`. See [Benchmark guide](../../guide/benchmark.md) |
 
 ## Step-by-Step Requirements
 
@@ -47,7 +48,9 @@ Add `DirectionalShadows` to the view, default true, after the existing fields. I
 
 The layer keeps the opening screen, the result window, the monitor, and the clock. It holds the active runner and, while a test is running, the run object.
 
-The opening screen shows four buttons and nothing else about scenes. Choosing one sets the active runner and clears any previous run. That runner then draws its buttons. 2D keeps the sliders it has today (entity count, draw calls, texture count, script entities, duration). 3D replaces those with object count (100 to 20000, default 1000) and duration (default 5 seconds). Lighting and shadows show duration only. The grid size is the constant above.
+The opening screen shows four buttons and nothing else about scenes. Choosing one sets the active runner and clears any previous run. That runner then draws its buttons. 2D keeps the sliders it has today (entity count, draw calls, texture count, script entities, duration). 3D shows project open + scene combo (editor-style), object count (100 to 20000, default 1000), and duration (default 5 seconds). Lighting and shadows show duration only. The grid size is the constant above.
+
+While 3D is idle with a scene selected, `IdleTick` renders via a `PipelineBenchmarkRun` with `DurationSeconds == 0` (harness does not auto-stop). **Back** calls `ClearIdle`.
 
 2D's test bodies move onto the 2D runner as they are. Direct sprite drawing stays direct. The physics test still starts and stops the scene runtime. Result names for those five tests stay the strings they produce today.
 
@@ -65,13 +68,17 @@ Before the clock starts, the runner builds the scene. A failed build returns an 
 
 Shared scene facts: ambient light at strength 0.1, no point lights, no directional light, view flags `DirectionalShadows: false` and `PointShadows: false`.
 
-Test ids are `Cubes`, `InstancedMesh`, and `UniqueMeshes`. Result names are `3D_Cubes`, `3D_InstancedMesh`, and `3D_UniqueMeshes`.
+Test ids are `Cubes`, `InstancedMesh`, `UniqueMeshes`, and `GlbModels`. Result names are `3D_Cubes`, `3D_InstancedMesh`, `3D_UniqueMeshes`, and `3D_GlbModels`.
 
 - `Cubes`: `count` entities with a transform and a model renderer whose model path is empty. That empty path is the unit cube.
 - `InstancedMesh`: `count` entities with the template path. One identity, many copies.
 - `UniqueMeshes`: `count` entities, each with its own path, all from the template bytes. If any load returns null, dispose every identity created so far, clear the model cache, and return the error. After a finished or aborted run, clear the model cache so the identities do not stay resident. Cap this slider at 500. The other two sliders run from 100 to 20000. Default count for all three is 1000, and the unique-mesh slider clamps that default down to 500 when that test is selected.
 
 **Why:** Empty model path is the cube the pipeline already draws. The factory's cache key is the path, so copies of one path become one instanced group and distinct paths become distinct groups. Clearing the cache is the cleanup. The whole cache is the benchmark's, and the next test loads what it needs.
+
+#### Project scene (`GlbModels`)
+
+User-facing steps and CLI flags: [Benchmark guide](../../guide/benchmark.md). Implementation: `BenchmarkProjectAccess` + shared `TryLoadProjectScenePipeline`; view flags `DirectionalShadows` and `PointShadows` true (unlike synthetic 3D).
 
 ### 5. Stage lighting and shadows on the steady grid
 

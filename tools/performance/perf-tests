@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+SUITES="$ROOT/tools/performance/test-suites.json"
+CONFIGURATION="Release"
+DIMENSION=""
+
+tolower() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    2d|3d|2D|3D) DIMENSION="$(tolower "$1")"; shift ;;
+    --dimension|-d) DIMENSION="$(tolower "$2")"; shift 2 ;;
+    --configuration|-c) CONFIGURATION="$2"; shift 2 ;;
+    -h|--help)
+      echo "Usage: perf-tests 2d|3d  (tylko dotnet test; benchmark GL: tools/performance/perf 2d|3d)"
+      exit 0 ;;
+    *) echo "Unknown: $1" >&2; exit 1 ;;
+  esac
+done
+
+[[ -z "$DIMENSION" ]] && { echo "Usage: perf-tests 2d|3d" >&2; exit 1; }
+
+read_cfg() {
+  python3 - "$SUITES" "$DIMENSION" "$1" <<'PY'
+import json, sys
+print(json.load(open(sys.argv[1]))[sys.argv[2]].get(sys.argv[3]) or "")
+PY
+}
+
+ENGINE_FILTER="$(read_cfg engineTestsFilter)"
+GFX_FILTER="$(read_cfg graphicsTestsFilter)"
+
+echo "=== perf-tests $DIMENSION ==="
+
+run_test() {
+  local proj="$1" filter="$2"
+  dotnet build "$proj" -c "$CONFIGURATION" -v q >/dev/null
+  dotnet test "$proj" -c "$CONFIGURATION" --no-build --filter "$filter" -v q
+}
+
+FAILED=0
+run_test "$ROOT/tests/Engine.Tests/Engine.Tests.csproj" "$ENGINE_FILTER" || FAILED=1
+
+if [[ "$DIMENSION" == "2d" && -n "$GFX_FILTER" ]]; then
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    echo "Skip Engine.GraphicsTests on macOS"
+  else
+    run_test "$ROOT/tests/Engine.GraphicsTests/Engine.GraphicsTests.csproj" "$GFX_FILTER" || FAILED=1
+  fi
+fi
+
+exit $FAILED

@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# shellcheck source=perf-lib.sh
+source "$ROOT/tools/performance/perf-lib.sh"
+
+DIMENSION=""
+OUT_DIR=""
+WITH_TESTS=0
+WARMUP=5
+MEASURE=5
+
+tolower() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    2d|3d|2D|3D) DIMENSION="$(tolower "$1")"; shift ;;
+    --dimension|-d) DIMENSION="$(tolower "$2")"; shift 2 ;;
+    --output-dir) OUT_DIR="$2"; shift 2 ;;
+    --with-tests) WITH_TESTS=1; shift ;;
+    --warmup-seconds) WARMUP="$2"; shift 2 ;;
+    --measure-seconds) MEASURE="$2"; shift 2 ;;
+    -h|--help)
+      echo "perf 2d|3d [--output-dir DIR] [--with-tests]"
+      exit 0 ;;
+    *) echo "Unknown: $1" >&2; exit 1 ;;
+  esac
+done
+
+[[ -z "$DIMENSION" ]] && { echo "Usage: perf 2d|3d" >&2; exit 1; }
+OUT_DIR="${OUT_DIR:-$ROOT/artifacts/performance/suite-${DIMENSION}-$(date -u +%Y%m%dT%H%M%SZ)}"
+mkdir -p "$OUT_DIR"
+
+PERF_RUN="$ROOT/tools/performance/perf-run"
+chmod +x "$PERF_RUN" "$ROOT/tools/performance/perf-tests"
+
+PRESETS="$(perf_presets_for_dimension "$DIMENSION")"
+[[ -z "$PRESETS" ]] && { echo "No presets for $DIMENSION" >&2; exit 1; }
+
+FAIL=0
+while IFS= read -r preset; do
+  [[ -z "$preset" ]] && continue
+  "$PERF_RUN" --preset "$preset" --warmup-seconds "$WARMUP" --measure-seconds "$MEASURE" \
+    --output "$OUT_DIR/${preset}.json" || FAIL=1
+done <<< "$PRESETS"
+
+[[ $WITH_TESTS -eq 1 ]] && "$ROOT/tools/performance/perf-tests" "$DIMENSION" || FAIL=1
+
+echo "Results: $OUT_DIR"
+exit $FAIL

@@ -64,9 +64,10 @@ public sealed class PipelineBenchmarkRun : BenchmarkRun
 
     public override void Tick(TimeSpan delta)
     {
-        _graphics2D.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1f));
+        _graphics2D.SetClearColor(_scene.BackgroundColor);
         _graphics2D.Clear();
         _graphics3D.ResetStats();
+        _graphics3D.SetSkybox(string.IsNullOrWhiteSpace(_scene.Skybox) ? null : _scene.Skybox);
         _scene.UpdateWorldTransforms();
         SceneRenderPipeline.RenderScene(
             _scene.Context, _graphics2D, _graphics3D, _textures, _models,

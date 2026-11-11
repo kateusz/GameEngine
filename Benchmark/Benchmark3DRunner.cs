@@ -1,4 +1,5 @@
 using System.Numerics;
+using Engine.Events.Input;
 using Engine.Project;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
@@ -10,12 +11,23 @@ using SceneComponents.Camera;
 
 namespace Benchmark;
 
-public sealed class Benchmark3DRunner(SceneFactory sceneFactory, IGraphics2D graphics2D, IGraphics3D graphics3D,
-    ITextureFactory textures, IModelFactory models, ISceneSerializer scenes) : IBenchmarkRunner
+public sealed class Benchmark3DRunner(
+    SceneFactory sceneFactory,
+    IGraphics2D graphics2D,
+    IGraphics3D graphics3D,
+    ITextureFactory textures,
+    IModelFactory models,
+    ISceneSerializer scenes,
+    IProjectContext projectContext) : IBenchmarkRunner
 {
-    const string PlantsScene = @"C:\Users\matku\Documents\game-engine-projects\3d\assets\scenes\rosliny.scene";
     private int _count = 1000;
     private float _duration = 5f;
+    private string _projectPathInput = "";
+    private string? _projectError;
+    private string[] _scenePaths = [];
+    private int _selectedScene = -1;
+    private string? _sceneLoadError;
+    private PipelineBenchmarkRun? _preview;
 
     public string Title => "3D";
     public BenchmarkSettings Settings => new(_count, _duration);
@@ -25,16 +37,31 @@ public sealed class Benchmark3DRunner(SceneFactory sceneFactory, IGraphics2D gra
         new("Cubes", "Cube count"),
         new("InstancedMesh", "Instanced mesh"),
         new("UniqueMeshes", "Unique meshes"),
-        new("GlbModels", "GLB models")
+        new("GlbModels", "Project scene")
     ];
 
     public void DrawControls()
     {
+        DrawProjectAndScenePicker();
+        ImGui.Separator();
         var max = 20000;
         ImGui.DragInt("Object Count", ref _count, 100, 100, max);
         _count = System.Math.Clamp(_count, 100, max);
         ImGui.DragFloat("Test Duration (s)", ref _duration, 0.5f, 1f, 60f);
     }
+
+    public void ClearIdle() => SetPreview(null);
+
+    public bool IdleTick(TimeSpan delta)
+    {
+        if (_preview is null)
+            return false;
+        _preview.Tick(delta);
+        return true;
+    }
+
+    public void IdleInput(InputEvent windowEvent, bool pointerOverUi) =>
+        _preview?.HandleInput(windowEvent, pointerOverUi);
 
     public bool TryCreate(string testId, BenchmarkSettings settings, out BenchmarkRun? run, out string? error)
     {
@@ -49,9 +76,10 @@ public sealed class Benchmark3DRunner(SceneFactory sceneFactory, IGraphics2D gra
             error = $"Unknown test: {testId}";
             return false;
         }
+
         _duration = settings.DurationSeconds;
         if (testId == "GlbModels")
-            return TryCreatePlants(plan, out run, out error);
+            return TryCreateProjectScene(plan, out run, out error);
 
         var count = testId == "UniqueMeshes"
             ? System.Math.Clamp(settings.Count, 100, BenchmarkScenes.UniqueMeshCap)
@@ -119,13 +147,141 @@ public sealed class Benchmark3DRunner(SceneFactory sceneFactory, IGraphics2D gra
         return true;
     }
 
-    bool TryCreatePlants(ScenePlan plan, out BenchmarkRun? run, out string? error)
+    public void SetCliScenePath(string? scenePath)
+    {
+        if (string.IsNullOrWhiteSpace(scenePath))
+            return;
+
+        var full = Path.GetFullPath(scenePath);
+        if (!File.Exists(full))
+            return;
+
+        BenchmarkProjectAccess.TryApplyProjectForSceneFile(full, projectContext);
+        if (projectContext.Root is not null)
+            _projectPathInput = projectContext.Root;
+
+        _scenePaths = [full];
+        _selectedScene = 0;
+    }
+
+    void DrawProjectAndScenePicker()
+    {
+        ImGui.TextUnformatted("Project (like editor Open Project)");
+        if (projectContext.HasProject)
+            ImGui.TextUnformatted($"Open: {projectContext.Root}");
+        else
+            ImGui.TextUnformatted("No project open — open one to list .scene files.");
+
+        ImGui.InputText("Project folder", ref _projectPathInput, 512);
+        if (ImGui.Button("Open project"))
+        {
+            if (BenchmarkProjectAccess.TryOpenProject(_projectPathInput, projectContext, out _projectError))
+            {
+                _projectError = null;
+                _projectPathInput = projectContext.Root ?? _projectPathInput;
+                RefreshSceneList(selectFirst: true);
+            }
+        }
+
+        if (_projectError is not null)
+            ImGui.TextWrapped(_projectError);
+
+        if (_scenePaths.Length == 0)
+        {
+            ImGui.TextUnformatted("No .scene files under assets/scenes.");
+            return;
+        }
+
+        var label = SceneListLabel(_selectedScene >= 0 ? _selectedScene : 0);
+        ImGui.TextUnformatted("Scene:");
+        ImGui.SameLine();
+        if (ImGui.BeginCombo("##benchmarkScene", label))
+        {
+            for (var i = 0; i < _scenePaths.Length; i++)
+            {
+                var selected = i == _selectedScene;
+                if (ImGui.Selectable(SceneListLabel(i), selected))
+                {
+                    _selectedScene = i;
+                    EnableSelectedScene();
+                }
+
+                if (selected)
+                    ImGui.SetItemDefaultFocus();
+            }
+
+            ImGui.EndCombo();
+        }
+
+        if (_sceneLoadError is not null)
+            ImGui.TextWrapped(_sceneLoadError);
+        else if (_preview != null)
+            ImGui.TextUnformatted("Scene is on — orbit / pan / scroll like during a run.");
+    }
+
+    string SceneListLabel(int index)
+    {
+        var full = _scenePaths[index];
+        if (projectContext.Root is not null && full.StartsWith(projectContext.Root, StringComparison.OrdinalIgnoreCase))
+            return Path.GetRelativePath(projectContext.Root, full).Replace('\\', '/');
+        return Path.GetFileName(full);
+    }
+
+    void RefreshSceneList(bool selectFirst)
+    {
+        _scenePaths = BenchmarkProjectAccess.EnumerateScenes(projectContext);
+        if (selectFirst && _scenePaths.Length > 0)
+            _selectedScene = 0;
+        else if (_selectedScene >= _scenePaths.Length)
+            _selectedScene = _scenePaths.Length > 0 ? 0 : -1;
+        EnableSelectedScene();
+    }
+
+    void EnableSelectedScene()
+    {
+        _sceneLoadError = null;
+        SetPreview(null);
+        if (SelectedScenePath() is not { } path)
+            return;
+
+        if (TryLoadProjectScenePipeline(path, durationSeconds: 0f, out var pipeline, out var error))
+            SetPreview(pipeline);
+        else
+            _sceneLoadError = error;
+    }
+
+    bool TryCreateProjectScene(ScenePlan plan, out BenchmarkRun? run, out string? error)
     {
         run = null;
-        var scene = sceneFactory.Create("rosliny", SceneDimension.ThreeD);
+        if (SelectedScenePath() is not { } path)
+        {
+            error = "Open a project, pick a scene, then run Project scene.";
+            return false;
+        }
+
+        SetPreview(null);
+        if (!TryLoadProjectScenePipeline(path, _duration, out var pipeline, out error))
+            return false;
+
+        run = pipeline;
+        return true;
+    }
+
+    bool TryLoadProjectScenePipeline(
+        string path, float durationSeconds, out PipelineBenchmarkRun? pipeline, out string? error)
+    {
+        pipeline = null;
+        error = null;
+        if (!BenchmarkProjectAccess.TryApplyProjectForSceneFile(path, projectContext))
+        {
+            error = "Could not find a project root (assets/) for this scene.";
+            return false;
+        }
+
+        var scene = sceneFactory.Create(Path.GetFileNameWithoutExtension(path), SceneDimension.ThreeD);
         try
         {
-            scenes.Deserialize(scene, PlantsScene);
+            scenes.Deserialize(scene, path);
         }
         catch (Exception ex)
         {
@@ -135,17 +291,25 @@ public sealed class Benchmark3DRunner(SceneFactory sceneFactory, IGraphics2D gra
         }
 
         scene.UpdateWorldTransforms();
-        var pipeline = new PipelineBenchmarkRun(
-            plan.ResultName, _duration, scene,
+        var plan = ScenePlans.Plan("3D", "GlbModels");
+        pipeline = new PipelineBenchmarkRun(
+            plan.ResultName, durationSeconds, scene,
             plan.DirectionalShadows, plan.PointShadows,
             graphics2D, graphics3D, textures, models,
             clearModelCache: false,
             ExpectedShadow.None);
         if (TryPrimaryLook(scene, out var eye, out var focal))
             pipeline.Frame(eye, focal);
-        run = pipeline;
-        error = null;
         return true;
+    }
+
+    string? SelectedScenePath() =>
+        _selectedScene >= 0 && _selectedScene < _scenePaths.Length ? _scenePaths[_selectedScene] : null;
+
+    void SetPreview(PipelineBenchmarkRun? next)
+    {
+        _preview?.Dispose();
+        _preview = next;
     }
 
     static bool TryPrimaryLook(IScene scene, out Vector3 eye, out Vector3 focal)

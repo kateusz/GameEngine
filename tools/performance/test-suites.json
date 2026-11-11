@@ -1,0 +1,12 @@
+{
+  "2d": {
+    "engineTestsFilter": "FullyQualifiedName~Graphics2DStatsTests|FullyQualifiedName~SpriteRendererComponentTests|FullyQualifiedName~SpriteRendererResolvedTexturePathTests|FullyQualifiedName~SubTexture2DTests|FullyQualifiedName~SubTextureRendererTexCoordsTests|FullyQualifiedName~PerfRunOptionsTests|FullyQualifiedName~BenchmarkCategoryTests",
+    "graphicsTestsFilter": "FullyQualifiedName~Graphics2D",
+    "graphicsOnMacOS": false
+  },
+  "3d": {
+    "engineTestsFilter": "FullyQualifiedName~SceneRenderPipeline|FullyQualifiedName~VisibilityZonePipelineTests|FullyQualifiedName~Graphics3DStatsTests|FullyQualifiedName~FrustumTests|FullyQualifiedName~BenchmarkProjectSceneLoadTests|FullyQualifiedName~PerfRunOptionsTests|FullyQualifiedName~BenchmarkCategoryTests",
+    "graphicsTestsFilter": null,
+    "graphicsOnMacOS": false
+  }
+}

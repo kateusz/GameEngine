@@ -75,9 +75,18 @@ public sealed class BenchmarkCamera
     {
         var eye = Eye;
         var view = Matrix4x4.CreateLookAt(eye, Focal, Vector3.UnitY);
+        var skyView = view;
+        skyView.M41 = 0f;
+        skyView.M42 = 0f;
+        skyView.M43 = 0f;
         var projection = Matrix4x4.CreatePerspectiveFieldOfView(
             MathF.PI / 3f, DisplayConfig.DefaultAspectRatio, 0.1f, 500f);
-        return new SceneView(view * projection, eye, pointShadows, DirectionalShadows: directionalShadows);
+        return new SceneView(
+            view * projection,
+            eye,
+            pointShadows,
+            DirectionalShadows: directionalShadows,
+            SkyViewProjection: skyView * projection);
     }
 
     void Orbit(Vector2 delta)

@@ -1,0 +1,45 @@
+{
+  "presets": {
+    "2d-batching": {
+      "scene": "2D:Profiling2D",
+      "count": 5000,
+      "dimension": "2d"
+    },
+    "2d-texture-churn": {
+      "scene": "2D:TextureSwitching",
+      "count": 2500,
+      "dimension": "2d"
+    },
+    "2d-draw-calls": {
+      "scene": "2D:DrawCallOptimization",
+      "count": 8000,
+      "dimension": "2d"
+    },
+    "3d-instancing": {
+      "scene": "3D:InstancedMesh",
+      "count": 1000,
+      "dimension": "3d"
+    },
+    "3d-raw-cubes": {
+      "scene": "3D:Cubes",
+      "count": 1000,
+      "dimension": "3d"
+    },
+    "3d-unique-meshes": {
+      "scene": "3D:UniqueMeshes",
+      "count": 400,
+      "dimension": "3d"
+    },
+    "3d-loaded-scene": {
+      "scene": "3D:GlbModels",
+      "dimension": "3d",
+      "projectRoot": "Editor",
+      "sceneFile": "Editor/bin/Debug/net10.0/3d/assets/scenes/sponza.scene"
+    },
+    "3d-shadows-directional": {
+      "scene": "Shadows:directional",
+      "count": 4000,
+      "dimension": "3d"
+    }
+  }
+}

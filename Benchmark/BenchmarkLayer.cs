@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Numerics;
 using Engine.Core;
 using Engine.Core.Window;
+using Engine.Project;
 using Engine.Events.Input;
 using Engine.Renderer;
 using Engine.Renderer.Models;
@@ -19,11 +20,12 @@ public class BenchmarkLayer(
     SceneFactory sceneFactory,
     ITextureFactory textureFactory,
     IModelFactory modelFactory,
-    ISceneSerializer scenes)
+    ISceneSerializer scenes,
+    IProjectContext projectContext)
     : ILayer
 {
     private readonly Benchmark2DRunner _twoD = new(graphics2D, sceneFactory, textureFactory);
-    private readonly Benchmark3DRunner _threeD = new(sceneFactory, graphics2D, graphics3D, textureFactory, modelFactory, scenes);
+    private readonly Benchmark3DRunner _threeD = new(sceneFactory, graphics2D, graphics3D, textureFactory, modelFactory, scenes, projectContext);
     private readonly BenchmarkGridRunner _lighting = new("Lighting", sceneFactory, graphics2D, graphics3D, textureFactory, modelFactory);
     private readonly BenchmarkGridRunner _shadows = new("Shadows", sceneFactory, graphics2D, graphics3D, textureFactory, modelFactory);
     private readonly ActiveRun _active = new();
@@ -72,9 +74,6 @@ public class BenchmarkLayer(
     {
         _frameTimer.Restart();
         UpdateSystemMetrics();
-        graphics2D.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
-        graphics2D.Clear();
-
         var run = _active.Run;
         if (run != null)
         {
@@ -86,11 +85,16 @@ public class BenchmarkLayer(
             else
                 RecordPipelineStats(graphics3D.GetStats());
         }
+        else if (_category is not Benchmark3DRunner threeD || !threeD.IdleTick(timeSpan))
+        {
+            graphics2D.SetClearColor(new Vector4(0.1f, 0.1f, 0.1f, 1.0f));
+            graphics2D.Clear();
+        }
 
         _frameTimer.Stop();
         RecordFrameTime((float)_frameTimer.Elapsed.TotalMilliseconds);
 
-        if (run != null && _testElapsedTime >= run.DurationSeconds)
+        if (run is { DurationSeconds: > 0f } && _testElapsedTime >= run.DurationSeconds)
             Finish(commit: true);
     }
 
@@ -105,6 +109,8 @@ public class BenchmarkLayer(
     {
         if (_active.Run is PipelineBenchmarkRun pipeline)
             pipeline.HandleInput(windowEvent, ImGui.GetIO().WantCaptureMouse);
+        else if (_category is Benchmark3DRunner threeD)
+            threeD.IdleInput(windowEvent, ImGui.GetIO().WantCaptureMouse);
         else if (_category is Benchmark2DRunner && windowEvent is MouseScrolledEvent scrollEvent)
             _twoD.AdjustZoom(scrollEvent.YOffset);
     }
@@ -132,6 +138,7 @@ public class BenchmarkLayer(
         if (ImGui.Button("Back"))
         {
             Finish(commit: false);
+            _threeD.ClearIdle();
             _category = null;
             _status = null;
             ImGui.End();
@@ -219,32 +226,21 @@ public class BenchmarkLayer(
 
     private BenchmarkResult BuildResult(BenchmarkRun run)
     {
-        var frameTimes = _frameTimes.ToArray();
-        Array.Sort(frameTimes);
         var cpuSamples = _cpuUsageSamples.ToArray();
         var memorySamples = _memorySamples.ToArray();
-
-        var result = new BenchmarkResult
-        {
-            TestName = run.ResultName,
-            TotalFrames = _frameCount,
-            AverageFrameTime = frameTimes.Average(),
-            MinFPS = 1000.0f / frameTimes.Max(),
-            MaxFPS = 1000.0f / frameTimes.Min(),
-            AverageFPS = 1000.0f / frameTimes.Average(),
-            Percentile99 = frameTimes[(int)(frameTimes.Length * 0.99)],
-            TestDuration = _testElapsedTime,
-            AverageCpuUsage = cpuSamples.Length > 0 ? cpuSamples.Average() : 0,
-            MaxCpuUsage = cpuSamples.Length > 0 ? cpuSamples.Max() : 0,
-            MinCpuUsage = cpuSamples.Length > 0 ? cpuSamples.Min() : 0,
-            AverageMemoryUsageMB = memorySamples.Length > 0 ? (long)memorySamples.Average() : 0,
-            MaxMemoryUsageMB = memorySamples.Length > 0 ? memorySamples.Max() : 0,
-            MinMemoryUsageMB = memorySamples.Length > 0 ? memorySamples.Min() : 0
-        };
-
-        _statsAggregator.ApplyTo(result);
-        run.Contribute(result);
-        return result;
+        return BenchmarkResultBuilder.Build(
+            run,
+            _frameTimes.ToArray(),
+            _testElapsedTime,
+            _frameCount,
+            cpuSamples.Length > 0 ? (float)cpuSamples.Average() : 0,
+            cpuSamples.Length > 0 ? cpuSamples.Max() : 0,
+            cpuSamples.Length > 0 ? cpuSamples.Min() : 0,
+            memorySamples.Length > 0 ? (long)memorySamples.Average() : 0,
+            memorySamples.Length > 0 ? memorySamples.Max() : 0,
+            memorySamples.Length > 0 ? memorySamples.Min() : 0,
+            run.SamplesRenderer2D ? _statsAggregator : null,
+            null);
     }
 
     private void RenderResultsWindow()
