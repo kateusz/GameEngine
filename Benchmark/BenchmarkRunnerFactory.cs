@@ -1,5 +1,7 @@
 using Engine.Core.Window;
 using Engine.Project;
+using Engine.Renderer.Buffers;
+using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
@@ -14,6 +16,9 @@ public sealed class BenchmarkRunnerFactory(
     SceneFactory sceneFactory,
     ITextureFactory textures,
     IModelFactory models,
+    IVertexArrayFactory vertexArrays,
+    IVertexBufferFactory vertexBuffers,
+    IIndexBufferFactory indexBuffers,
     ISceneSerializer scenes,
     IProjectContext projectContext,
     IGameWindow window,
@@ -25,9 +30,12 @@ public sealed class BenchmarkRunnerFactory(
     public IBenchmarkRunner? Create(string category) => category switch
     {
         "2D" => TwoD(),
-        "3D" => new Benchmark3DRunner(sceneFactory, graphics2D, graphics3D, textures, models, scenes, projectContext, window, hdrTarget, tonemap),
-        "Lighting" => new BenchmarkGridRunner("Lighting", sceneFactory, graphics2D, graphics3D, textures, models),
-        "Shadows" => new BenchmarkGridRunner("Shadows", sceneFactory, graphics2D, graphics3D, textures, models),
+        "3D" => new Benchmark3DRunner(sceneFactory, graphics2D, graphics3D, textures, models,
+            vertexArrays, vertexBuffers, indexBuffers, scenes, projectContext, window, hdrTarget, tonemap),
+        "Lighting" => new BenchmarkGridRunner("Lighting", sceneFactory, graphics2D, graphics3D, textures, models,
+            vertexArrays, vertexBuffers, indexBuffers),
+        "Shadows" => new BenchmarkGridRunner("Shadows", sceneFactory, graphics2D, graphics3D, textures, models,
+            vertexArrays, vertexBuffers, indexBuffers),
         _ => null
     };
 

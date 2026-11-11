@@ -76,6 +76,12 @@ public static class RenderingConstants
     /// </summary>
     public const int BoolSize = 1;
     
+    /// <summary>
+    /// Maximum bytes uploaded to one vertex buffer (256 MB).
+    /// Batched and combined meshes split before crossing this budget.
+    /// </summary>
+    public const uint MaxVertexBufferBytes = 256 * 1024 * 1024;
+
     // Computed constants
     /// <summary>
     /// Maximum number of vertices that can be batched (MaxQuads * QuadVertexCount).

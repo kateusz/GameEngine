@@ -3,6 +3,8 @@ using Benchmark.Platform;
 using Engine.Core.Window;
 using Engine.Events.Input;
 using Engine.Project;
+using Engine.Renderer.Buffers;
+using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
@@ -19,6 +21,9 @@ public sealed class Benchmark3DRunner(
     IGraphics3D graphics3D,
     ITextureFactory textures,
     IModelFactory models,
+    IVertexArrayFactory vertexArrays,
+    IVertexBufferFactory vertexBuffers,
+    IIndexBufferFactory indexBuffers,
     ISceneSerializer scenes,
     IProjectContext projectContext,
     IGameWindow window,
@@ -147,6 +152,7 @@ public sealed class Benchmark3DRunner(
             plan.ResultName, _duration, scene,
             plan.DirectionalShadows, plan.PointShadows,
             graphics2D, graphics3D, textures, models,
+            vertexArrays, vertexBuffers, indexBuffers,
             clearModelCache: testId == "UniqueMeshes",
             ExpectedShadow.None);
         error = null;
@@ -311,6 +317,7 @@ public sealed class Benchmark3DRunner(
             plan.ResultName, durationSeconds, scene,
             plan.DirectionalShadows, plan.PointShadows,
             graphics2D, graphics3D, textures, models,
+            vertexArrays, vertexBuffers, indexBuffers,
             clearModelCache: false,
             ExpectedShadow.None,
             display: _editorDisplay,

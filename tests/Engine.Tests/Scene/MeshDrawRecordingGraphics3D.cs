@@ -6,24 +6,39 @@ namespace Engine.Tests.Scene;
 
 internal sealed class MeshDrawRecordingGraphics3D : IGraphics3D
 {
+    private Statistics _stats = new();
+
     public int MeshDraws { get; private set; }
     public int ShadowQualitySets { get; private set; }
     public SceneView? LastView { get; private set; }
+    public int InstanceDrawCalls { get; private set; }
+    public int MergedDraws { get; private set; }
+    public List<Engine.Renderer.Meshes.Mesh> DrawnMeshes { get; } = [];
+    public List<Engine.Renderer.Meshes.Mesh> InstanceMeshes { get; } = [];
 
-    public void DrawMeshInstances(Engine.Renderer.Meshes.Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances) =>
+    public void DrawMeshInstances(Engine.Renderer.Meshes.Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances)
+    {
         MeshDraws++;
+        InstanceDrawCalls++;
+        InstanceMeshes.Add(mesh);
+    }
 
     public void BeginScene(in SceneView view) => LastView = view;
     public void EndScene() { }
     public void DrawCube(Matrix4x4 transform, Vector4 color, int entityId = -1,
         Engine.Renderer.Textures.Texture2D? texture = null, float tilingFactor = 1.0f,
-        float metallic = 0f, float roughness = 0.5f, float ao = 1f, Vector3 emissive = default) { }
+        float metallic = 0f, float roughness = 0.5f, float ao = 1f, Vector3 emissive = default)
+    {
+        CubeDraws++;
+    }
+    public int CubeDraws { get; private set; }
     public void DrawMesh(Matrix4x4 transform, Engine.Renderer.Meshes.Mesh mesh, Vector4 tint, int entityId = -1,
-        float metallic = 0f, float roughness = 0.5f, float ao = 1f, Vector3 emissive = default) =>
-        DrawMeshInstances(mesh, [new MeshDrawInstance
-        {
-            Transform = transform, EntityId = entityId, Tint = tint, Emissive = emissive
-        }]);
+        float metallic = 0f, float roughness = 0.5f, float ao = 1f, Vector3 emissive = default)
+    {
+        MeshDraws++;
+        MergedDraws++;
+        DrawnMeshes.Add(mesh);
+    }
     public void SetAmbientLight(Vector3 color, float strength) { }
     public void SetDirectionalLight(Vector3 direction, Vector3 color) { }
     public void SetPointLights(ReadOnlySpan<PointLightData> lights) { }
@@ -44,8 +59,8 @@ internal sealed class MeshDrawRecordingGraphics3D : IGraphics3D
     public bool UseCachedPointShadow(int lightIndex, int entityId) => false;
     public void SetClearColor(Vector4 color) { }
     public void Clear() { }
-    public void ResetStats() { }
-    public Engine.Renderer.Statistics GetStats() => new();
+    public void ResetStats() => _stats = new Statistics();
+    public Engine.Renderer.Statistics GetStats() => _stats;
     public void Init() { }
     public void SetSkybox(string? path) { }
     public void DrawSkybox(Matrix4x4 skyViewProjection) { }

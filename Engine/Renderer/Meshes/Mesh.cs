@@ -42,6 +42,12 @@ public class Mesh : IDisposable
 
     /// <summary>Local positions box captured at <see cref="Initialize"/>, kept after CPU vertices are released.</summary>
     internal Aabb? Bounds { get; private set; }
+
+    /// <summary>CPU vertex snapshot kept for world-space concatenation after upload; null until uploaded.</summary>
+    internal Vertex[]? BakeVertices { get; private set; }
+
+    /// <summary>Index snapshot captured at <see cref="Initialize"/>; null until the mesh is uploaded.</summary>
+    internal uint[]? BakeIndices { get; private set; }
     public Texture2D? DiffuseTexture { get; set; }
     public Texture2D? NormalTexture { get; set; }
     public Texture2D? MetallicRoughnessTexture { get; set; }
@@ -102,6 +108,9 @@ public class Mesh : IDisposable
         _initialized = true;
         VertexCount = Vertices.Count;
         Bounds = Aabb.FromPositions(Vertices);
+
+        BakeVertices = [.. Vertices];
+        BakeIndices = [.. Indices];
 
         Vertices.Clear();
         Vertices.TrimExcess();
