@@ -14,8 +14,10 @@ namespace IslandDash;
 public class LevelSystem(Context context) : IGameSystem
 {
     // Kit unit sizes. The asset manifest scales every model so it matches these (see assets/config/assets.manifest).
-    private const float GroundTileSize = 2f;
+    // Nature-kit ground tiles are 1×1; path strip uses the center columns, grass the sides.
+    private const float GroundTileSize = 1f;
     private const float SpikeTileSize = 1f;
+    private const float PathHalfWidth = 1.5f;
     private static readonly Vector3 CrateHalfExtents = new(0.5f);
     private static readonly Vector3 EnemyHalfExtents = new(0.42f, 0.55f, 0.42f);
     private static readonly Vector3 GoalHalfExtents = new(1.1f, 1.6f, 1.1f);
@@ -133,32 +135,41 @@ public class LevelSystem(Context context) : IGameSystem
             Spawner.AttachAnimatedModel(context, player, manifest.Get("player"), AnimationDriverKind.Player, Vector3.One, facingDownTheTrack);
         }
 
-        /// <summary>Position = top-center. Tiled grass blocks for visuals, one box collider.</summary>
+        /// <summary>
+        /// Position = top-center. One box collider; flat nature-kit tiles on the surface
+        /// (dirt path down the middle, grass on the shoulders — no stretched boxes).
+        /// </summary>
         private void Ground(PieceSpec p)
         {
             var size = p.Vector("size", new Vector3(4f, 1f, 4f));
-            var model = manifest.Get(p.Text("model", "ground_tile"));
+            var pathModel = manifest.Get(p.Text("model", "path"));
+            var edgeModel = manifest.Get(p.Text("edge", "grass_tile"));
+            var pathHalf = p.Float("path", PathHalfWidth);
             CreateSolid("Ground", p.Position, size);
 
             var nx = System.Math.Max(1, (int)MathF.Round(size.X / GroundTileSize));
             var nz = System.Math.Max(1, (int)MathF.Round(size.Z / GroundTileSize));
             var tile = new Vector3(size.X / nx, size.Y, size.Z / nz);
-            var tileScale = new Vector3(tile.X / GroundTileSize, tile.Y, tile.Z / GroundTileSize);
+            // Flat pads: uniform XZ scale only — never extrude into a box.
+            var tileScale = new Vector3(tile.X / GroundTileSize, 1f, tile.Z / GroundTileSize);
             var corner = p.Position - new Vector3(size.X * 0.5f, size.Y, size.Z * 0.5f);
             for (var ix = 0; ix < nx; ix++)
             for (var iz = 0; iz < nz; iz++)
             {
-                var position = corner + new Vector3((ix + 0.5f) * tile.X, 0f, (iz + 0.5f) * tile.Z);
+                var localX = -size.X * 0.5f + (ix + 0.5f) * tile.X;
+                var model = MathF.Abs(localX) <= pathHalf ? pathModel : edgeModel;
+                var position = corner + new Vector3((ix + 0.5f) * tile.X, size.Y, (iz + 0.5f) * tile.Z);
                 Spawner.CreateModel(context, "GroundTile", model, position, tileScale);
             }
         }
 
-        /// <summary>Position = top-center; collider + a static model (no animator).</summary>
+        /// <summary>Position = top-center; collider + a flat surface pad (no animator).</summary>
         private void SolidStatic(PieceSpec p, string modelName)
         {
             var size = p.Vector("size", Vector3.One);
             CreateSolid(modelName, p.Position, size);
-            Spawner.CreateModel(context, modelName, manifest.Get(modelName), p.Position - new Vector3(0f, size.Y, 0f), size);
+            // Nature pads sit on the top face; XZ matches the collider, Y stays unstretched.
+            Spawner.CreateModel(context, modelName, manifest.Get(modelName), p.Position, new Vector3(size.X, 1f, size.Z));
         }
 
         /// <summary>Position = top-center; collider + animated visual (movers / vanish / fallers).</summary>
@@ -166,8 +177,8 @@ public class LevelSystem(Context context) : IGameSystem
         {
             var size = p.Vector("size", Vector3.One);
             var entity = CreateSolid(modelName, p.Position, size);
-            Spawner.AttachAnimatedModel(context, entity, manifest.Get(modelName), AnimationDriverKind.Platform, size,
-                ownerToModelBase: new Vector3(0f, -size.Y, 0f));
+            Spawner.AttachAnimatedModel(context, entity, manifest.Get(modelName), AnimationDriverKind.Platform,
+                new Vector3(size.X, 1f, size.Z));
             return entity;
         }
 
@@ -363,8 +374,9 @@ public class LevelSystem(Context context) : IGameSystem
         private void Deco(PieceSpec p)
         {
             var model = manifest.Get(p.Text("model", "tree"));
-            var scale = p.Float("scale", 1f);
-            Spawner.CreateModel(context, "Deco", model, p.Position, new Vector3(scale), Yaw(p, GameMath.Hash01(p.Line * 31 + (int)(p.Position.Z * 7f)) * MathF.Tau));
+            // size= for non-uniform hills/water; scale= keeps the old uniform shortcut.
+            var size = p.Has("size") ? p.Vector("size", Vector3.One) : new Vector3(p.Float("scale", 1f));
+            Spawner.CreateModel(context, "Deco", model, p.Position, size, Yaw(p, GameMath.Hash01(p.Line * 31 + (int)(p.Position.Z * 7f)) * MathF.Tau));
         }
 
         private void CameraZone(PieceSpec p)

@@ -1,4 +1,4 @@
-# Island Dash â€” level 1
+# Island Dash — level 1
 #
 # One piece per line. '#' comments. "repeat N dx dy dz" stamps N copies.
 # The track runs toward -Z. ground / block / platform / mover / vanish / faller
@@ -8,7 +8,7 @@
 # Kit (keys in brackets are optional):
 #   start x y z                         player spawn, and the first checkpoint
 #   kill_plane x y z                    fall death below y
-#   ground x y z size=w,h,d [model=]    tiled floor, one collider
+#   ground x y z size=w,h,d [model= path= edge=]   dirt path + grass shoulders
 #   block / platform x y z size=w,h,d [model=]
 #   mover x y z size= amp= period= phase= [model=]
 #   vanish x y z size= on= off= phase= [model=]
@@ -20,12 +20,60 @@
 #   crusher x y z [size= height= period= phase=]
 #   enemy x y z [type=patrol|chase] [path=] [speed= chase_speed= radius= leash=]
 #   goal x y z
-#   deco x y z model= [scale= yaw=]     yaw is degrees
+#   deco x y z model= [scale= | size=w,h,d] [yaw=]   yaw is degrees
 #   camzone x y z size= [yaw= pitch= distance= height= fixed=]   angles in degrees
 #   light x y z [color=r,g,b intensity= range=]
 
 kill_plane 0 -8 0
 start 0 0.15 2
+
+# ========== Landscape (Nature Kit — cliffs, river tiles, forests) ==========
+# Left hillside cliffs (scaled organic rock, not boxes)
+deco -10 -2 2 model=cliff size=6,4,8 yaw=90
+deco -12 -3 -16 model=cliff size=8,5,10 yaw=85
+deco -11 -2 -40 model=cliff_slope size=7,4,9 yaw=95
+deco -13 -4 -70 model=cliff size=9,6,12 yaw=90
+deco -12 -3 -100 model=cliff size=8,5,10 yaw=88
+deco -14 -4 -140 model=cliff size=10,7,14 yaw=92
+deco -11 -2 -175 model=cliff_half size=7,4,10 yaw=90
+deco -13 -3 -210 model=cliff size=9,6,12 yaw=85
+deco -12 -4 -250 model=cliff size=8,5,11 yaw=90
+deco -14 -3 -290 model=cliff size=10,6,12 yaw=95
+
+# Terraced grass shelves on the left
+deco -8 -1 -8 model=grass_tile size=4,1,6
+deco -9 -1.5 -30 model=grass_tile size=5,1,8
+deco -8 -1 -55 model=grass_tile size=4,1,6
+deco -10 -2 -90 model=grass_tile size=6,1,10
+deco -9 -1.5 -160 model=grass_tile size=5,1,8
+deco -10 -2 -240 model=grass_tile size=6,1,10
+
+# River valley on the right (channel runs toward -Z, parallel to the track)
+repeat 12 0 0 -8 deco 8 -1.2 4 model=river size=3,1,3
+repeat 10 0 0 -10 deco 11 -1.4 0 model=river_side size=3,1,3
+repeat 8 0 0 -12 deco 14 -1.6 -10 model=river size=3,1,3
+deco 9 -1.2 -50 model=river_bend size=4,1,4 yaw=90
+deco 10 -1.3 -100 model=river size=4,1,6
+deco 12 -1.5 -150 model=river_side size=4,1,5
+deco 9 -1.2 -200 model=river size=4,1,6
+deco 11 -1.4 -250 model=river_bend size=4,1,4 yaw=180
+deco 10 -1.3 -290 model=river size=4,1,6
+
+# Far cliffs / soft mountains (large organic cliffs)
+deco -22 -6 -30 model=cliff size=14,10,16 yaw=90
+deco 24 -8 -50 model=cliff size=12,9,14 yaw=270
+deco -28 -10 -120 model=cliff size=18,14,20 yaw=85
+deco 30 -12 -160 model=cliff size=16,12,18 yaw=275
+deco -26 -8 -220 model=cliff size=15,11,16 yaw=90
+deco 28 -10 -280 model=cliff size=17,13,18 yaw=270
+deco 0 -5 -350 model=cliff size=30,12,14 yaw=0
+
+# Far forests
+repeat 10 0 0 -28 deco 16 -1.4 -8 model=tree_pine scale=1.3
+repeat 10 0 0 -28 deco 18 -1.5 -16 model=tree_oak scale=1.1
+repeat 10 0 0 -28 deco 15 -1.3 -22 model=tree_small scale=1.2
+repeat 8 0 0 -32 deco -16 -2 -20 model=tree_pine scale=1.4
+repeat 8 0 0 -32 deco -18 -2.5 -28 model=tree scale=1.2
 
 # ---------- 1. Meadow ----------
 ground 0 0 -12 size=8,2,30
@@ -33,34 +81,68 @@ repeat 7 0 0 -3 crystal 0 1.05 -1
 repeat 6 0 0 -3.4 crystal 2.5 1.15 -3
 crystal -2.4 1.15 -8
 crystal -2.4 1.15 -15
-block 0 0.9 -9 size=2.2,0.9,2.2
+block 0 0.9 -9 size=2.8,0.55,2.8
 crate -2.5 0 -5 crystals=4
 crate 2.5 0 -12 crystals=4
 crate 0 0 -17 crystals=3
 crate_checkpoint 0 0 -22
+
+repeat 9 0 0 -3 deco -3.7 0 1 model=fence yaw=90
+repeat 9 0 0 -3 deco 3.7 0 1 model=fence yaw=90
+
 deco -3.3 0 1 model=tree yaw=15
 deco 3.3 0 -2 model=tree_pine
+deco -3.5 0 -6 model=tree_oak scale=1.05
+deco 3.6 0 -7 model=tree_detailed scale=0.95
 deco -3.4 0 -14 model=tree_small
+deco 3.5 0 -15 model=tree
+deco -3.6 0 -20 model=tree_pine_round
 deco 3.4 0 -19 model=flowers
 deco -3.2 0 -25 model=rocks
 deco 3.2 0 -25 model=grass
+deco -2.8 0 -3 model=flowers_red
+deco 2.9 0 -4 model=bush_small
+deco -2.7 0 -10 model=mushrooms
+deco 2.8 0 -16 model=flowers_tall
+deco -2.9 0 -21 model=bush
+deco 2.7 0 -23 model=rock_small
 deco 0 0 -26 model=arrow yaw=180 scale=1.3
 light 0 3.2 -22 color=1,0.82,0.45 intensity=2.4 range=8
 
-# ---------- 2. Stepping stones ----------
-platform 0 0 -32 size=3.6,0.55,3.6
-crystal 0 1.35 -32
-platform 0 0.4 -39.2 size=3.2,0.5,3.2
-crystal 0 1.7 -39.2
-platform 1.5 0.15 -46.4 size=3,0.5,3
-crystal 1.5 1.3 -46.4
+# ---------- 2. Stepping stones (irregular grass pads) ----------
+platform 0 0 -32 size=3.6,0.45,3.6
+crystal 0 1.2 -32
+platform 0 0.4 -39.2 size=3.2,0.4,3.2
+crystal 0 1.5 -39.2
+platform 1.5 0.15 -46.4 size=3,0.4,3
+crystal 1.5 1.15 -46.4
+# wooden bridge spanning the last gap approach
+deco 0 -0.05 -43 model=bridge size=3.2,1,2.2 yaw=0
 camzone 0 4 -40 size=16,12,34 yaw=0 pitch=-28 distance=9.4 height=1.8 fixed=1
 
+deco -7 -1.5 -36 model=cliff_half size=5,3,8 yaw=90
+deco 8 -2 -40 model=cliff_slope size=6,3.5,9 yaw=270
+deco -5.5 0 -32 model=tree_pine
+deco 6 0 -34 model=tree
+deco -5.2 0 -42 model=rocks
+deco 6.5 0 -45 model=tree_small
+deco 5.5 0 -48 model=flowers
+deco -5 0 -48 model=bush
+
 # ---------- 3. Moving and vanishing platforms ----------
-mover 0 0 -54 size=2.6,0.45,2.6 amp=0,0,-3.1 period=3.6
-crystal 0 1.45 -54
-vanish 0 0 -63 size=3.2,0.45,3.2 on=2.1 off=1.25 phase=0.2
-crystal 0 1.4 -63
+mover 0 0 -54 size=2.8,0.4,2.8 amp=0,0,-3.1 period=3.6
+crystal 0 1.3 -54
+vanish 0 0 -63 size=3.2,0.4,3.2 on=2.1 off=1.25 phase=0.2
+crystal 0 1.25 -63
+
+deco -7 -1 -54 model=cliff_corner size=5,3,7 yaw=90
+deco 8 -1.5 -58 model=cliff_small size=5,3,8 yaw=270
+deco -5.5 0 -54 model=tree_oak
+deco 6 0 -56 model=tree_pine
+deco -5 0 -62 model=fence_low yaw=90
+deco 5 0 -62 model=fence_low yaw=90
+deco 5.5 0 -66 model=flowers_tall
+deco -5.2 0 -66 model=mushrooms
 
 # ---------- 4. Enemy garden ----------
 ground 0 0 -74 size=8,2,16
@@ -69,28 +151,58 @@ crate 2.3 0 -68 crystals=5
 repeat 4 1.5 0 0 crystal -2.4 1.15 -74
 spikes 0 0 -77 size=8,1,2
 enemy 2 0 -80 type=chase radius=4.5 leash=5 speed=1.4 chase_speed=3.8
+
+repeat 5 0 0 -3 deco -3.7 0 -67 model=fence yaw=90
+repeat 5 0 0 -3 deco 3.7 0 -67 model=fence yaw=90
 deco -3.4 0 -67 model=tree_small
+deco 3.5 0 -69 model=tree_detailed
+deco -3.5 0 -72 model=tree_pine
 deco 3.4 0 -81 model=mushrooms
 deco -3.3 0 -81 model=flowers_tall
+deco -2.8 0 -69 model=flowers
+deco 2.9 0 -75 model=bush
+deco -2.7 0 -79 model=rock_small
+deco 3.6 0 -76 model=tree_cone
 
 # ---------- 5. Falling platforms ----------
-faller -1.2 0 -88 size=3,0.5,3 delay=0.75
-faller 1.2 0.35 -95 size=3,0.5,3 delay=0.45
-crystal -1.2 1.35 -88
-crystal 1.2 1.7 -95
+faller -1.2 0 -88 size=3,0.4,3 delay=0.75
+faller 1.2 0.35 -95 size=3,0.4,3 delay=0.45
+crystal -1.2 1.2 -88
+crystal 1.2 1.5 -95
+
+deco -7 -1.2 -90 model=cliff_half size=5,3,8 yaw=90
+deco 8 -1.8 -92 model=cliff size=6,4,9 yaw=270
+deco -5.5 0 -88 model=tree_pine
+deco 6 0 -91 model=tree
+deco -5 0 -96 model=rocks
+deco 5.5 0 -97 model=flowers_red
 
 # ---------- 6. Crusher corridor ----------
-ground 0 0 -106 size=2,2,16
+ground 0 0 -106 size=2.5,2,16 path=1.2
 crusher 0 0 -106 size=1.8 height=3.4 period=2.7 phase=0.15
 crate_checkpoint 0 0 -112
 deco 0 0 -113.2 model=sign scale=1.2
 light 0 3 -112 color=0.65,0.82,1 intensity=2.2 range=7
 camzone 0 2 -106 size=8,8,20 yaw=0 pitch=-16 distance=6.2 height=1.6 fixed=1
 
+deco -4.5 -0.5 -106 model=cliff_small size=3.5,4,10 yaw=90
+deco 4.5 -0.5 -106 model=cliff_small size=3.5,4,10 yaw=270
+deco -3.5 0 -100 model=tree_small
+deco 3.5 0 -102 model=rock_tall
+deco -3.2 0 -112 model=fence yaw=0
+deco 3.2 0 -112 model=fence yaw=0
+
 # ---------- 7. Rhythm jumps ----------
-repeat 7 0 0 -7.6 platform 0 0 -120 size=3.4,0.5,3.4
-repeat 7 0 0 -7.6 crystal 0 1.3 -120
-repeat 7 0 0 -7.6 crystal 1.3 1.55 -120
+repeat 7 0 0 -7.6 platform 0 0 -120 size=3.4,0.4,3.4
+repeat 7 0 0 -7.6 crystal 0 1.15 -120
+repeat 7 0 0 -7.6 crystal 1.3 1.4 -120
+
+deco -8 -1.5 -130 model=cliff size=7,5,20 yaw=90
+deco 10 -2 -135 model=cliff size=8,5,22 yaw=270
+repeat 7 0 0 -7.6 deco -5.5 0 -120 model=tree_pine scale=1.05
+repeat 7 0 0 -7.6 deco 5.8 0 -122 model=tree scale=0.95
+repeat 5 0 0 -10 deco -5 0 -124 model=grass
+repeat 5 0 0 -10 deco 5.2 0 -126 model=flowers
 
 # ---------- 8. Chaser clearing ----------
 ground 0 0 -182 size=10,2,20
@@ -100,50 +212,98 @@ crate -2.2 0 -186 crystals=8
 crate_life 3.2 0 -186
 repeat 5 0 0 -2.2 crystal -3.4 1.15 -174
 repeat 5 0 0 -2.2 crystal 3.4 1.15 -174
+
+repeat 6 0 0 -3 deco -4.6 0 -174 model=fence yaw=90
+repeat 6 0 0 -3 deco 4.6 0 -174 model=fence yaw=90
 deco -4.3 0 -174 model=tree
 deco 4.3 0 -180 model=tree_pine
+deco -4.5 0 -178 model=tree_oak scale=1.1
+deco 4.6 0 -176 model=tree_detailed
 deco -4.4 0 -190 model=barrel
 deco 4.4 0 -190 model=rocks
+deco -3.5 0 -182 model=flowers
+deco 3.6 0 -184 model=bush
+deco -3.8 0 -188 model=mushrooms
+deco 3.9 0 -172 model=flowers_tall
 
 # ---------- 9. High road ----------
-platform 0 1.3 -198 size=3.2,0.5,3.2
-crystal 0 2.5 -198
-platform 0 1.9 -205.2 size=3,0.45,3
-crystal 0 3.1 -205.2
-platform 0 1.15 -212.2 size=3,0.45,3
-crystal 0 2.35 -212.2
-platform 0 0.35 -219 size=3.4,0.5,3.4
-crystal 0 1.55 -219
+platform 0 1.3 -198 size=3.2,0.4,3.2
+crystal 0 2.35 -198
+platform 0 1.9 -205.2 size=3,0.35,3
+crystal 0 2.9 -205.2
+platform 0 1.15 -212.2 size=3,0.35,3
+crystal 0 2.2 -212.2
+platform 0 0.35 -219 size=3.4,0.4,3.4
+crystal 0 1.4 -219
+deco 0 0.9 -208.5 model=bridge size=2.8,1,2 yaw=0
+
+deco -9 -1 -205 model=cliff size=7,5,14 yaw=90
+deco 11 -2 -210 model=cliff size=8,5,15 yaw=270
+deco -5.5 1.3 -198 model=tree_small
+deco 5.5 1.3 -200 model=tree_pine
+deco -5 1.9 -205 model=rock_small
+deco 5.2 1.15 -212 model=flowers
+deco -5.2 0.35 -219 model=bush
+deco 5.5 0.35 -218 model=tree
 
 # ---------- 10. Timed spikes, then falling platforms ----------
 ground 0 0 -230 size=8,2,16
 spikes 0 0 -226 size=8,1,3 up=1.05 down=1.25 wave=0.18
 spikes 0 0 -233 size=8,1,2
 crate 0 0 -236 crystals=6
-faller -1.4 0 -244 size=2.8,0.45,2.8 delay=0.6
-faller 1.4 0.3 -251 size=2.8,0.45,2.8 delay=0.4
-crystal -1.4 1.3 -244
-crystal 1.4 1.6 -251
+faller -1.4 0 -244 size=2.8,0.35,2.8 delay=0.6
+faller 1.4 0.3 -251 size=2.8,0.35,2.8 delay=0.4
+crystal -1.4 1.15 -244
+crystal 1.4 1.45 -251
+
+repeat 5 0 0 -3 deco -3.7 0 -223 model=fence yaw=90
+repeat 5 0 0 -3 deco 3.7 0 -223 model=fence yaw=90
+deco -3.5 0 -224 model=tree
+deco 3.5 0 -228 model=tree_pine
+deco -3.4 0 -235 model=rocks
+deco 3.3 0 -237 model=flowers_tall
+deco -3.6 0 -230 model=grass
+deco 3.6 0 -232 model=mushrooms
+deco -7 -1.2 -248 model=cliff_half size=5,3,8 yaw=90
+deco 8 -1.5 -250 model=cliff_slope size=6,3.5,9 yaw=270
+deco -5.5 0 -244 model=tree_small
+deco 6 0 -250 model=tree_cone
 
 # ---------- 11. Second crusher ----------
-ground 0 0 -262 size=2.2,2,16
+ground 0 0 -262 size=2.5,2,16 path=1.2
 crusher 0 0 -262 size=1.9 height=3.5 period=2.5
 crate_checkpoint 0 0 -268
 light 0 3.3 -268 color=1,0.78,0.4 intensity=2.4 range=8
 
+deco -4.5 -0.5 -262 model=cliff_small size=3.5,4,10 yaw=90
+deco 4.5 -0.5 -262 model=cliff_small size=3.5,4,10 yaw=270
+deco -3.5 0 -258 model=tree_pine
+deco 3.5 0 -266 model=rock_tall
+deco -3.2 0 -268 model=fence yaw=0
+deco 3.2 0 -268 model=fence yaw=0
+
 # ---------- 12. Finale ----------
-mover 0 0.35 -276 size=2.8,0.45,2.8 amp=0,0,-3.3 period=4 phase=0.1
+mover 0 0.35 -276 size=2.8,0.4,2.8 amp=0,0,-3.3 period=4 phase=0.1
 ground 0 0 -294 size=12,2,24
 repeat 6 2.2 0 0 crystal -5.5 1.2 -288
 repeat 5 0 0 -2.5 crystal 0 1.35 -286
 enemy 0 0 -296 type=patrol path=-4,0,0;4,0,0 speed=2.3
 crate 3.2 0 -298 crystals=10
+
+repeat 7 0 0 -3 deco -5.6 0 -284 model=fence yaw=90
+repeat 7 0 0 -3 deco 5.6 0 -284 model=fence yaw=90
 deco -5.2 0 -286 model=tree
 deco 5.2 0 -286 model=tree_pine
-deco -5.3 0 -300 model=tree
+deco -5.3 0 -300 model=tree_oak
 deco 5.3 0 -300 model=flowers_tall
+deco -5.5 0 -292 model=tree_pine scale=1.15
+deco 5.4 0 -294 model=tree_detailed
 deco -4.2 0 -303 model=rocks
-deco 4.2 0 -303 model=grass
+deco 4.2 0 -303 model=bush
+deco -4.5 0 -288 model=flowers
+deco 4.6 0 -290 model=mushrooms
+deco -4.8 0 -296 model=grass
+deco 4.8 0 -298 model=flowers_red
 goal 0 0 -302
 light 0 4.6 -302 color=1,0.92,0.6 intensity=3.2 range=14
 camzone 0 3 -294 size=22,12,32 yaw=0 pitch=-24 distance=10.5 height=2.1 fixed=1

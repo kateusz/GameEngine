@@ -78,6 +78,7 @@
           ],
           "TexturePath": "textures/UI/bg.png",
           "TilingFactor": 1,
+          "SortOrder": -1,
           "Name": "SpriteRendererComponent"
         }
       ]
@@ -159,6 +160,7 @@
           ],
           "TexturePath": "textures/stachu.png",
           "TilingFactor": 1,
+          "SortOrder": 0,
           "Name": "SpriteRendererComponent"
         },
         {
@@ -234,6 +236,7 @@
           ],
           "TexturePath": null,
           "TilingFactor": 1,
+          "SortOrder": 0,
           "Name": "SpriteRendererComponent"
         },
         {
@@ -297,6 +300,7 @@
           ],
           "TexturePath": null,
           "TilingFactor": 1,
+          "SortOrder": 0,
           "Name": "SpriteRendererComponent"
         },
         {
@@ -360,6 +364,7 @@
           ],
           "TexturePath": null,
           "TilingFactor": 1,
+          "SortOrder": 0,
           "Name": "SpriteRendererComponent"
         },
         {
@@ -423,6 +428,7 @@
           ],
           "TexturePath": null,
           "TilingFactor": 1,
+          "SortOrder": 0,
           "Name": "SpriteRendererComponent"
         },
         {
@@ -486,6 +492,7 @@
           ],
           "TexturePath": "textures/gucz.png",
           "TilingFactor": 1,
+          "SortOrder": 0,
           "Name": "SpriteRendererComponent"
         },
         {
@@ -553,6 +560,7 @@
           ],
           "TexturePath": "textures/gucz.png",
           "TilingFactor": 1,
+          "SortOrder": 0,
           "Name": "SpriteRendererComponent"
         },
         {
@@ -620,6 +628,7 @@
           ],
           "TexturePath": "textures/gucz.png",
           "TilingFactor": 1,
+          "SortOrder": 0,
           "Name": "SpriteRendererComponent"
         },
         {
@@ -687,6 +696,7 @@
           ],
           "TexturePath": "textures/gucz.png",
           "TilingFactor": 1,
+          "SortOrder": 0,
           "Name": "SpriteRendererComponent"
         },
         {
@@ -754,6 +764,7 @@
           ],
           "TexturePath": "textures/gucz.png",
           "TilingFactor": 1,
+          "SortOrder": 0,
           "Name": "SpriteRendererComponent"
         },
         {
@@ -821,6 +832,7 @@
           ],
           "TexturePath": "textures/gucz.png",
           "TilingFactor": 1,
+          "SortOrder": 0,
           "Name": "SpriteRendererComponent"
         },
         {
@@ -888,6 +900,7 @@
           ],
           "TexturePath": "textures/ak47.png",
           "TilingFactor": 1,
+          "SortOrder": 0,
           "Name": "SpriteRendererComponent"
         },
         {
@@ -936,6 +949,7 @@
           ],
           "TexturePath": null,
           "TilingFactor": 1,
+          "SortOrder": 0,
           "Name": "SpriteRendererComponent"
         }
       ]
@@ -972,6 +986,7 @@
           ],
           "TexturePath": "textures/UI/hearth.png",
           "TilingFactor": 1,
+          "SortOrder": 0,
           "Name": "SpriteRendererComponent"
         }
       ]
@@ -1008,6 +1023,7 @@
           ],
           "TexturePath": "textures/UI/hearth.png",
           "TilingFactor": 1,
+          "SortOrder": 0,
           "Name": "SpriteRendererComponent"
         }
       ]
@@ -1044,6 +1060,7 @@
           ],
           "TexturePath": "textures/UI/hearth.png",
           "TilingFactor": 1,
+          "SortOrder": 0,
           "Name": "SpriteRendererComponent"
         }
       ]
@@ -1080,6 +1097,7 @@
           ],
           "TexturePath": "textures/UI/gameover.png",
           "TilingFactor": 1,
+          "SortOrder": 0,
           "Name": "SpriteRendererComponent"
         }
       ]
@@ -1116,6 +1134,7 @@
           ],
           "TexturePath": "textures/UI/Numbers/0.png",
           "TilingFactor": 1,
+          "SortOrder": 0,
           "Name": "SpriteRendererComponent"
         },
         {
@@ -1156,6 +1175,7 @@
           ],
           "TexturePath": null,
           "TilingFactor": 1,
+          "SortOrder": 0,
           "Name": "SpriteRendererComponent"
         },
         {
@@ -1196,6 +1216,7 @@
           ],
           "TexturePath": null,
           "TilingFactor": 1,
+          "SortOrder": 0,
           "Name": "SpriteRendererComponent"
         },
         {
@@ -1236,6 +1257,7 @@
           ],
           "TexturePath": null,
           "TilingFactor": 1,
+          "SortOrder": 0,
           "Name": "SpriteRendererComponent"
         },
         {

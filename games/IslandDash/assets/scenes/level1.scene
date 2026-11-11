@@ -1,17 +1,33 @@
 {
   "Scene": "level1",
-  "BackgroundColor": [0.45, 0.68, 0.95, 1],
+  "BackgroundColor": [
+    0.55,
+    0.75,
+    0.95,
+    1
+  ],
   "Dimension": "ThreeD",
-  "Skybox": "hdri/kloofendal_48d_partly_cloudy_puresky_2k.hdr",
   "Entities": [
     {
       "Id": 1,
       "Name": "Game",
       "Components": [
         {
-          "Translation": [0, 0, 0],
-          "Rotation": [0, 0, 0],
-          "Scale": [1, 1, 1],
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
           "Visible": true,
           "Name": "TransformComponent"
         },
@@ -25,7 +41,11 @@
           "Name": "GameSettingsComponent"
         },
         {
-          "BodyHalfExtents": [0.32, 0.6, 0.32],
+          "BodyHalfExtents": [
+            0.32,
+            0.6,
+            0.32
+          ],
           "MaxRunSpeed": 7.5,
           "GroundAcceleration": 55,
           "GroundDeceleration": 70,
@@ -75,9 +95,21 @@
       "Name": "Camera",
       "Components": [
         {
-          "Translation": [0, 4, 8],
-          "Rotation": [-0.36, 0, 0],
-          "Scale": [1, 1, 1],
+          "Translation": [
+            0,
+            4,
+            8
+          ],
+          "Rotation": [
+            -0.36,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
           "Visible": true,
           "Name": "TransformComponent"
         },
@@ -88,7 +120,7 @@
           "OrthographicFar": 1,
           "PerspectiveFOV": 1.0471976,
           "PerspectiveNear": 0.05,
-          "PerspectiveFar": 260,
+          "PerspectiveFar": 480,
           "AspectRatio": 1.7777778,
           "Primary": true,
           "FixedAspectRatio": false,
@@ -105,16 +137,37 @@
       "Name": "Sun",
       "Components": [
         {
-          "Translation": [0, 20, 0],
-          "Rotation": [0, 0, 0],
-          "Scale": [1, 1, 1],
+          "Translation": [
+            0,
+            20,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
           "Visible": true,
           "Name": "TransformComponent"
         },
         {
-          "Direction": [-0.3, -1, -0.35],
-          "Color": [1, 0.95, 0.85, 1],
-          "Intensity": 2.6,
+          "Direction": [
+            -0.72,
+            -0.48,
+            -0.18
+          ],
+          "Color": [
+            1,
+            0.94,
+            0.78,
+            1
+          ],
+          "Intensity": 2.9,
           "Name": "DirectionalLightComponent"
         }
       ]
@@ -124,18 +177,36 @@
       "Name": "Ambient",
       "Components": [
         {
-          "Translation": [0, 0, 0],
-          "Rotation": [0, 0, 0],
-          "Scale": [1, 1, 1],
+          "Translation": [
+            0,
+            0,
+            0
+          ],
+          "Rotation": [
+            0,
+            0,
+            0
+          ],
+          "Scale": [
+            1,
+            1,
+            1
+          ],
           "Visible": true,
           "Name": "TransformComponent"
         },
         {
-          "Color": [0.7, 0.8, 1, 1],
-          "Strength": 0.12,
+          "Color": [
+            0.72,
+            0.82,
+            1,
+            1
+          ],
+          "Strength": 0.22,
           "Name": "AmbientLightComponent"
         }
       ]
     }
-  ]
+  ],
+  "Skybox": "hdri/kloofendal_48d_partly_cloudy_puresky_2k.hdr"
 }

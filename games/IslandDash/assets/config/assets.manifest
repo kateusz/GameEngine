@@ -8,48 +8,75 @@
 #         Kenney models are already bottom-centered (0,0,0). A "cube" primitive is centered, so it needs 0,0.5,0.
 # Missing names (or files that fail to load) render as placeholder cubes instead of stopping the game.
 
-# --- Characters (kit height ~1.3 m) ---
+# --- Characters (kit height ~1.3 m) — Platformer Kit ---
 player            models/kenney_platformer/character-ooli.glb         1.45         0,0,0          tint=0.86,0.88,0.92
 enemy_patrol      models/kenney_platformer/character-oodi.glb         1.35         0,0,0
 enemy_chase       models/kenney_platformer/character-oozi.glb         1.4          0,0,0          tint=1,0.55,0.55
 
-# --- Pickups ---
+# --- Pickups — Platformer Kit ---
 crystal           models/kenney_platformer/jewel.glb                  1.6          0,0,0          emissive=0.1,0.3,1,0.9 roughness=0.25
 heart             models/kenney_platformer/heart.glb                  1.8          0,0,0          emissive=1,0.15,0.2,0.6
 checkpoint_flag   models/kenney_platformer/flag.glb                   1.1          0,0,0
 
-# --- Crates (kit unit 1 x 1 x 1) ---
+# --- Crates (kit unit 1 x 1 x 1) — Platformer Kit ---
 crate             models/kenney_platformer/crate.glb                  2            0,0,0
 crate_life        models/kenney_platformer/crate-item.glb             2            0,0,0          emissive=1,0.6,0.1,0.25
 crate_checkpoint  models/kenney_platformer/crate-strong.glb           1.6667       0,0,0          tint=0.75,0.9,1
 
-# --- Terrain (ground_tile kit unit 2 x 1 x 2, others 1 x 1 x 1; stretched to the piece size) ---
-ground_tile       models/kenney_platformer/block-grass-large.glb      1            0,0,0
-block             models/kenney_platformer/block-grass.glb            1            0,0,0
-platform          models/kenney_platformer/platform.glb               1,5,1        0,0,0
-mover             models/kenney_platformer/block-moving.glb           1,3.333,1    0,0,0
-vanish            models/kenney_platformer/block-moving-blue.glb      1,2,1        0,0,0          emissive=0.1,0.2,1,0.3
-faller            models/kenney_platformer/platform.glb               1,5,1        0,0,0          tint=1,0.55,0.45
+# --- Terrain (Nature Kit 1×1 pads; Ground tiles them, platforms scale XZ) ---
+path              models/kenney_nature/ground_pathStraight.glb        1            0,0,0          roughness=0.92
+path_rocks        models/kenney_nature/ground_pathRocks.glb           1            0,0,0          roughness=0.92
+path_side         models/kenney_nature/ground_pathSide.glb            1            0,0,0          roughness=0.92
+grass_tile        models/kenney_nature/ground_grass.glb               1            0,0,0          roughness=0.95
+river             models/kenney_nature/ground_riverStraight.glb       1            0,0,0          roughness=0.35
+river_bend        models/kenney_nature/ground_riverBend.glb           1            0,0,0          roughness=0.35
+river_side        models/kenney_nature/ground_riverSide.glb           1            0,0,0          roughness=0.35
+block             models/kenney_nature/platform_grass.glb             1            0,0,0          roughness=0.92
+platform          models/kenney_nature/platform_grass.glb             1            0,0,0          roughness=0.92
+mover             models/kenney_nature/platform_grass.glb             1            0,0,0          tint=0.85,0.95,1 roughness=0.85
+vanish            models/kenney_nature/platform_grass.glb             1            0,0,0          tint=0.7,0.85,1 emissive=0.1,0.2,1,0.25 roughness=0.8
+faller            models/kenney_nature/platform_grass.glb             1            0,0,0          tint=1,0.7,0.55 roughness=0.9
+ground_tile       models/kenney_nature/ground_grass.glb               1            0,0,0          roughness=0.95
 
-# --- Hazards ---
+# --- Hazards — Platformer Kit ---
 spikes            models/kenney_platformer/trap-spikes.glb            1.56         0,0,0
 crusher           models/kenney_platformer/spike-block.glb            1.11         0,-0.05,0
 
-# --- Goal ---
+# --- Goal — Platformer Kit ---
 goal              models/kenney_platformer/flag.glb                   3            0,0,0
 goal_gem          models/kenney_platformer/star.glb                   3.5          0,0,0          emissive=1,0.8,0.2,1.5
 
-# --- Decoration ---
-tree              models/kenney_platformer/tree.glb                   1.6          0,0,0
-tree_pine         models/kenney_platformer/tree-pine.glb              1.6          0,0,0
-tree_small        models/kenney_platformer/tree-pine-small.glb        1.5          0,0,0
-flowers           models/kenney_platformer/flowers.glb                1.5          0,0,0
-flowers_tall      models/kenney_platformer/flowers-tall.glb           1.5          0,0,0
-grass             models/kenney_platformer/grass.glb                  1.6          0,0,0
-rocks             models/kenney_platformer/rocks.glb                  1.6          0,0,0
-mushrooms         models/kenney_platformer/mushrooms.glb              1.6          0,0,0
-sign              models/kenney_platformer/sign.glb                   1.8          0,0,0
-fence             models/kenney_platformer/fence-straight.glb         2            0,0,0
+# --- Landscape (Nature Kit cliffs / bridge — organic silhouettes, not cubes) ---
+cliff             models/kenney_nature/cliff_large_rock.glb           1            0,0,0          roughness=0.95
+cliff_small       models/kenney_nature/cliff_rock.glb                 1            0,0,0          roughness=0.95
+cliff_half        models/kenney_nature/cliff_half_rock.glb            1            0,0,0          roughness=0.95
+cliff_slope       models/kenney_nature/cliff_blockSlope_rock.glb      1            0,0,0          roughness=0.95
+cliff_corner      models/kenney_nature/cliff_corner_rock.glb          1            0,0,0          roughness=0.95
+cliff_top         models/kenney_nature/cliff_top_rock.glb             1            0,0,0          roughness=0.95
+bridge            models/kenney_nature/bridge_woodRound.glb           1            0,0,0          roughness=0.85
+
+# --- Decoration — Nature Kit ---
+tree              models/kenney_nature/tree_default.glb               1.4          0,0,0
+tree_oak          models/kenney_nature/tree_oak.glb                   1.3          0,0,0
+tree_detailed     models/kenney_nature/tree_detailed.glb              1.3          0,0,0
+tree_tall         models/kenney_nature/tree_tall.glb                  1.25         0,0,0
+tree_pine         models/kenney_nature/tree_pineTallA.glb             1.35         0,0,0
+tree_pine_round   models/kenney_nature/tree_pineRoundA.glb            1.3          0,0,0
+tree_small        models/kenney_nature/tree_pineSmallA.glb            1.4          0,0,0
+tree_cone         models/kenney_nature/tree_cone.glb                  1.35         0,0,0
+flowers           models/kenney_nature/flower_yellowA.glb             1.8          0,0,0
+flowers_tall      models/kenney_nature/flower_purpleA.glb             2            0,0,0
+flowers_red       models/kenney_nature/flower_redA.glb                1.8          0,0,0
+grass             models/kenney_nature/grass_large.glb                1.6          0,0,0
+bush              models/kenney_nature/plant_bushDetailed.glb         1.5          0,0,0
+bush_small        models/kenney_nature/plant_bushSmall.glb            1.6          0,0,0
+rocks             models/kenney_nature/rock_largeA.glb                1.4          0,0,0
+rock_tall         models/kenney_nature/rock_tallA.glb                 1.5          0,0,0
+rock_small        models/kenney_nature/rock_smallA.glb                1.8          0,0,0
+mushrooms         models/kenney_nature/mushroom_redGroup.glb          1.8          0,0,0
+sign              models/kenney_nature/sign.glb                       1.6          0,0,0
+fence             models/kenney_nature/fence_simple.glb               1.8          0,0,0
+fence_low         models/kenney_nature/fence_simpleLow.glb            1.8          0,0,0
 barrel            models/kenney_platformer/barrel.glb                 1.8          0,0,0
 poles             models/kenney_platformer/poles.glb                  1.4          0,0,0
 arrow             models/kenney_platformer/arrow.glb                  2            0,0,0
