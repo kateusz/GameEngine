@@ -31,7 +31,7 @@ public sealed record PerfRunOptions(
         var count = 1000;
         var width = 1280;
         var height = 720;
-        var warmup = 5f;
+        var warmup = 0f;
         var measure = 10f;
         var seed = 12345;
         var fps = 0;

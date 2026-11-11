@@ -8,7 +8,7 @@ source "$ROOT/tools/performance/perf-lib.sh"
 PRESET=""
 REPETITION=1
 CONFIGURATION="Release"
-WARMUP=5
+WARMUP=0
 WARMUP_EXPLICIT=0
 MEASURE=5
 SEED=12345
@@ -64,7 +64,7 @@ for ((i=1; i<=REPETITION; i++)); do
   OUT="${RUN_DIR:+$RUN_DIR/repetition-${i}.json}"
   OUT="${OUT:-$OUTPUT}"
   mkdir -p "$(dirname "$OUT")"
-  echo "Run $i/$REPETITION → $OUT (${PRESET:-$SCENE})"
+  echo "Run $i/$REPETITION → $OUT (${PRESET:-$SCENE}) warmup=${WARMUP}s measure=${MEASURE}s (wall≈$((WARMUP + MEASURE))s + build/startup)"
   set +e
   if ((${#EXTRA[@]})); then
     dotnet exec "$DLL" "${COMMON[@]}" "${EXTRA[@]}" --output "$OUT"

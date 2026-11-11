@@ -8,7 +8,7 @@ source "$ROOT/tools/performance/perf-lib.sh"
 DIMENSION=""
 OUT_DIR=""
 WITH_TESTS=0
-WARMUP=5
+WARMUP=0
 WARMUP_EXPLICIT=0
 MEASURE=5
 
