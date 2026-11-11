@@ -27,6 +27,11 @@ public class GraphicsContextInitTests(HeadlessGraphicsContextFixture fixture) : 
         gl.GetStringS(GLEnum.Version).ShouldNotBeNullOrWhiteSpace();
         gl.GetError().ShouldBe(GLEnum.NoError);
 
+        gl.GetInteger(GetPName.MajorVersion, out var major);
+        gl.GetInteger(GetPName.MinorVersion, out var minor);
+        major.ShouldBe(4);
+        minor.ShouldBeGreaterThanOrEqualTo(1);
+
         fixture.RendererApi.SetViewport(0, 0, 1, 1);
         fixture.RendererApi.GetError().ShouldBe(0);
         gl.ClearColor(0, 0, 0, 1);

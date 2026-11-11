@@ -61,7 +61,8 @@ public class Graphics3DStatsTests
 
         var renderer = Substitute.For<IRendererAPI>();
         var graphics = new Graphics3D(
-            renderer, shaderFactory, meshFactory, textures, Substitute.For<IFrameBufferFactory>());
+            renderer, shaderFactory, meshFactory, textures, Substitute.For<IFrameBufferFactory>(),
+            FakeUniformBuffers.Create());
         graphics.Init();
         graphics.BeginScene(new SceneView(Matrix4x4.Identity, Vector3.Zero));
         graphics.ResetStats();
@@ -116,7 +117,8 @@ public class Graphics3DStatsTests
             shaderFactory,
             meshFactory,
             textureFactory,
-            frameBuffers);
+            frameBuffers,
+            FakeUniformBuffers.Create());
     }
 
     private static Mesh InitializedMesh()

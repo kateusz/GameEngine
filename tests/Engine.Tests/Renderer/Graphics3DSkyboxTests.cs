@@ -56,7 +56,8 @@ public class Graphics3DSkyboxTests
             shaderFactory,
             meshFactory,
             Substitute.For<ITextureFactory>(),
-            Substitute.For<IFrameBufferFactory>());
+            Substitute.For<IFrameBufferFactory>(),
+            FakeUniformBuffers.Create());
         graphics.Init();
 
         var first = Path.Combine(Path.GetTempPath(), "ibl-a.hdr");

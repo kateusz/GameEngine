@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
 using Engine.Project;
+using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Meshes;
 using Engine.Renderer.Shaders;
@@ -13,7 +14,8 @@ internal sealed class Graphics3D(
     IShaderFactory shaderFactory,
     IMeshFactory meshFactory,
     ITextureFactory textureFactory,
-    IFrameBufferFactory frameBuffers) : IGraphics3D
+    IFrameBufferFactory frameBuffers,
+    IUniformBufferFactory uniformBuffers) : IGraphics3D
 {
     private const string ViewProjectionUniform = "u_ViewProjection";
     private const int ShadowMapSlot = 3;
@@ -22,12 +24,8 @@ internal sealed class Graphics3D(
     private const int IrradianceSlot = 13;
     private const int PrefilterSlot = 14;
     private const int BrdfLutSlot = 15;
-    
-    private static readonly string[] PointPositionUniforms = Names("u_PointLightPositions");
-    private static readonly string[] PointColorUniforms = Names("u_PointLightColors");
-    private static readonly string[] PointIntensityUniforms = Names("u_PointLightIntensities");
-    private static readonly string[] PointRangeUniforms = Names("u_PointLightRanges");
-    private static readonly string[] PointShadowEnabledUniforms = Names("u_PointShadowsEnabled");
+    private const uint FrameBinding = 0;
+
     private static readonly string[] PointShadowMapUniforms = Names("u_PointShadowMaps");
     
     private IShader _cubeShader = null!;
@@ -40,6 +38,7 @@ internal sealed class Graphics3D(
     private IShader _irradianceShader = null!;
     private IShader _prefilterShader = null!;
     private IShader _brdfShader = null!;
+    private IUniformBuffer _frame = null!;
     private Mesh _cubeMesh = null!;
     private IFrameBuffer? _shadowMap;
     private readonly Dictionary<int, IFrameBuffer> _pointShadowMapsByEntity = new();
@@ -83,6 +82,7 @@ internal sealed class Graphics3D(
         _depthShader = shaderFactory.Create(ShaderId.Depth);
         _pointDepthShader = shaderFactory.Create(ShaderId.PointDepth);
         _cubeMesh = meshFactory.CreateCube();
+        _frame = uniformBuffers.Create(FrameUniforms.ByteSize);
 
         _cubeShader.Bind();
         _cubeShader.SetInt("u_ShadowMap", ShadowMapSlot);
@@ -403,8 +403,7 @@ internal sealed class Graphics3D(
     {
         _viewProjection = view.ViewProjection;
         _viewPosition = view.ViewPosition;
-        UploadFrame(_cubeShader);
-        UploadFrame(_modelShader);
+        UploadFrame();
     }
 
     public void EndScene()
@@ -521,7 +520,6 @@ internal sealed class Graphics3D(
         try
         {
             _emissiveShader.Bind();
-            _emissiveShader.SetMat4(ViewProjectionUniform, _viewProjection);
             _emissiveShader.SetFloat3("u_Emissive", factor);
             mesh.EmissiveTexture.Bind(0);
             UploadAndDraw(mesh, instances, _emissiveShader);
@@ -597,52 +595,55 @@ internal sealed class Graphics3D(
         Array.Fill(_pointShadowEntity, -1);
     }
 
-    private void UploadFrame(IShader shader)
+    private void UploadFrame()
     {
-        shader.Bind();
-        shader.SetMat4(ViewProjectionUniform, _viewProjection);
-        shader.SetFloat3("u_AmbientColor", _ambientColor);
-        shader.SetFloat("u_AmbientStrength", _ambientStrength);
-        shader.SetFloat3("u_LightDirection", _lightDirection);
-        shader.SetFloat3("u_LightColor", _lightColor);
-        shader.SetFloat3("u_ViewPosition", _viewPosition);
-        shader.SetInt("u_PointLightCount", _pointLightCount);
+        var ibl = _irradiance != 0 && _prefilter != 0 && _brdfLut != 0;
+        var frame = new FrameUniforms
+        {
+            ViewProjection = Matrix4x4.Transpose(_viewProjection),
+            LightViewProjection = Matrix4x4.Transpose(_lightViewProjection),
+            FarLightViewProjection = Matrix4x4.Transpose(_farLightViewProjection),
+            AmbientColorStrength = new Vector4(_ambientColor, _ambientStrength),
+            LightDirection = new Vector4(_lightDirection, 0f),
+            LightColor = new Vector4(_lightColor, 0f),
+            ViewPosition = new Vector4(_viewPosition, 0f),
+            PointLightCount = _pointLightCount,
+            ShadowsEnabled = _shadowsEnabled ? 1 : 0,
+            CascadeCount = _quality.Cascades,
+            ShadowPcf = _quality.PcfTaps,
+            CascadeSplit = _quality.Distance * 0.25f,
+            ShadowMapSize = _quality.DirectionalResolution,
+            PointPcf = _quality.PointPcf ? _quality.PcfTaps : 1,
+            PointMapSize = _quality.PointResolution,
+            Ibl = ibl ? 1 : 0
+        };
         for (var i = 0; i < LightingMath.MaxPointLights; i++)
         {
-            shader.SetFloat3(PointPositionUniforms[i], _pointLights[i].Position);
-            shader.SetFloat3(PointColorUniforms[i], _pointLights[i].Color);
-            shader.SetFloat(PointIntensityUniforms[i], _pointLights[i].Intensity);
-            shader.SetFloat(PointRangeUniforms[i], _pointLights[i].Range);
+            frame.PointPositions[i] = new Vector4(_pointLights[i].Position, 0f);
+            frame.PointColors[i] = new Vector4(_pointLights[i].Color, 0f);
+            frame.PointIntensityRange[i] = new Vector4(_pointLights[i].Intensity, _pointLights[i].Range, 0f, 0f);
+            if (_pointShadowEnabled[i])
+                frame.PointShadowMask |= 1 << i;
         }
-        shader.SetMat4("u_LightViewProjection", _lightViewProjection);
-        shader.SetMat4("u_FarLightViewProjection", _farLightViewProjection);
-        shader.SetInt("u_ShadowsEnabled", _shadowsEnabled ? 1 : 0);
-        shader.SetInt("u_CascadeCount", _quality.Cascades);
-        shader.SetFloat("u_CascadeSplit", _quality.Distance * 0.25f);
-        shader.SetInt("u_ShadowPcf", _quality.PcfTaps);
-        shader.SetFloat("u_ShadowMapSize", _quality.DirectionalResolution);
-        shader.SetInt("u_PointPcf", _quality.PointPcf ? _quality.PcfTaps : 1);
-        shader.SetFloat("u_PointMapSize", _quality.PointResolution);
+
+        _frame.SetData(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref frame, 1)));
+        _frame.BindTo(FrameBinding);
+
         if (_shadowsEnabled && _shadowMap != null)
             rendererApi.BindTexture2D(_shadowMap.GetDepthAttachmentRendererId(), ShadowMapSlot);
         for (var i = 0; i < LightingMath.MaxPointLights; i++)
         {
-            shader.SetInt(PointShadowEnabledUniforms[i], _pointShadowEnabled[i] ? 1 : 0);
             if (_pointShadowEnabled[i] && _pointShadowEntity[i] >= 0
                 && _pointShadowMapsByEntity.TryGetValue(_pointShadowEntity[i], out var pointMap))
                 rendererApi.BindTextureCube(pointMap.GetDepthAttachmentRendererId(), PointShadowSlot + i);
         }
 
-        var ibl = _irradiance != 0 && _prefilter != 0 && _brdfLut != 0;
-        shader.SetInt("u_Ibl", ibl ? 1 : 0);
         if (ibl)
         {
             rendererApi.BindTextureCube(_irradiance, IrradianceSlot);
             rendererApi.BindTextureCube(_prefilter, PrefilterSlot);
             rendererApi.BindTexture2D(_brdfLut, BrdfLutSlot);
         }
-
-        shader.Unbind();
     }
 
     private void ApplySurface(IShader shader, Mesh mesh)
@@ -776,6 +777,8 @@ internal sealed class Graphics3D(
 
         _shadowMap?.Dispose();
         _shadowMap = null;
+        _frame?.Dispose();
+        _frame = null!;
         ClearSky();
         if (_brdfLut != 0)
             rendererApi.DeleteTexture(_brdfLut);

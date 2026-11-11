@@ -8,7 +8,7 @@ C# / .NET 10 ECS game engine: **2D** batched sprites, **3D** forward rendering (
 
 - **Entity Component System** — priority-sorted systems; built-in components in `SceneComponents/` plus game `IGameComponent` / `IGameSystem` types
 - **Scenes** — JSON `.scene` files (`TwoD` / `ThreeD` dimension, entities, components); prefabs under `assets/prefabs/`
-- **2D rendering** — OpenGL 3.3+ batched sprites, orthographic/perspective cameras
+- **2D rendering** — OpenGL 4.1+ batched sprites, orthographic/perspective cameras
 - **3D rendering** — `.glb` / `.gltf` / `.fbx`, runtime `.mesh` siblings, mesh instancing, frustum culling, visibility zones, FXAA in the editor viewport only
 - **Physics** — Box2D 2D rigid bodies, colliders, raycast/overlap, contact events for systems
 - **Audio** — OpenAL spatial audio (WAV/Ogg), optional EFX per source
@@ -28,7 +28,7 @@ See also the repo [README](../../README.md) and [Changelog](../../CHANGELOG.md).
 ## Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-- OpenGL 3.3+ GPU
+- OpenGL 4.1+ GPU
 
 ## Quick Start
 

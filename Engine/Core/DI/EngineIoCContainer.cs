@@ -107,6 +107,11 @@ public static class EngineIoCContainer
     {
         container.RegisterInstance(hostOptions);
         var windowOptions = WindowOptions.Default;
+        windowOptions.API = new GraphicsAPI(
+            ContextAPI.OpenGL,
+            ContextProfile.Core,
+            ContextFlags.ForwardCompatible,
+            new APIVersion(4, 1));
         windowOptions.Size = new Vector2D<int>(hostOptions.WindowWidth, hostOptions.WindowHeight);
         windowOptions.Title = hostOptions.WindowTitle;
         windowOptions.WindowState = hostOptions.Fullscreen
@@ -140,6 +145,7 @@ public static class EngineIoCContainer
         container.Register<IMeshFactory, MeshFactory>(Reuse.Singleton);
         container.Register<IModelFactory, ModelFactory>(Reuse.Singleton);
         container.Register<IVertexBufferFactory, VertexBufferFactory>(Reuse.Singleton);
+        container.Register<IUniformBufferFactory, UniformBufferFactory>(Reuse.Singleton);
         container.Register<IIndexBufferFactory, IndexBufferFactory>(Reuse.Singleton);
         container.Register<IFrameBufferFactory, FrameBufferFactory>(Reuse.Singleton);
         container.Register<IVertexArrayFactory, VertexArrayFactory>(Reuse.Singleton);

@@ -22,6 +22,7 @@ public sealed class HeadlessGraphicsContextFixture : IDisposable
     public IIndexBufferFactory IndexBufferFactory { get; }
     public IVertexArrayFactory VertexArrayFactory { get; }
     public IShaderFactory ShaderFactory { get; }
+    public IUniformBufferFactory UniformBufferFactory { get; }
 
     private readonly TextureFactory _textureFactory;
     private readonly ShaderFactory _shaderFactory;
@@ -44,6 +45,7 @@ public sealed class HeadlessGraphicsContextFixture : IDisposable
         _shaderFactory = new ShaderFactory();
         ShaderFactory = _shaderFactory;
         FrameBufferFactory = new FrameBufferFactory();
+        UniformBufferFactory = new UniformBufferFactory();
 
         Graphics2D = new Graphics2D(
             RendererApi,

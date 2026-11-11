@@ -32,12 +32,14 @@ public class Graphics3DFrameUniformTests
         meshFactory.CreateCube().Returns(cube);
 
         var renderer = Substitute.For<IRendererAPI>();
+        var uniforms = FakeUniformBuffers.Create(out var frame);
         var graphics = new Graphics3D(
             renderer,
             shaderFactory,
             meshFactory,
             Substitute.For<ITextureFactory>(),
-            Substitute.For<IFrameBufferFactory>());
+            Substitute.For<IFrameBufferFactory>(),
+            uniforms);
         graphics.Init();
 
         var vp = Matrix4x4.CreateOrthographic(1, 1, 0.1f, 10f);
@@ -50,20 +52,15 @@ public class Graphics3DFrameUniformTests
         graphics.SetDirectionalLight(lightDir, lightColor);
         graphics.BeginScene(new SceneView(vp, viewPos));
 
-        cubeShader.Received().SetMat4("u_ViewProjection", vp);
-        cubeShader.Received().SetFloat3("u_AmbientColor", ambient);
-        cubeShader.Received().SetFloat("u_AmbientStrength", 0.5f);
-        cubeShader.Received().SetFloat3("u_LightDirection", lightDir);
-        cubeShader.Received().SetFloat3("u_LightColor", lightColor);
-        cubeShader.Received().SetFloat3("u_ViewPosition", viewPos);
-        cubeShader.Received().SetInt("u_Ibl", 0);
+        uniforms.LastSize.ShouldBe(FrameUniforms.ByteSize);
+        frame.Binding.ShouldBe(0u);
+        frame.Last.Length.ShouldBe(FrameUniforms.ByteSize);
         renderer.DidNotReceive().BindTextureCube(Arg.Any<uint>(), 13);
         renderer.DidNotReceive().BindTextureCube(Arg.Any<uint>(), 14);
         renderer.DidNotReceive().BindTexture2D(Arg.Any<uint>(), 15);
 
-        modelShader.Received().SetMat4("u_ViewProjection", vp);
-        modelShader.Received().SetFloat3("u_ViewPosition", viewPos);
-        modelShader.Received().SetFloat3("u_AmbientColor", ambient);
+        cubeShader.DidNotReceive().SetMat4("u_ViewProjection", Arg.Any<Matrix4x4>());
+        modelShader.DidNotReceive().SetMat4("u_ViewProjection", Arg.Any<Matrix4x4>());
 
         cubeShader.ClearReceivedCalls();
         graphics.DrawCube(Matrix4x4.Identity, Vector4.One);
@@ -90,22 +87,23 @@ public class Graphics3DFrameUniformTests
         var cube = InitializedMesh();
         meshFactory.CreateCube().Returns(cube);
 
+        var uniforms = FakeUniformBuffers.Create(out var frame);
         var graphics = new Graphics3D(
             Substitute.For<IRendererAPI>(),
             shaderFactory,
             meshFactory,
             Substitute.For<ITextureFactory>(),
-            Substitute.For<IFrameBufferFactory>());
+            Substitute.For<IFrameBufferFactory>(),
+            uniforms);
         graphics.Init();
 
         var light = Matrix4x4.CreateOrthographic(2f, 2f, 0.1f, 10f);
         graphics.SetDirectionalShadow(light, true);
         graphics.BeginScene(new SceneView(Matrix4x4.Identity, Vector3.Zero));
 
-        cubeShader.Received().SetMat4("u_LightViewProjection", light);
-        cubeShader.Received().SetInt("u_ShadowsEnabled", 1);
-        modelShader.Received().SetMat4("u_LightViewProjection", light);
-        modelShader.Received().SetInt("u_ShadowsEnabled", 1);
+        frame.Binding.ShouldBe(0u);
+        cubeShader.DidNotReceive().SetMat4("u_LightViewProjection", Arg.Any<Matrix4x4>());
+        modelShader.DidNotReceive().SetInt("u_ShadowsEnabled", Arg.Any<int>());
 
         cubeShader.ClearReceivedCalls();
         graphics.DrawCube(Matrix4x4.Identity, Vector4.One);
@@ -137,7 +135,8 @@ public class Graphics3DFrameUniformTests
             shaderFactory,
             meshFactory,
             Substitute.For<ITextureFactory>(),
-            frameBuffers);
+            frameBuffers,
+            FakeUniformBuffers.Create());
         graphics.Init();
 
         var light = Matrix4x4.CreateOrthographic(2f, 2f, 0.1f, 10f);
@@ -182,7 +181,8 @@ public class Graphics3DFrameUniformTests
             shaderFactory,
             meshFactory,
             Substitute.For<ITextureFactory>(),
-            frameBuffers);
+            frameBuffers,
+            FakeUniformBuffers.Create());
         graphics.Init();
 
         var face = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 2f, 1f, 0.1f, 10f);

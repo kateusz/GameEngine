@@ -28,7 +28,8 @@ public class Graphics3DDisposeTests
             shaderFactory,
             meshFactory,
             Substitute.For<ITextureFactory>(),
-            Substitute.For<IFrameBufferFactory>());
+            Substitute.For<IFrameBufferFactory>(),
+            FakeUniformBuffers.Create());
         graphics.Init();
         graphics.Dispose();
 

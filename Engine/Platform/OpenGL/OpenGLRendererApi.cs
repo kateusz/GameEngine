@@ -1,6 +1,7 @@
 using System.Numerics;
 using Engine.Platform.SilkNet;
 using Engine.Renderer;
+using Engine.Renderer.Exceptions;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Textures;
 using Serilog;
@@ -356,6 +357,14 @@ internal sealed class OpenGLRendererApi : IRendererAPI
 
     public void Init()
     {
+        SilkNetContext.GL.GetInteger(GetPName.MajorVersion, out var major);
+        SilkNetContext.GL.GetInteger(GetPName.MinorVersion, out var minor);
+        if (major < 4 || (major == 4 && minor < 1))
+        {
+            throw new RendererInitializationException(
+                $"OpenGL 4.1 is required (got {major}.{minor}).");
+        }
+
         SilkNetContext.GL.Enable(EnableCap.Blend);
         OpenGLDebug.CheckError(SilkNetContext.GL, "Enable(Blend)");
 

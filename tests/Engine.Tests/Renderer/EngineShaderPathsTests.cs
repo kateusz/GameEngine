@@ -62,6 +62,24 @@ public class EngineShaderPathsTests
         frag.ShouldBe(Path.Combine(dir, "emissive.frag"));
     }
 
+    [Fact]
+    public void OpenGlShaders_AreGlsl410_AndDropGpuShader5()
+    {
+        var dir = Path.Combine(AppContext.BaseDirectory, "assets", "shaders", "OpenGL");
+        Directory.Exists(dir).ShouldBeTrue();
+        foreach (var file in Directory.GetFiles(dir, "*.*"))
+        {
+            var ext = Path.GetExtension(file);
+            if (ext is not (".vert" or ".frag"))
+                continue;
+            var first = File.ReadLines(file).First();
+            first.ShouldBe("#version 410 core", file);
+        }
+
+        File.ReadAllText(Path.Combine(dir, "cube.frag")).ShouldNotContain("GL_ARB_gpu_shader5");
+        File.ReadAllText(Path.Combine(dir, "modelShader.frag")).ShouldNotContain("GL_ARB_gpu_shader5");
+    }
+
     [Theory]
     [InlineData(ShaderId.Irradiance, "irradiance.frag")]
     [InlineData(ShaderId.Prefilter, "prefilter.frag")]
