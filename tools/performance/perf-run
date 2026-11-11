@@ -8,7 +8,8 @@ source "$ROOT/tools/performance/perf-lib.sh"
 PRESET=""
 REPETITION=1
 CONFIGURATION="Release"
-WARMUP=30
+WARMUP=5
+WARMUP_EXPLICIT=0
 MEASURE=5
 SEED=12345
 COUNT=""
@@ -20,7 +21,7 @@ while [[ $# -gt 0 ]]; do
     --preset) PRESET="$2"; shift 2 ;;
     --scene) SCENE="$2"; shift 2 ;;
     --count) COUNT="$2"; shift 2 ;;
-    --warmup-seconds) WARMUP="$2"; shift 2 ;;
+    --warmup-seconds) WARMUP="$2"; WARMUP_EXPLICIT=1; shift 2 ;;
     --measure-seconds) MEASURE="$2"; shift 2 ;;
     --repetitions) REPETITION="$2"; shift 2 ;;
     --output) OUTPUT="$2"; shift 2 ;;
@@ -42,9 +43,16 @@ if [[ -n "$PRESET" ]]; then
   [[ -z "$COUNT" ]] && COUNT="$PRESET_COUNT"
   [[ -n "$PROJ" ]] && EXTRA+=(--project-root "$PROJ")
   [[ -n "$SCENEFILE" ]] && EXTRA+=(--scene-file "$SCENEFILE")
+  [[ $WARMUP_EXPLICIT -eq 0 ]] && WARMUP="$(perf_preset_warmup_seconds "$PRESET")"
 fi
 
 [[ -z "$COUNT" ]] && COUNT=1000
+if [[ $WARMUP_EXPLICIT -eq 0 && -z "$PRESET" ]]; then
+  [[ "$SCENE" == "3D:GlbModels" ]] && WARMUP=10
+  for ((wi = 0; wi < ${#EXTRA[@]}; wi++)); do
+    [[ "${EXTRA[wi]}" == "--project-root" ]] && WARMUP=10 && break
+  done
+fi
 [[ -z "${OUTPUT:-}" && -z "${RUN_DIR:-}" ]] && { echo "--output or --run-dir required" >&2; exit 1; }
 
 dotnet build "$ROOT/Benchmark/Benchmark.csproj" -c "$CONFIGURATION" -v q >/dev/null

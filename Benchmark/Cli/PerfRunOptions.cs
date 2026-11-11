@@ -32,7 +32,7 @@ public sealed record PerfRunOptions(
         var count = 1000;
         var width = 1280;
         var height = 720;
-        var warmup = 30f;
+        var warmup = 5f;
         var measure = 5f;
         var measureIterations = 5;
         var seed = 12345;
