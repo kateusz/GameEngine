@@ -10,6 +10,7 @@ public sealed record PerfRunOptions(
     int Height,
     float WarmupSeconds,
     float MeasureSeconds,
+    int MeasureIterations,
     int Seed,
     int TargetFrameRate,
     string OutputPath,
@@ -31,8 +32,9 @@ public sealed record PerfRunOptions(
         var count = 1000;
         var width = 1280;
         var height = 720;
-        var warmup = 0f;
-        var measure = 10f;
+        var warmup = 5f;
+        var measure = 5f;
+        var measureIterations = 1;
         var seed = 12345;
         var fps = 0;
         var output = "";
@@ -96,6 +98,14 @@ public sealed record PerfRunOptions(
                         if (!float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out measure))
                         {
                             error = $"Invalid --measure-seconds: {value}";
+                            return false;
+                        }
+
+                        break;
+                    case "--measure-iterations":
+                        if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out measureIterations))
+                        {
+                            error = $"Invalid --measure-iterations: {value}";
                             return false;
                         }
 
@@ -170,9 +180,15 @@ public sealed record PerfRunOptions(
             return false;
         }
 
+        if (measureIterations < 1)
+        {
+            error = "measure-iterations must be >= 1";
+            return false;
+        }
+
         options = new PerfRunOptions(
-            category, testId, count, width, height, warmup, measure, seed, fps, output, startupTimeout,
-            projectRoot, sceneFile);
+            category, testId, count, width, height, warmup, measure, measureIterations, seed, fps, output,
+            startupTimeout, projectRoot, sceneFile);
         return true;
     }
 

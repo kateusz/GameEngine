@@ -33,4 +33,38 @@ public class PerfRunOptionsTests
         options.MeasureSeconds.ShouldBe(10f);
     }
 
+    [Fact]
+    public void TryParse_defaults_warmup_measure_iterations()
+    {
+        var ok = PerfRunOptions.TryParse(
+        [
+            "--perf-run",
+            "--scene", "3D:InstancedMesh",
+            "--output", "/tmp/out.json"
+        ],
+            out var options,
+            out _);
+
+        ok.ShouldBeTrue();
+        options!.WarmupSeconds.ShouldBe(5f);
+        options.MeasureSeconds.ShouldBe(5f);
+        options.MeasureIterations.ShouldBe(1);
+    }
+
+    [Fact]
+    public void TryParse_measure_iterations_flag()
+    {
+        var ok = PerfRunOptions.TryParse(
+        [
+            "--perf-run",
+            "--scene", "3D:InstancedMesh",
+            "--output", "/tmp/out.json",
+            "--measure-iterations", "3"
+        ],
+            out var options,
+            out _);
+
+        ok.ShouldBeTrue();
+        options!.MeasureIterations.ShouldBe(3);
+    }
 }

@@ -1,17 +1,25 @@
+using Engine.Core.DI;
 using Engine.Renderer.Textures;
+using Engine.Renderer.Textures.Compression;
+using Serilog;
 using PixelFormat = Silk.NET.OpenGL.PixelFormat;
 
 namespace Engine.Platform.OpenGL;
 
 internal sealed class TextureFactory : ITextureFactory
 {
+    private static readonly ILogger Logger = Log.ForContext<TextureFactory>();
+
     private const int PreviewMaxEdge = 64;
     private Texture2D? _whiteTexture;
     private Texture2D? _blackTexture;
     private Texture2D? _flatNormalTexture;
     private readonly Dictionary<string, Texture2D> _textureCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly EngineHostOptions _hostOptions;
     private readonly Lock _cacheLock = new();
     private bool _disposed;
+
+    public TextureFactory(EngineHostOptions hostOptions) => _hostOptions = hostOptions;
 
     public Texture2D GetWhiteTexture() => GetOrCreateSolid(ref _whiteTexture, 0xFFFFFFFF);
     public Texture2D GetBlackTexture() => GetOrCreateSolid(ref _blackTexture, 0xFF000000u);
@@ -26,7 +34,7 @@ internal sealed class TextureFactory : ITextureFactory
             if (_textureCache.TryGetValue(cacheKey, out var cachedTexture))
                 return cachedTexture;
 
-            var texture = OpenGLTexture2D.Create(path, sRgb);
+            var texture = LoadWithDdsSibling(path, sRgb);
             _textureCache[cacheKey] = texture;
             return texture;
         }
@@ -40,15 +48,8 @@ internal sealed class TextureFactory : ITextureFactory
 
     public (byte[] Data, int Width, int Height) Decode(string path, bool sRgb)
     {
-        var decoded = TextureFileDecoder.Decode(path, sRgb);
-        var bytesPerPixel = decoded.Data.Length / (decoded.Width * decoded.Height);
-        var rgba = (decoded.DataFormat, bytesPerPixel) switch
-        {
-            (PixelFormat.Bgra, 4) => TexturePreviewScaling.ToPackedRgba(decoded.Data, 4),
-            (PixelFormat.Bgr, 3) => TexturePreviewScaling.ToPackedRgba(decoded.Data, 3),
-            _ => decoded.Data
-        };
-        return (rgba, decoded.Width, decoded.Height);
+        var (rgba, width, height) = TextureRasterToRgba8.Decode(path, sRgb);
+        return (rgba, width, height);
     }
 
     public Texture2D CreateFromRgba(byte[] rgba, int width, int height, bool sRgb = false, string? cachePath = null)
@@ -93,6 +94,64 @@ internal sealed class TextureFactory : ITextureFactory
         }
 
         _disposed = true;
+    }
+
+    private Texture2D LoadWithDdsSibling(string path, bool sRgb)
+    {
+        var normalizedPath = Path.GetFullPath(path);
+
+        if (normalizedPath.EndsWith(".dds", StringComparison.OrdinalIgnoreCase)
+            && BcDds.TryRead(normalizedPath, out var sourceBc)
+            && SidecarMatchesLoad(sourceBc, sRgb, TextureBcSource.IsNormalLoad(normalizedPath, sRgb)))
+            return TryCreateCompressed(normalizedPath, sourceBc) ?? OpenGLTexture2D.Create(normalizedPath, sRgb);
+
+        if (!TextureBcSource.IsRasterSourceExtension(normalizedPath))
+            return OpenGLTexture2D.Create(normalizedPath, sRgb);
+
+        var isNormal = TextureBcSource.IsNormalLoad(normalizedPath, sRgb);
+        var isOcclusion = TextureBcSource.IsOcclusionMap(normalizedPath);
+        var sidecar = BcDdsSidecarPath.ForSource(normalizedPath, sRgb);
+
+        if (TextureBcSidecar.TryReadUsableSidecar(normalizedPath, sidecar, sRgb, isNormal, out var bc))
+            return TryCreateCompressed(normalizedPath, bc) ?? OpenGLTexture2D.Create(normalizedPath, sRgb);
+
+        if (_hostOptions.EnsureTextureDdsSiblingOnLoad)
+        {
+            try
+            {
+                var (rgba, width, height) = BcTextureEncoder.DecodeToRgba(normalizedPath, sRgb);
+                if (!TextureBcSidecar.CanEncodeWithoutPadding(width, height))
+                    return OpenGLTexture2D.Create(normalizedPath, sRgb);
+
+                var format = BcFormatPick.Pick(sRgb, isNormal, isOcclusion, rgba, width, height);
+                var (image, dds) = BcTextureEncoder.EncodeWithDds(rgba, width, height, format, sRgb, isNormal);
+                if (image != null && dds != null && BcDds.Write(sidecar, image.Value, dds))
+                    return OpenGLTexture2D.CreateCompressed(normalizedPath, image.Value);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(ex, "BC encode failed for {Path}; falling back to RGBA", normalizedPath);
+            }
+        }
+
+        Logger.Warning("BC sibling missing, stale, or unsupported for {Path}; uploading uncompressed", path);
+        return OpenGLTexture2D.Create(normalizedPath, sRgb);
+    }
+
+    private static bool SidecarMatchesLoad(BcImage bc, bool sRgb, bool isNormal) =>
+        bc.SRgb == sRgb && bc.IsNormal == isNormal;
+
+    private static Texture2D? TryCreateCompressed(string path, BcImage bc)
+    {
+        try
+        {
+            return OpenGLTexture2D.CreateCompressed(path, bc);
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning(ex, "Compressed upload failed for {Path}", path);
+            return null;
+        }
     }
 
     private static string ToCacheKey(string path, bool sRgb)

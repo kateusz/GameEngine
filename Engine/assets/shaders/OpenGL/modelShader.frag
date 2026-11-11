@@ -11,26 +11,29 @@ flat in int v_EntityID;
 
 #include "frame.glsl"
 uniform vec4 u_Color;
-uniform float u_Metallic;
-uniform float u_Roughness;
-uniform float u_Ao;
+uniform vec4 u_MaterialFactors; // Metallic, roughness, ambient occlusion, alpha cutoff.
 uniform vec3 u_Emissive;
 uniform samplerCube u_Irradiance;
 uniform samplerCube u_Prefilter;
 uniform sampler2D u_BrdfLut;
 uniform vec3 u_BaseColor;
-uniform int u_HasDiffuseMap;
-uniform int u_AlphaTest;
-uniform float u_AlphaCutoff;
-uniform int u_HasMetallicRoughnessMap;
-uniform int u_HasNormalMap;
-uniform int u_HasOcclusionMap;
+uniform int u_MaterialFlags;
 uniform sampler2D u_DiffuseMap;
 uniform sampler2D u_MetallicRoughnessMap;
 uniform sampler2D u_NormalMap;
 uniform sampler2D u_OcclusionMap;
+uniform vec2 u_DiffuseUvScale;
+uniform vec2 u_MetallicRoughnessUvScale;
+uniform vec2 u_NormalUvScale;
+uniform vec2 u_OcclusionUvScale;
 
 const int c_MaxPointLights = 8;
+const int c_DiffuseMap = 1;
+const int c_MetallicRoughnessMap = 2;
+const int c_NormalMap = 4;
+const int c_ReconstructNormalZ = 8;
+const int c_OcclusionMap = 16;
+const int c_AlphaCutout = 32;
 const float c_PointEpsilon = 0.0001;
 
 uniform samplerCubeShadow u_PointShadowMaps[c_MaxPointLights];
@@ -130,21 +133,28 @@ vec3 ImageBasedLight(vec3 N, vec3 V, vec3 albedo, float metallic, float roughnes
 
 void main()
 {
-    vec3 norm = u_HasNormalMap != 0
-        ? normalize(v_TBN * (texture(u_NormalMap, v_TexCoord).rgb * 2.0 - 1.0))
-        : normalize(v_Normal);
+    vec3 norm;
+    if ((u_MaterialFlags & c_NormalMap) != 0) {
+        vec3 nts = texture(u_NormalMap, v_TexCoord * u_NormalUvScale).rgb * 2.0 - 1.0;
+        if ((u_MaterialFlags & c_ReconstructNormalZ) != 0) {
+            nts.z = sqrt(max(1.0 - nts.x * nts.x - nts.y * nts.y, 0.0));
+        }
+        norm = normalize(v_TBN * nts);
+    } else {
+        norm = normalize(v_Normal);
+    }
 
-    vec4 texel = u_HasDiffuseMap != 0 ? texture(u_DiffuseMap, v_TexCoord) : vec4(1.0);
-    if (u_AlphaTest != 0 && texel.a < u_AlphaCutoff)
+    vec4 texel = (u_MaterialFlags & c_DiffuseMap) != 0 ? texture(u_DiffuseMap, v_TexCoord * u_DiffuseUvScale) : vec4(1.0);
+    if ((u_MaterialFlags & c_AlphaCutout) != 0 && texel.a < u_MaterialFactors.w)
         discard;
     vec3 albedo = texel.rgb * u_BaseColor * u_Color.rgb;
-    vec3 mr = u_HasMetallicRoughnessMap != 0
-        ? texture(u_MetallicRoughnessMap, v_TexCoord).rgb
+    vec3 mr = (u_MaterialFlags & c_MetallicRoughnessMap) != 0
+        ? texture(u_MetallicRoughnessMap, v_TexCoord * u_MetallicRoughnessUvScale).rgb
         : vec3(1.0);
-    float metallic = clamp(mr.b * u_Metallic, 0.0, 1.0);
-    float roughness = max(clamp(mr.g * u_Roughness, 0.0, 1.0), c_MinRoughness);
-    float aoSample = u_HasOcclusionMap != 0 ? texture(u_OcclusionMap, v_TexCoord).r : 1.0;
-    float ao = clamp(aoSample * u_Ao, 0.0, 1.0);
+    float metallic = clamp(mr.b * u_MaterialFactors.x, 0.0, 1.0);
+    float roughness = max(clamp(mr.g * u_MaterialFactors.y, 0.0, 1.0), c_MinRoughness);
+    float aoSample = (u_MaterialFlags & c_OcclusionMap) != 0 ? texture(u_OcclusionMap, v_TexCoord * u_OcclusionUvScale).r : 1.0;
+    float ao = clamp(aoSample * u_MaterialFactors.z, 0.0, 1.0);
 
     vec3 V = normalize(u_ViewPosition - v_FragPos);
     vec3 L = normalize(-u_LightDirection);

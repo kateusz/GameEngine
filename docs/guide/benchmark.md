@@ -29,7 +29,7 @@ If the scene has a **Primary** camera, the benchmark uses its transform for the 
 
 `Benchmark --perf-run` opens a short GL window, measures, writes JSON, then exits. Wrapper: `tools/performance/perf-run --scene 3D:InstancedMesh --output …`.
 
-Domyślnie (`perf-run`, `perf-improve.sh`): **0 s** warm-up (**10 s** dla `3D:GlbModels` / preset `3d-loaded-scene`), **5 s** pomiar, **1** powtórzenie. Nadpisz `--warmup-seconds`, `--measure-seconds`, `--repetitions`.
+Domyślnie (`perf-run`, `perf-improve.sh`): **5 s** warm-up (**10 s** dla `3D:GlbModels` / preset `3d-loaded-scene`), **5 s** pomiar, **1** powtórzenie. Nadpisz `--warmup-seconds`, `--measure-seconds`, `--repetitions`.
 
 ### Project scene from the CLI
 

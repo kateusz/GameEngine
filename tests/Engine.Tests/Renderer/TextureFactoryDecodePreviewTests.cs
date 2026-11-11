@@ -1,3 +1,4 @@
+using Engine.Core.DI;
 using Engine.Platform.OpenGL;
 using Shouldly;
 
@@ -10,7 +11,7 @@ public class TextureFactoryDecodePreviewTests
     public void DecodePreview_BgrTga_ReturnsTightlyPackedRgba()
     {
         var path = WriteTempTga(width: 1, height: 1, bytesPerPixel: 3, pixels: [10, 20, 30]);
-        using var factory = new TextureFactory();
+        using var factory = new TextureFactory(new EngineHostOptions("test", 1, 1));
         try
         {
             var (data, width, height) = factory.DecodePreview(path);
@@ -30,7 +31,7 @@ public class TextureFactoryDecodePreviewTests
     public void DecodePreview_BgraTga_ReturnsTightlyPackedRgba()
     {
         var path = WriteTempTga(width: 1, height: 1, bytesPerPixel: 4, pixels: [10, 20, 30, 40]);
-        using var factory = new TextureFactory();
+        using var factory = new TextureFactory(new EngineHostOptions("test", 1, 1));
         try
         {
             var (data, width, height) = factory.DecodePreview(path);
@@ -58,7 +59,7 @@ public class TextureFactoryDecodePreviewTests
         }
 
         var path = WriteTempTga(width: 128, height: 64, bytesPerPixel: 3, pixels: pixels);
-        using var factory = new TextureFactory();
+        using var factory = new TextureFactory(new EngineHostOptions("test", 1, 1));
         try
         {
             var (data, width, height) = factory.DecodePreview(path);

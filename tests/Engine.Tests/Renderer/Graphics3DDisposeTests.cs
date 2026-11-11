@@ -3,7 +3,6 @@ using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Meshes;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Shaders;
-using Engine.Renderer.Textures;
 using NSubstitute;
 using Shouldly;
 
@@ -27,7 +26,6 @@ public class Graphics3DDisposeTests
             FakeUniformBuffer.Renderer(),
             shaderFactory,
             meshFactory,
-            Substitute.For<ITextureFactory>(),
             Substitute.For<IFrameBufferFactory>());
         graphics.Init();
         graphics.Dispose();

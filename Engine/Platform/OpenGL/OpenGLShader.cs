@@ -11,6 +11,7 @@ internal sealed class OpenGLShader : IShader
 {
     private uint _handle;
     private readonly Dictionary<string, int> _uniformLocations = new();
+    private readonly Dictionary<int, Vector2> _float2Uniforms = new();
 #if DEBUG
     private readonly HashSet<string> _missingUniforms = new();
 #endif
@@ -89,6 +90,17 @@ internal sealed class OpenGLShader : IShader
 
         var floats = MemoryMarshal.Cast<Matrix4x4, float>(matrices);
         SilkNetContext.GL.ProgramUniformMatrix4(_handle, location, (uint)matrices.Length, true, floats);
+    }
+
+    public void SetFloat2(string name, Vector2 data)
+    {
+        if (!TryGetUniformLocation(name, out var location))
+            return;
+        if (_float2Uniforms.TryGetValue(location, out var previous) && previous == data)
+            return;
+
+        SilkNetContext.GL.ProgramUniform2(_handle, location, data);
+        _float2Uniforms[location] = data;
     }
 
     public void SetFloat3(string name, Vector3 data)

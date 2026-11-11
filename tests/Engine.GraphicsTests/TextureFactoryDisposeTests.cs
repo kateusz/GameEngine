@@ -1,3 +1,4 @@
+using Engine.Core.DI;
 using Engine.Platform.OpenGL;
 using Shouldly;
 
@@ -13,7 +14,7 @@ public class TextureFactoryDisposeTests(HeadlessGraphicsContextFixture fixture)
     {
         _ = fixture;
         var path = WriteTempTga();
-        var factory = new TextureFactory();
+        var factory = new TextureFactory(new EngineHostOptions("test", 1, 1));
         try
         {
             var texture = factory.Create(path);

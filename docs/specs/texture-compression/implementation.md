@@ -5,11 +5,11 @@ C# and GLSL sketch for this engine. Do not treat this file as the source tree.
 ## Where it sits
 
 - **No component. No system priority.** Load stays `ITextureFactory.Create`.
-- **DryIoc:** existing `TextureFactory` registration. Inject `EngineHostOptions` so the factory knows whether it may cook.
+- **DryIoc:** existing `TextureFactory` registration. Inject `EngineHostOptions` so the factory may write DDS siblings on load.
 - **Serialization:** none. Sidecar is a file next to the source.
-- **Editor:** cook on `Create` when `CookTextureSidecarOnLoad` is true (`EngineHostOptions.EditorDefaults`).
+- **Editor:** ensure sibling on `Create` when `EnsureTextureDdsSiblingOnLoad` is true (`EngineHostOptions.EditorDefaults`).
 - **Runtime player:** flag false; compressed upload only.
-- **Publish:** `GamePublisher` calls the same CPU cook before `CopyAssets`.
+- **Publish:** `GamePublisher` calls `TextureBcSidecar.TryEnsureUpToDate` on assets before `CopyAssets`.
 - **OpenGL:** only `OpenGLTexture2D` / a small compressed-upload helper in `Platform/OpenGL`.
 
 ## Host flag
@@ -21,7 +21,7 @@ public sealed record EngineHostOptions(...)
     /// Editor and publish: encode a sibling .dds when missing or older than the source.
     /// Runtime player: false.
     /// </summary>
-    public bool CookTextureSidecarOnLoad { get; init; }
+    public bool EnsureTextureDdsSiblingOnLoad { get; init; }
 }
 ```
 
@@ -76,7 +76,7 @@ internal static class TextureSidecar
 }
 ```
 
-`BcEncoder.Encode(rgba, width, height, format)` pads to multiples of four, builds mips, returns `BcImage`. `BcDds.Write(path, image)` writes temp then replace. `BcDds.TryRead(path, out image)` validates mip sizes against `imageSize = ((w+3)/4)*((h+3)/4)*blockBytes`.
+Automatic sidecars use block-aligned rasters. Other rasters keep their original dimensions for repeat sampling. The encoder builds mipmaps and returns a `BcImage`. `BcDds.Write` writes a temporary file and replaces an existing sibling only if it carries engine metadata. `BcDds.TryRead` validates the byte count of each mip against its rounded-up block dimensions.
 
 Block bytes: DXT1 and BC4 = 8; DXT5 and BC5 = 16.
 
@@ -93,19 +93,19 @@ public Texture2D Create(string path, bool sRgb = false)
         if (_textureCache.TryGetValue(cacheKey, out var cached))
             return cached;
 
-        var texture = LoadOrCook(path, sRgb);
+        var texture = LoadWithDdsSibling(path, sRgb);
         _textureCache[cacheKey] = texture;
         return texture;
     }
 }
 
-private Texture2D LoadOrCook(string path, bool sRgb)
+private Texture2D LoadWithDdsSibling(string path, bool sRgb)
 {
     var sidecar = TextureSidecar.PathFor(path);
     if (TextureSidecar.IsFresh(path, sidecar) && BcDds.TryRead(sidecar, out var bc))
         return OpenGLTexture2D.CreateCompressed(path, bc);
 
-    if (_hostOptions.CookTextureSidecarOnLoad)
+    if (_hostOptions.EnsureTextureDdsSiblingOnLoad)
     {
         var decoded = TextureFileDecoder.Decode(path, sRgb);
         var rgba = ToRgba(decoded);
@@ -178,21 +178,19 @@ Why: BC5 stores only XY. A DXT5 normal still has Z in blue; reconstructing from 
 ## Publish
 
 ```csharp
-private PublishResult CookTextureSidecars()
+private PublishResult EnsureTextureDdsSiblings()
 {
     var assets = Path.Combine(projectContext.Root!, "assets");
     foreach (var file in Directory.EnumerateFiles(assets, "*.*", SearchOption.AllDirectories))
     {
-        if (!BcEncoder.IsCookable(file))
-            continue;
-        if (!BcEncoder.TryCookFile(file, out var error))
+        if (!TextureBcSidecar.TryEnsureUpToDate(file, out var error))
             return PublishResult.Failed(error);
     }
     return PublishResult.Ok();
 }
 ```
 
-Call immediately before `CopyAssets`. `TryCookFile` uses file-name suffixes to pick `sRgb` / normal, then the same encode+write as the factory.
+Call immediately before `CopyAssets`. `TextureBcSource` picks `sRgb` / normal from the file name; encode+write matches the factory.
 
 ## Tests worth adding
 

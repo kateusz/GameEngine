@@ -54,15 +54,10 @@ public class Graphics3DStatsTests
         var meshFactory = Substitute.For<IMeshFactory>();
         meshFactory.CreateCube().Returns(cube);
 
-        var white = Substitute.For<Texture2D>();
-        var textures = Substitute.For<ITextureFactory>();
-        textures.GetWhiteTexture().Returns(white);
-        textures.GetFlatNormalTexture().Returns(white);
-
         var renderer = Substitute.For<IRendererAPI>();
         FakeUniformBuffer.Attach(renderer);
         var graphics = new Graphics3D(
-            renderer, shaderFactory, meshFactory, textures, Substitute.For<IFrameBufferFactory>());
+            renderer, shaderFactory, meshFactory, Substitute.For<IFrameBufferFactory>());
         graphics.Init();
         var vp = Matrix4x4.CreateLookAt(new Vector3(0f, 0f, 4f), Vector3.Zero, Vector3.UnitY)
             * Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 3f, 1f, 0.1f, 20f);
@@ -77,6 +72,36 @@ public class Graphics3DStatsTests
         renderer.Received().SetAdditiveBlend(true);
         renderer.Received().SetBlend(false);
         graphics.GetStats().DrawCalls.ShouldBe(2u);
+    }
+
+    [Fact]
+    public void DrawMesh_RestoresUnitUvScaleAfterPaddedTexture()
+    {
+        var modelShader = Substitute.For<IShader>();
+        var shaderFactory = Substitute.For<IShaderFactory>();
+        shaderFactory.Create(Arg.Any<ShaderId>()).Returns(_ => Substitute.For<IShader>());
+        shaderFactory.Create(ShaderId.Model).Returns(modelShader);
+        using var graphics = CreateGraphics3D(out var mesh, shaderFactory: shaderFactory);
+        graphics.Init();
+        graphics.BeginScene(new SceneView(Matrix4x4.Identity, Vector3.Zero));
+        modelShader.ClearReceivedCalls();
+
+        var scale = new Vector2(0.75f, 0.5f);
+        using var paddedTexture = Substitute.For<Texture2D>();
+        paddedTexture.UvScale.Returns(scale);
+        mesh.DiffuseTexture = paddedTexture;
+        graphics.DrawMesh(Matrix4x4.Identity, mesh, Vector4.One);
+
+        using var regularTexture = Substitute.For<Texture2D>();
+        regularTexture.UvScale.Returns(Vector2.One);
+        mesh.DiffuseTexture = regularTexture;
+        graphics.DrawMesh(Matrix4x4.Identity, mesh, Vector4.One);
+
+        Received.InOrder(() =>
+        {
+            modelShader.SetFloat2("u_DiffuseUvScale", scale);
+            modelShader.SetFloat2("u_DiffuseUvScale", Vector2.One);
+        });
     }
 
     [Fact]
@@ -97,19 +122,18 @@ public class Graphics3DStatsTests
         stats.CubeDraws.ShouldBe(1u);
     }
 
-    private static Graphics3D CreateGraphics3D(out Mesh cube, bool withShadowMap = false)
+    private static Graphics3D CreateGraphics3D(
+        out Mesh cube, bool withShadowMap = false, IShaderFactory? shaderFactory = null)
     {
-        var shaderFactory = Substitute.For<IShaderFactory>();
-        shaderFactory.Create(Arg.Any<ShaderId>()).Returns(_ => Substitute.For<IShader>());
+        if (shaderFactory is null)
+        {
+            shaderFactory = Substitute.For<IShaderFactory>();
+            shaderFactory.Create(Arg.Any<ShaderId>()).Returns(_ => Substitute.For<IShader>());
+        }
 
         cube = InitializedMesh();
         var meshFactory = Substitute.For<IMeshFactory>();
         meshFactory.CreateCube().Returns(cube);
-
-        var white = Substitute.For<Texture2D>();
-        var textureFactory = Substitute.For<ITextureFactory>();
-        textureFactory.GetWhiteTexture().Returns(white);
-        textureFactory.GetFlatNormalTexture().Returns(white);
 
         var frameBuffers = Substitute.For<IFrameBufferFactory>();
         if (withShadowMap)
@@ -119,7 +143,6 @@ public class Graphics3DStatsTests
             FakeUniformBuffer.Renderer(),
             shaderFactory,
             meshFactory,
-            textureFactory,
             frameBuffers);
     }
 

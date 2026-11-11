@@ -30,7 +30,7 @@ Publish copies the source tree as-is. A shipped game therefore repeats the same 
 
 **Source** — The file the scene already names.
 
-**Sibling** — `{directory}/{stem}.dds`. `rock.png` and `rock.jpg` in the same folder share one sibling; do not ship two sources with the same stem.
+**Sibling** — `{sourcePath}.srgb.dds` or `{sourcePath}.linear.dds` (e.g. `wall.png.srgb.dds`). Same stem with different extensions get separate siblings.
 
 **Cook** — Decode the source to RGBA, pick a BC format, encode mips on the CPU, write the sibling. Editor and publish do this. Runtime does not.
 
@@ -48,7 +48,7 @@ Publish copies the source tree as-is. A shipped game therefore repeats the same 
 
 **OpenGL 3.3+ stays the floor.** BC7 (BPTC) needs 4.2 and is out. OpenGL 4.1 adds nothing this feature needs.
 
-**Pad to 4×4, keep UVs.** Block formats need dimensions that are multiples of four. The encoder pads by repeating the edge. The texture object still reports the source width and height so existing UV and sprite sizes do not change. The DDS stores both the GPU size and the source size.
+**Preserve texture repeats.** Automatic DDS generation uses raster dimensions aligned to 4×4 blocks. Other rasters load at their original dimensions so texture repeats preserve their source period.
 
 **Replace the sibling, do not patch it.** Cook writes a temp file in the same folder, then replaces. A failed cook leaves the previous sibling in place.
 

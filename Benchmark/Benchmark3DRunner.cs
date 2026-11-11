@@ -343,12 +343,11 @@ public sealed class Benchmark3DRunner(
             var world = transform.GetWorldTransform();
             eye = new Vector3(world.M41, world.M42, world.M43);
             var forward = Vector3.Normalize(Vector3.TransformNormal(-Vector3.UnitZ, world));
-            // ponytail: scene primary cameras are often placed in-room; pull back for stable perf framing
+            // Pull back from in-room cameras for stable benchmark framing.
             const float lookAhead = 12f;
             const float orbitDistance = 64f;
-            var lookAt = eye + forward * lookAhead;
-            eye = lookAt - forward * orbitDistance;
-            focal = lookAt;
+            focal = eye + forward * lookAhead;
+            eye = focal - forward * orbitDistance;
             return true;
         }
 

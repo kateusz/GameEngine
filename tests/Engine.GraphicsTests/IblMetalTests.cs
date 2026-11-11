@@ -1,6 +1,7 @@
 using System.Numerics;
 using Engine.GraphicsTests.ImageRegression;
 using Shouldly;
+using Engine.Core.DI;
 using Engine.Platform.OpenGL;
 using Engine.Renderer.Meshes;
 using Engine.Renderer.Pipeline;
@@ -19,7 +20,7 @@ public class IblMetalTests(HeadlessGraphicsContextFixture fixture)
     {
         var hdr = Path.Combine(Path.GetTempPath(), $"ibl-{Guid.NewGuid():N}.hdr");
         WritePlusZHdr(hdr);
-        var textures = new TextureFactory();
+        var textures = new TextureFactory(new EngineHostOptions("test", 1, 1));
         var meshes = new MeshFactory(
             textures,
             fixture.VertexArrayFactory,
@@ -29,7 +30,6 @@ public class IblMetalTests(HeadlessGraphicsContextFixture fixture)
             fixture.RendererApi,
             fixture.ShaderFactory,
             meshes,
-            textures,
             fixture.FrameBufferFactory);
         try
         {

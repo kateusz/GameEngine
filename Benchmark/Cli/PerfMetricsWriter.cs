@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 
@@ -12,12 +13,11 @@ public static class PerfMetricsWriter
     };
 
     public static void WriteJson(string path, BenchmarkResult result, PerfRunOptions opts, bool success, string? error,
-        string rendererMode, string? frameSamplesCsv)
+        string rendererMode, string? frameSamplesCsv,
+        IReadOnlyList<float>? iterationAvgFps = null,
+        IReadOnlyList<float>? iterationAvgFrameTimeMs = null)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
-        var sorted = result.CustomMetrics.TryGetValue("Median Frame Time Ms", out _)
-            ? (float)result.AverageFrameTime
-            : result.AverageFrameTime;
         float.TryParse(result.CustomMetrics.GetValueOrDefault("Median Frame Time Ms"),
             NumberStyles.Float, CultureInfo.InvariantCulture, out var median);
         float.TryParse(result.CustomMetrics.GetValueOrDefault("P95 Frame Time Ms"),
@@ -26,6 +26,7 @@ public static class PerfMetricsWriter
         var payload = new Dictionary<string, object?>
         {
             ["schema"] = "gameengine-perf/1",
+            ["gitCommitSha"] = TryResolveGitHead(),
             ["scene"] = $"{opts.Category}:{opts.TestId}",
             ["category"] = opts.Category,
             ["testId"] = opts.TestId,
@@ -36,6 +37,7 @@ public static class PerfMetricsWriter
             ["targetFrameRate"] = opts.TargetFrameRate,
             ["warmupSeconds"] = opts.WarmupSeconds,
             ["measureSeconds"] = opts.MeasureSeconds,
+            ["measureIterations"] = opts.MeasureIterations,
             ["measuredWallSeconds"] = result.TestDuration,
             ["frameCount"] = result.TotalFrames,
             ["avgFps"] = result.AverageFPS,
@@ -58,6 +60,11 @@ public static class PerfMetricsWriter
             ["error"] = error
         };
 
+        if (iterationAvgFps is { Count: > 0 })
+            payload["iterationAvgFps"] = iterationAvgFps;
+        if (iterationAvgFrameTimeMs is { Count: > 0 })
+            payload["iterationAvgFrameTimeMs"] = iterationAvgFrameTimeMs;
+
         File.WriteAllText(path, JsonSerializer.Serialize(payload, JsonOptions));
     }
 
@@ -68,5 +75,43 @@ public static class PerfMetricsWriter
         writer.WriteLine("frame_index,frame_time_ms");
         for (var i = 0; i < frameTimesMs.Count; i++)
             writer.WriteLine(FormattableString.Invariant($"{i},{frameTimesMs[i]:R}"));
+    }
+
+    private static string TryResolveGitHead()
+    {
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = "git",
+                Arguments = "rev-parse HEAD",
+                WorkingDirectory = AppContext.BaseDirectory,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            });
+            if (process == null)
+                return "";
+            var stdout = process.StandardOutput.ReadToEndAsync();
+            var stderr = process.StandardError.ReadToEndAsync();
+            try
+            {
+                Task.WhenAll(stdout, stderr, process.WaitForExitAsync())
+                    .WaitAsync(TimeSpan.FromSeconds(2)).GetAwaiter().GetResult();
+            }
+            catch (TimeoutException)
+            {
+                if (!process.HasExited)
+                    process.Kill(entireProcessTree: true);
+                return "";
+            }
+
+            return process.ExitCode == 0 ? stdout.GetAwaiter().GetResult().Trim() : "";
+        }
+        catch
+        {
+            return "";
+        }
     }
 }

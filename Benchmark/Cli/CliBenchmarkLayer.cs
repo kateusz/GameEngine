@@ -20,13 +20,17 @@ public sealed class CliBenchmarkLayer(
     private readonly Graphics2DStatsAggregator _stats2D = new();
     private readonly PipelineStatsAggregator _stats3D = new();
     private readonly List<float> _frameTimes = new();
+    private readonly List<BenchmarkResult> _iterationResults = new();
+    private readonly List<float> _allFrameTimes = new();
 
     private BenchmarkRun? _run;
     private float _phaseSeconds;
+    private float _totalMeasuredSeconds;
     private bool _warmingUp;
     private bool _measuring;
     private bool _done;
     private int _exitCode;
+    private int _measureIteration;
 
     public int ExitCode => _exitCode;
 
@@ -47,7 +51,8 @@ public sealed class CliBenchmarkLayer(
         if (runner is Benchmark3DRunner threeD)
             threeD.SetCliScenePath(options.SceneFile);
 
-        var settings = new BenchmarkSettings(options.Count, options.WarmupSeconds + options.MeasureSeconds);
+        var totalMeasure = options.MeasureSeconds * options.MeasureIterations;
+        var settings = new BenchmarkSettings(options.Count, options.WarmupSeconds + totalMeasure);
         if (!runner.TryCreate(options.TestId, settings, out var run, out var createError) || run == null)
         {
             Fail(2, createError ?? "Failed to create benchmark run");
@@ -58,7 +63,9 @@ public sealed class CliBenchmarkLayer(
         _warmingUp = options.WarmupSeconds > 0f;
         _measuring = options.WarmupSeconds <= 0f;
         _phaseSeconds = 0f;
-        Logger.Information("Perf run {Category}:{Test}", options.Category, options.TestId);
+        _measureIteration = 0;
+        Logger.Information("Perf run {Category}:{Test} warmup={Warmup}s measure={Measure}s x{Iterations}",
+            options.Category, options.TestId, options.WarmupSeconds, options.MeasureSeconds, options.MeasureIterations);
     }
 
     public void OnDetach() => runners.Dispose2D();
@@ -108,7 +115,7 @@ public sealed class CliBenchmarkLayer(
         {
             _frameTimes.Add((float)_frameTimer.Elapsed.TotalMilliseconds);
             if (_phaseSeconds >= options.MeasureSeconds)
-                FinishSuccess();
+                CompleteMeasureIteration();
         }
     }
 
@@ -116,15 +123,11 @@ public sealed class CliBenchmarkLayer(
 
     public void HandleInputEvent(Engine.Events.Input.InputEvent windowEvent) { }
 
-    private void FinishSuccess()
+    private void CompleteMeasureIteration()
     {
-        if (_done)
-            return;
-        _done = true;
-
         var cpu = _sampler.CpuSamples;
         var mem = _sampler.MemSamples;
-        var result = BenchmarkResultBuilder.Build(
+        var iteration = BenchmarkResultBuilder.Build(
             _run!,
             _frameTimes,
             _phaseSeconds,
@@ -137,13 +140,78 @@ public sealed class CliBenchmarkLayer(
             mem.Count > 0 ? mem.Min() : 0,
             _run!.SamplesRenderer2D ? _stats2D : null,
             _run.SamplesRenderer2D ? null : _stats3D);
+        _iterationResults.Add(iteration);
+        _allFrameTimes.AddRange(_frameTimes);
+        _totalMeasuredSeconds += _phaseSeconds;
+        _measureIteration++;
+
+        if (_measureIteration < options.MeasureIterations)
+        {
+            _phaseSeconds = 0f;
+            _frameTimes.Clear();
+            _sampler.Clear();
+            _stats2D.Clear();
+            _stats3D.Clear();
+            return;
+        }
+
+        FinishSuccess();
+    }
+
+    private void FinishSuccess()
+    {
+        if (_done)
+            return;
+        _done = true;
+
+        var iterationFps = _iterationResults.ConvertAll(r => r.AverageFPS);
+        var iterationFrameMs = _iterationResults.ConvertAll(r => r.AverageFrameTime);
+        var medianFps = BenchmarkResultBuilder.Median(iterationFps);
+        var medianFrameMs = BenchmarkResultBuilder.Median(iterationFrameMs);
+
+        var last = _iterationResults[^1];
+        var result = BenchmarkResultBuilder.Build(
+            _run!,
+            _allFrameTimes,
+            _totalMeasuredSeconds,
+            _allFrameTimes.Count,
+            last.AverageCpuUsage,
+            last.MaxCpuUsage,
+            last.MinCpuUsage,
+            last.AverageMemoryUsageMB,
+            last.MaxMemoryUsageMB,
+            last.MinMemoryUsageMB,
+            null,
+            null) with
+        {
+            AverageFPS = medianFps,
+            AverageFrameTime = medianFrameMs
+        };
+        _run!.Contribute(result);
+        foreach (var (key, value) in last.CustomMetrics)
+        {
+            if (key is "Median Frame Time Ms" or "P95 Frame Time Ms")
+                continue;
+            result.CustomMetrics.TryAdd(key, value);
+        }
+
+        result.CustomMetrics["Measure iterations"] = options.MeasureIterations.ToString();
+        for (var i = 0; i < _iterationResults.Count; i++)
+        {
+            var iter = _iterationResults[i];
+            result.CustomMetrics[$"Iteration {i + 1} Avg FPS"] =
+                iter.AverageFPS.ToString("F3", System.Globalization.CultureInfo.InvariantCulture);
+            result.CustomMetrics[$"Iteration {i + 1} Avg Frame Ms"] =
+                iter.AverageFrameTime.ToString("F3", System.Globalization.CultureInfo.InvariantCulture);
+        }
 
         var framesCsv = Path.ChangeExtension(options.OutputPath, ".frames.csv");
-        PerfMetricsWriter.WriteFrameCsv(framesCsv, _frameTimes);
-        var ok = _frameTimes.Count > 0;
+        PerfMetricsWriter.WriteFrameCsv(framesCsv, _allFrameTimes);
+        var ok = _allFrameTimes.Count > 0;
         PerfMetricsWriter.WriteJson(options.OutputPath, result, options, ok,
             ok ? null : "No frames in measure window",
-            _run.SamplesRenderer2D ? "2d" : "3d", framesCsv);
+            _run.SamplesRenderer2D ? "2d" : "3d", framesCsv,
+            iterationFps, iterationFrameMs);
         _exitCode = ok ? 0 : 2;
         RequestClose();
     }
@@ -156,7 +224,7 @@ public sealed class CliBenchmarkLayer(
         _exitCode = code;
         PerfMetricsWriter.WriteJson(options.OutputPath,
             new BenchmarkResult { TestName = $"{options.Category}:{options.TestId}" },
-            options, false, message, "", null);
+            options, false, message, "", null, null, null);
         Logger.Error(message);
         RequestClose();
     }

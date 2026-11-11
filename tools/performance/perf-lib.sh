@@ -33,7 +33,7 @@ if "warmupSeconds" in e:
 elif e.get("scene") == "3D:GlbModels" or e.get("projectRoot"):
     print(10)
 else:
-    print(0)
+    print(5)
 PY
 }
 
@@ -49,7 +49,7 @@ if "warmupSeconds" in e:
 elif scene == "3D:GlbModels" or e.get("projectRoot"):
     warmup = 10
 else:
-    warmup = 0
+    warmup = 5
 json.dump({
     "preset": preset,
     "category": cat, "testId": tid,

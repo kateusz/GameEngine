@@ -1,6 +1,7 @@
 using Editor.Scripting;
 using Engine.Core;
 using Engine.Project;
+using Engine.Renderer.Textures.Compression;
 using Serilog;
 
 namespace Editor.Publisher;
@@ -74,6 +75,12 @@ public partial class GamePublisher(IProjectContext projectContext)
             if (!renameResult.Success)
                 return renameResult;
 
+            progress?.Report("Ensuring texture DDS siblings...");
+            var ddsSiblingsResult = EnsureTextureDdsSiblings(cancellationToken);
+            if (!ddsSiblingsResult.Success)
+                return ddsSiblingsResult;
+
+            cancellationToken.ThrowIfCancellationRequested();
             progress?.Report("Copying assets...");
             var copyAssetsResult = CopyAssets(tempOutputPath);
             if (!copyAssetsResult.Success)
@@ -138,6 +145,22 @@ public partial class GamePublisher(IProjectContext projectContext)
         {
             CleanupTempDirectory(tempOutputPath);
         }
+    }
+
+    private PublishResult EnsureTextureDdsSiblings(CancellationToken cancellationToken)
+    {
+        var assets = Path.Combine(projectContext.Root!, "assets");
+        if (!Directory.Exists(assets))
+            return PublishResult.Ok();
+
+        foreach (var file in Directory.EnumerateFiles(assets, "*.*", SearchOption.AllDirectories))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!TextureBcSidecar.TryEnsureUpToDate(file, out var error))
+                return PublishResult.Failed(error ?? $"BC DDS sibling failed for {file}");
+        }
+
+        return PublishResult.Ok();
     }
 
     private string GetDefaultOutputPath()
