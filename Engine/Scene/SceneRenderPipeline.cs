@@ -64,6 +64,8 @@ internal static partial class SceneRenderPipeline
         RenderSpritesAndSubTextures(context, graphics2D, textureFactory, view);
         Render3D(context, graphics3D, textureFactory, modelFactory, view,
             vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
+        CommitMergeWorldHistory();
+        EvictStaleCombinedMeshes();
     }
     
     private struct OrderedSprite
@@ -398,7 +400,9 @@ internal static partial class SceneRenderPipeline
         dest.MaxBatchInstances = color.MaxBatchInstances;
         dest.MergedGroups = color.MergedGroups;
         dest.MergedVertices = color.MergedVertices;
-        dest.MergedRebuilds = color.MergedRebuilds;
+        dest.MergedRebuilds = color.MergedRebuilds
+                                + perf.DirectionalShadowPass.MergedRebuilds
+                                + perf.PointShadowPass.MergedRebuilds;
         dest.PointLights = perf.PointLights;
         dest.PointShadowLights = perf.PointShadowLights;
         dest.PointShadowCacheHits = perf.PointShadowLightsCacheHit;

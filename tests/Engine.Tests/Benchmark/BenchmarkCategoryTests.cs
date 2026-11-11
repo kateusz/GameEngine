@@ -4,6 +4,8 @@ using ECS;
 using ECS.Systems;
 using Engine.Project;
 using Engine.Renderer;
+using Engine.Renderer.Buffers;
+using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Meshes;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
@@ -205,6 +207,8 @@ public class BenchmarkCategoryTests : IDisposable
             "3D_GlbModels", 0f, scene, true, false,
             graphics2D, graphics3D,
             Substitute.For<ITextureFactory>(), Substitute.For<IModelFactory>(),
+            Substitute.For<IVertexArrayFactory>(), Substitute.For<IVertexBufferFactory>(),
+            Substitute.For<IIndexBufferFactory>(),
             false, ExpectedShadow.None,
             display: new ScopePresenter(
                 () => inside = true,

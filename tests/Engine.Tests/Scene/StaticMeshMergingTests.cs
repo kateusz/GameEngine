@@ -9,6 +9,7 @@ using Engine.Renderer.Textures;
 using Engine.Scene;
 using NSubstitute;
 using SceneComponents;
+using SceneComponents.Lighting;
 using SceneComponents.Physics;
 using SceneComponents.Rendering;
 using Shouldly;
@@ -148,18 +149,9 @@ public class StaticMeshMergingTests : IDisposable
     {
         var (_, _, model, models) = TwoPartModel();
         var context = ContextWithParts();
-        SetTint(context, 1, Vector4.One);
-        SetTint(context, 2, new Vector4(1f, 0f, 0f, 1f));
-        var graphics = new MeshDrawRecordingGraphics3D();
-        var factories = Factories();
-
-        Render(context, graphics, models, factories);
-        graphics = new MeshDrawRecordingGraphics3D();
-        Render(context, graphics, models, factories);
-
-        graphics.MergedDraws.ShouldBe(0);
-        graphics.InstanceDrawCalls.ShouldBe(2);
-
+        MutateRenderer(context, 1, r => r.Color = Vector4.One);
+        MutateRenderer(context, 2, r => r.Color = new Vector4(1f, 0f, 0f, 1f));
+        AssertStaysOnInstancePathAfterTwoIdleFrames(context, models);
         model.Dispose();
     }
 
@@ -212,6 +204,90 @@ public class StaticMeshMergingTests : IDisposable
         graphics.InstanceMeshes.ShouldContain(meshB);
 
         model.Dispose();
+    }
+
+    [Fact]
+    public void DirectionalShadowPass_AndColorPass_BothDrawMergedMesh()
+    {
+        var (_, _, model, models) = TwoPartModel();
+        var context = ContextWithParts();
+        var sun = new Entity(99, "sun");
+        sun.AddComponent(new DirectionalLightComponent
+        {
+            Direction = new Vector3(0.3f, -1f, 0.2f),
+            Color = Vector4.One,
+            Intensity = 1f
+        });
+        context.Register(sun);
+
+        var graphics = new MeshDrawRecordingGraphics3D();
+        var factories = Factories();
+        Render(context, graphics, models, factories);
+        graphics = new MeshDrawRecordingGraphics3D();
+        Render(context, graphics, models, factories);
+
+        graphics.MergedDraws.ShouldBeGreaterThan(1);
+        graphics.InstanceDrawCalls.ShouldBe(0);
+
+        model.Dispose();
+    }
+
+    [Fact]
+    public void ThirdIdleFrame_CacheHit_DoesNotIncrementMergedRebuilds()
+    {
+        var (_, _, model, models) = TwoPartModel();
+        var context = ContextWithParts();
+        var factories = Factories();
+
+        var graphics = new MeshDrawRecordingGraphics3D();
+        Render(context, graphics, models, factories);
+        Render(context, graphics, models, factories);
+        graphics.GetStats().MergedRebuilds.ShouldBe(1);
+        Render(context, graphics, models, factories);
+        graphics.GetStats().MergedRebuilds.ShouldBe(0);
+
+        model.Dispose();
+    }
+
+    [Fact]
+    public void DifferentAlphaCutoff_SplitsGroups()
+    {
+        var meshA = CreateTriangle("a", Vector3.Zero, new Vector3(1f, 0f, 0f), new Vector3(0f, 1f, 0f));
+        meshA.AlphaCutout = true;
+        meshA.AlphaCutoff = 0.25f;
+        var meshB = CreateTriangle("b", new Vector3(2f, 0f, 0f), new Vector3(3f, 0f, 0f), new Vector3(2f, 1f, 0f));
+        meshB.AlphaCutout = true;
+        meshB.AlphaCutoff = 0.75f;
+        using var model = new Model("/merged.glb", [meshA, meshB]);
+        var models = Substitute.For<IModelFactory>();
+        models.Create(Arg.Any<string>()).Returns(model);
+
+        var context = new Context();
+        AddPart(context, 1, 0, 0f);
+        AddPart(context, 2, 1, 0f);
+        AssertStaysOnInstancePathAfterTwoIdleFrames(context, models);
+    }
+
+    [Fact]
+    public void TwoIdleCubes_BakesTilingIntoTexCoords()
+    {
+        var context = new Context();
+        AddCube(context, 1, 0f);
+        AddCube(context, 2, 2f);
+        MutateRenderer(context, 1, r => r.TilingFactor = 3f);
+        MutateRenderer(context, 2, r => r.TilingFactor = 3f);
+
+        var models = Substitute.For<IModelFactory>();
+        var uploaded = new List<Mesh.Vertex>();
+        var graphics = new MeshDrawRecordingGraphics3D();
+        var factories = Factories(uploaded.AddRange);
+
+        Render(context, graphics, models, factories);
+        Render(context, graphics, models, factories);
+
+        graphics.MergedDraws.ShouldBe(1);
+        uploaded.Count(v => MathF.Abs(v.TexCoord.X - 3f) < 1e-4f || MathF.Abs(v.TexCoord.Y - 3f) < 1e-4f)
+            .ShouldBeGreaterThan(0);
     }
 
     [Fact]
@@ -308,16 +384,26 @@ public class StaticMeshMergingTests : IDisposable
         }
     }
 
-    private static void SetTint(Context context, int entityId, Vector4 tint)
+    private static void MutateRenderer(Context context, int entityId, Action<ModelRendererComponent> mutate)
     {
         foreach (var (entity, renderer) in context.View<ModelRendererComponent>())
         {
-            if (entity.Id == entityId)
-            {
-                renderer.Color = tint;
-                return;
-            }
+            if (entity.Id != entityId)
+                continue;
+
+            mutate(renderer);
+            return;
         }
+    }
+
+    private static void AssertStaysOnInstancePathAfterTwoIdleFrames(Context context, IModelFactory models)
+    {
+        var factories = Factories();
+        Render(context, new MeshDrawRecordingGraphics3D(), models, factories);
+        var graphics = new MeshDrawRecordingGraphics3D();
+        Render(context, graphics, models, factories);
+        graphics.MergedDraws.ShouldBe(0);
+        graphics.InstanceDrawCalls.ShouldBe(2);
     }
 
     private static Mesh CreateTriangle(string name, Vector3 a, Vector3 b, Vector3 c)

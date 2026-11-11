@@ -33,7 +33,9 @@ internal static partial class SceneRenderPipeline
         float Roughness,
         float Ao,
         Vector3 EmissiveColor,
+        Vector3 BaseColorFactor,
         bool AlphaCutout,
+        float AlphaCutoff,
         bool DoubleSided);
 
     private readonly record struct MergeMember(
@@ -50,8 +52,10 @@ internal static partial class SceneRenderPipeline
     }
 
     private static readonly Dictionary<int, (Matrix4x4 World, long Frame)> WorldHistory = new();
+    private static readonly Dictionary<int, Matrix4x4> MergeFrameWorld = new();
     private static readonly Dictionary<MergeMaterialKey, List<MergeMember>> MergeGroups = new();
     private static readonly Dictionary<MergeMaterialKey, List<CombinedMeshEntry>> CombinedMeshes = new();
+    private static readonly HashSet<MergeMaterialKey> MergeTouchedKeys = new();
     private static Context? _mergeContext;
     private static long _mergeFrame;
     private static bool _mergeInitWarned;
@@ -67,8 +71,32 @@ internal static partial class SceneRenderPipeline
         CombinedMeshes.Clear();
         MergeGroups.Clear();
         WorldHistory.Clear();
+        MergeFrameWorld.Clear();
+        MergeTouchedKeys.Clear();
         _mergeContext = null;
         _mergeFrame = 0;
+    }
+
+    private static void CommitMergeWorldHistory()
+    {
+        foreach (var (id, world) in MergeFrameWorld)
+            WorldHistory[id] = (world, _mergeFrame);
+
+        MergeFrameWorld.Clear();
+    }
+
+    private static void EvictStaleCombinedMeshes()
+    {
+        foreach (var key in (MergeMaterialKey[])[.. CombinedMeshes.Keys])
+        {
+            if (MergeTouchedKeys.Contains(key))
+                continue;
+
+            DisposeEntries(CombinedMeshes[key]);
+            CombinedMeshes.Remove(key);
+        }
+
+        MergeTouchedKeys.Clear();
     }
 
     private static void EnsureMergeState(Context context)
@@ -93,7 +121,7 @@ internal static partial class SceneRenderPipeline
                    && previous.Frame < _mergeFrame
                    && world == previous.World;
 
-        WorldHistory[entity.Id] = (world, _mergeFrame);
+        MergeFrameWorld[entity.Id] = world;
 
         var hasMovingBody = entity.TryGetComponent<RigidBody2DComponent>(out var body)
                             && body.BodyType is RigidBodyType.Dynamic or RigidBodyType.Kinematic;
@@ -117,7 +145,9 @@ internal static partial class SceneRenderPipeline
             pbr.Roughness,
             pbr.Ao,
             emissive,
+            source?.BaseColorFactor ?? Vector3.One,
             source?.AlphaCutout ?? false,
+            source?.AlphaCutoff ?? 0.5f,
             source?.DoubleSided ?? false);
 
     private static void AppendMergeMember(MergeMaterialKey key, MergeMember member)
@@ -217,9 +247,10 @@ internal static partial class SceneRenderPipeline
                     continue;
                 }
 
+                MergeTouchedKeys.Add(key);
                 if (!TryGetCombined(key, members,
                         vertexArrayFactory, vertexBufferFactory, indexBufferFactory,
-                        out var entries))
+                        ref stats, out var entries))
                 {
                     foreach (var member in members)
                     {
@@ -234,8 +265,6 @@ internal static partial class SceneRenderPipeline
 
                     continue;
                 }
-
-                stats.MergedRebuilds += entries.Count;
 
                 for (var i = 0; i < entries.Count; i++)
                 {
@@ -353,6 +382,7 @@ internal static partial class SceneRenderPipeline
         IVertexArrayFactory? vertexArrayFactory,
         IVertexBufferFactory? vertexBufferFactory,
         IIndexBufferFactory? indexBufferFactory,
+        ref PassStats stats,
         out List<CombinedMeshEntry> entries)
     {
         entries = [];
@@ -381,6 +411,7 @@ internal static partial class SceneRenderPipeline
         }
 
         CombinedMeshes[key] = entries;
+        stats.MergedRebuilds += entries.Count;
         return true;
     }
 
@@ -418,6 +449,9 @@ internal static partial class SceneRenderPipeline
         foreach (var member in members)
         {
             var incomingBytes = (long)IncomingVertexCount(member) * VertexStrideBytes;
+            if (sliceMembers.Count == 0 && incomingBytes > RenderingConstants.MaxVertexBufferBytes)
+                return false;
+
             if (sliceMembers.Count > 0
                 && byteCount + incomingBytes > RenderingConstants.MaxVertexBufferBytes)
             {
@@ -497,8 +531,8 @@ internal static partial class SceneRenderPipeline
         combined.EmissiveFactor = source?.EmissiveFactor ?? Vector3.Zero;
         combined.AlphaCutout = key.AlphaCutout;
         combined.DoubleSided = key.DoubleSided;
-        combined.AlphaCutoff = source?.AlphaCutoff ?? 0.5f;
-        combined.BaseColorFactor = source?.BaseColorFactor ?? Vector3.One;
+        combined.AlphaCutoff = key.AlphaCutoff;
+        combined.BaseColorFactor = key.BaseColorFactor;
     }
 
     private static int IncomingVertexCount(in MergeMember member) =>
@@ -529,12 +563,14 @@ internal static partial class SceneRenderPipeline
         TransformNormalSpace(member.World, out var normalMatrix);
         var vertexOffset = vertices.Count;
 
+        var texCoordScale = member.Source is null && member.Tiling > 0f ? member.Tiling : 1f;
+
         foreach (var vertex in templateVertices)
         {
             vertices.Add(new Mesh.Vertex(
                 Vector3.Transform(vertex.Position, member.World),
                 SafeNormalize(Vector3.TransformNormal(vertex.Normal, normalMatrix)),
-                vertex.TexCoord,
+                vertex.TexCoord * texCoordScale,
                 SafeNormalize(Vector3.TransformNormal(vertex.Tangent, normalMatrix)),
                 SafeNormalize(Vector3.TransformNormal(vertex.Bitangent, normalMatrix)),
                 member.EntityId));
