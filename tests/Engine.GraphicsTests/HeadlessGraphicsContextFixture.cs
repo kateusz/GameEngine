@@ -1,3 +1,4 @@
+using Engine.Core.DI;
 using Engine.Platform.OpenGL;
 using Engine.Platform.SilkNet;
 using Engine.Renderer;
@@ -40,7 +41,7 @@ public sealed class HeadlessGraphicsContextFixture : IDisposable
         VertexArrayFactory = new VertexArrayFactory();
         VertexBufferFactory = new VertexBufferFactory();
         IndexBufferFactory = new IndexBufferFactory();
-        _textureFactory = new TextureFactory();
+        _textureFactory = new TextureFactory(new EngineHostOptions("Engine.GraphicsTests", 1, 1));
         _shaderFactory = new ShaderFactory();
         ShaderFactory = _shaderFactory;
         FrameBufferFactory = new FrameBufferFactory();
