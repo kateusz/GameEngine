@@ -74,6 +74,11 @@ public partial class GamePublisher(IProjectContext projectContext)
             if (!renameResult.Success)
                 return renameResult;
 
+            progress?.Report("Cooking texture BC sidecars...");
+            var cookTexturesResult = CookTextureSidecars();
+            if (!cookTexturesResult.Success)
+                return cookTexturesResult;
+
             progress?.Report("Copying assets...");
             var copyAssetsResult = CopyAssets(tempOutputPath);
             if (!copyAssetsResult.Success)

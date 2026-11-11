@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Engine.Platform.SilkNet;
 using Engine.Renderer.Textures;
+using Engine.Renderer.Textures.Compression;
 using Silk.NET.OpenGL;
 using InternalFormat = Silk.NET.OpenGL.InternalFormat;
 using PixelFormat = Silk.NET.OpenGL.PixelFormat;
@@ -52,6 +53,70 @@ internal sealed class OpenGLTexture2D : Texture2D
         var decoded = TextureFileDecoder.Decode(path, sRgb);
         return UploadTexture(path, decoded.Data, decoded.Width, decoded.Height, decoded.InternalFormat,
             decoded.DataFormat);
+    }
+
+    public static Texture2D CreateCompressed(string path, BcImage image)
+    {
+        if (!BcGlInternalFormat.TryGet(image.Format, out var internalFormat))
+            throw new NotSupportedException(
+                $"OpenGL does not support compressed format {image.Format} for texture: {path}");
+
+        var handle = SilkNetContext.GL.GenTexture();
+        OpenGLDebug.CheckError(SilkNetContext.GL, "GenTexture");
+
+        try
+        {
+            SilkNetContext.GL.ActiveTexture(TextureUnit.Texture0);
+            SilkNetContext.GL.BindTexture(TextureTarget.Texture2D, handle);
+            OpenGLDebug.CheckError(SilkNetContext.GL, "BindTexture(Texture2D)");
+
+            for (var i = 0; i < image.Mips.Length; i++)
+            {
+                var mip = image.Mips[i];
+                unsafe
+                {
+                    fixed (byte* ptr = mip.Blocks)
+                    {
+                        SilkNetContext.GL.CompressedTexImage2D(
+                            TextureTarget.Texture2D,
+                            i,
+                            internalFormat,
+                            (uint)mip.Width,
+                            (uint)mip.Height,
+                            0,
+                            (uint)mip.Blocks.Length,
+                            in *ptr);
+                        OpenGLDebug.CheckError(SilkNetContext.GL, "CompressedTexImage2D");
+                    }
+                }
+            }
+
+            var minFilter = image.Mips.Length > 1
+                ? TextureMinFilter.LinearMipmapLinear
+                : TextureMinFilter.Linear;
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
+                (int)minFilter);
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
+                (int)TextureMagFilter.Linear);
+            OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(filters)");
+
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS,
+                (int)TextureWrapMode.Repeat);
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT,
+                (int)TextureWrapMode.Repeat);
+            OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(wrap modes)");
+
+            SilkNetContext.GL.TexParameter(TextureTarget.Texture2D,
+                (TextureParameterName)0x84FE, 16.0f);
+
+            return new OpenGLTexture2D(path, handle, image.SourceWidth, image.SourceHeight, internalFormat,
+                PixelFormat.Rgba);
+        }
+        catch
+        {
+            SilkNetContext.GL.DeleteTexture(handle);
+            throw;
+        }
     }
 
     public static Texture2D CreateFromRgba(byte[] rgba, int width, int height)
