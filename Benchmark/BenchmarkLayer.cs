@@ -21,11 +21,16 @@ public class BenchmarkLayer(
     ITextureFactory textureFactory,
     IModelFactory modelFactory,
     ISceneSerializer scenes,
-    IProjectContext projectContext)
+    IProjectContext projectContext,
+    IGameWindow window,
+    FxaaPass hdrTarget,
+    TonemapPass tonemap)
     : ILayer
 {
     private readonly Benchmark2DRunner _twoD = new(graphics2D, sceneFactory, textureFactory);
-    private readonly Benchmark3DRunner _threeD = new(sceneFactory, graphics2D, graphics3D, textureFactory, modelFactory, scenes, projectContext);
+    private readonly Benchmark3DRunner _threeD = new(
+        sceneFactory, graphics2D, graphics3D, textureFactory, modelFactory, scenes, projectContext,
+        window, hdrTarget, tonemap);
     private readonly BenchmarkGridRunner _lighting = new("Lighting", sceneFactory, graphics2D, graphics3D, textureFactory, modelFactory);
     private readonly BenchmarkGridRunner _shadows = new("Shadows", sceneFactory, graphics2D, graphics3D, textureFactory, modelFactory);
     private readonly ActiveRun _active = new();

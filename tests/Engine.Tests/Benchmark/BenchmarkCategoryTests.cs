@@ -1,10 +1,16 @@
 using System.Numerics;
 using Benchmark;
 using ECS;
+using ECS.Systems;
 using Engine.Project;
+using Engine.Renderer;
 using Engine.Renderer.Meshes;
 using Engine.Renderer.Models;
+using Engine.Renderer.Pipeline;
+using Engine.Renderer.Textures;
 using Engine.Scene;
+using Engine.Scene.Systems;
+using Engine.Tests.Scene;
 using NSubstitute;
 using Shouldly;
 
@@ -85,7 +91,7 @@ public class BenchmarkCategoryTests : IDisposable
         ScenePlans.Plan("3D", "Cubes").ShouldBe(new ScenePlan("3D_Cubes", false, false, false, 0, false));
         ScenePlans.Plan("3D", "InstancedMesh").ShouldBe(new ScenePlan("3D_InstancedMesh", false, false, false, 0, false));
         ScenePlans.Plan("3D", "UniqueMeshes").ShouldBe(new ScenePlan("3D_UniqueMeshes", false, false, false, 0, false));
-        ScenePlans.Plan("3D", "GlbModels").ShouldBe(new ScenePlan("3D_GlbModels", true, true, false, 0, false));
+        ScenePlans.Plan("3D", "GlbModels").ShouldBe(new ScenePlan("3D_GlbModels", true, false, false, 0, false));
         ScenePlans.Plan("Lighting", "sun").ShouldBe(new ScenePlan("Lighting_Sun", false, false, true, 0, false));
         ScenePlans.Plan("Lighting", "point1").ShouldBe(new ScenePlan("Lighting_Point1", false, false, false, 1, false));
         ScenePlans.Plan("Lighting", "point8").ShouldBe(new ScenePlan("Lighting_Point8", false, false, false, 8, false));
@@ -151,6 +157,102 @@ public class BenchmarkCategoryTests : IDisposable
         error.ShouldNotBeNull();
         scene.Received(1).Dispose();
         models.Received(1).Clear();
+    }
+
+    [Fact]
+    public void Editor_display_tonemaps_when_the_hdr_target_exists()
+    {
+        EditorScenePresenter.Pixels(1280f, 2f).ShouldBe(2560u);
+        EditorScenePresenter.Pixels(0f, 2f).ShouldBe(0u);
+
+        var draws = 0;
+        var tonemaps = 0;
+        EditorScenePresenter.Show(1280, 720, tonemapReady: true, () => draws++, (w, h, draw) =>
+        {
+            w.ShouldBe(1280u);
+            h.ShouldBe(720u);
+            draw();
+            tonemaps++;
+            return true;
+        });
+        draws.ShouldBe(1);
+        tonemaps.ShouldBe(1);
+
+        draws = 0;
+        EditorScenePresenter.Show(1280, 720, tonemapReady: true, () => draws++, (_, _, _) => false);
+        draws.ShouldBe(1);
+
+        draws = 0;
+        var hdr = 0;
+        EditorScenePresenter.Show(0, 720, tonemapReady: true, () => draws++, (_, _, _) =>
+        {
+            hdr++;
+            return true;
+        });
+        draws.ShouldBe(1);
+        hdr.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Project_scene_draws_inside_presenter_with_editor_viewport_shadows()
+    {
+        var scene = new Engine.Scene.Scene("t", new Context(), new SystemManager(),
+            new PhysicsRuntimeBodyStore(), new PhysicsContactQueue(), null!, NullCameraQueries.Instance);
+        var inside = false;
+        var graphics2D = new ClearProbe(() => inside);
+        var graphics3D = new MeshDrawRecordingGraphics3D();
+        using var run = new PipelineBenchmarkRun(
+            "3D_GlbModels", 0f, scene, true, false,
+            graphics2D, graphics3D,
+            Substitute.For<ITextureFactory>(), Substitute.For<IModelFactory>(),
+            false, ExpectedShadow.None,
+            display: new ScopePresenter(
+                () => inside = true,
+                () => inside = false),
+            matchEditorLight: true);
+
+        run.Tick(TimeSpan.FromMilliseconds(16));
+
+        graphics2D.ClearedInsidePresenter.ShouldBeTrue();
+        graphics3D.ShadowQualitySets.ShouldBe(1);
+        graphics3D.ShadowQuality.ShouldBe(ShadowQuality.For(ShadowPreset.Low));
+        graphics3D.LastView.ShouldNotBeNull();
+        graphics3D.LastView!.Value.DirectionalShadows.ShouldBeTrue();
+        graphics3D.LastView.Value.PointShadows.ShouldBeFalse();
+    }
+
+    private sealed class ScopePresenter(Action enter, Action leave) : IScenePresenter
+    {
+        public void Present(Action drawScene)
+        {
+            enter();
+            drawScene();
+            leave();
+        }
+    }
+
+    private sealed class ClearProbe(Func<bool> inside) : IGraphics2D
+    {
+        public bool ClearedInsidePresenter { get; private set; }
+        public void SetClearColor(Vector4 color) => ClearedInsidePresenter = inside();
+        public void Clear() { }
+        public void Init() { }
+        public void Dispose() { }
+        public void BeginScene(in SceneView view) { }
+        public void EndScene() { }
+        public void DrawQuad(Vector2 position, Vector2 size, Vector4 color) { }
+        public void DrawQuad(Vector3 position, Vector2 size, Vector4 color) { }
+        public void DrawQuad(Vector3 position, Vector2 size, float rotation, SubTexture2D subTexture) { }
+        public void DrawQuad(Vector2 position, Vector2 size, Texture2D texture, float tilingFactor = 1.0f, Vector4? tintColor = null) { }
+        public void DrawQuad(Vector3 position, Vector2 size, Texture2D? texture, Vector2[] textureCoords, float tilingFactor = 1.0f, Vector4? tintColor = null) { }
+        public void DrawQuad(Vector3 position, Vector2 size, float rotation, Texture2D? texture, Vector2[] textureCoords, float tilingFactor = 1.0f, Vector4? tintColor = null) { }
+        public void DrawQuad(Matrix4x4 transform, Vector4 color, int entityId = -1) { }
+        public void DrawQuad(Matrix4x4 transform, Texture2D? texture, Vector2[] textureCoords, float tilingFactor = 1.0f, Vector4? tintColor = null, int entityId = -1) { }
+        public void DrawLine(Vector3 p0, Vector3 p1, Vector4 color, int entityId) { }
+        public void DrawRect(Vector3 position, Vector2 size, Vector4 color, int entityId) { }
+        public void DrawRect(Matrix4x4 transform, Vector4 color, int entityId) { }
+        public void ResetStats() { }
+        public Graphics2DStats GetStats() => new();
     }
 
     private sealed class FakeRun : BenchmarkRun

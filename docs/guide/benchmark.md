@@ -17,7 +17,7 @@ Use this to benchmark a real `.scene` from your game project, not only synthetic
 1. Choose **3D**.
 2. **Project folder** — path to the game project root (the folder that contains `assets/`), same as **Project → Open…** in the editor. On Windows use **Browse…** for the native folder picker, then **Open project** (fills the scene list only — nothing loads yet).
 3. **Scene** — combo lists every `*.scene` under `assets/scenes/` (recursive). Pick one; the scene **renders in the viewport** (live preview, no timer).
-4. Run **Project scene** to measure that file. Result name: `3D_GlbModels` (both directional and point shadows on in the view, matching imported content).
+4. Run **Project scene** to measure that file. Result name: `3D_GlbModels`. Lighting matches the editor viewport: the scene is drawn into an HDR target and tonemapped (Reinhard, gamma, bloom) before it reaches the window. Directional shadows stay on; point shadows stay off, same as the editor viewport.
 
 If the scene has a **Primary** camera, the benchmark uses its transform for the initial eye position; otherwise the default orbit camera applies.
 

@@ -1,3 +1,4 @@
+using Engine.Core.Window;
 using Engine.Project;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
@@ -14,14 +15,17 @@ public sealed class BenchmarkRunnerFactory(
     ITextureFactory textures,
     IModelFactory models,
     ISceneSerializer scenes,
-    IProjectContext projectContext)
+    IProjectContext projectContext,
+    IGameWindow window,
+    FxaaPass hdrTarget,
+    TonemapPass tonemap)
 {
     private Benchmark2DRunner? _twoD;
 
     public IBenchmarkRunner? Create(string category) => category switch
     {
         "2D" => TwoD(),
-        "3D" => new Benchmark3DRunner(sceneFactory, graphics2D, graphics3D, textures, models, scenes, projectContext),
+        "3D" => new Benchmark3DRunner(sceneFactory, graphics2D, graphics3D, textures, models, scenes, projectContext, window, hdrTarget, tonemap),
         "Lighting" => new BenchmarkGridRunner("Lighting", sceneFactory, graphics2D, graphics3D, textures, models),
         "Shadows" => new BenchmarkGridRunner("Shadows", sceneFactory, graphics2D, graphics3D, textures, models),
         _ => null

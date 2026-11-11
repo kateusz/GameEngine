@@ -7,11 +7,13 @@ namespace Engine.Tests.Scene;
 internal sealed class MeshDrawRecordingGraphics3D : IGraphics3D
 {
     public int MeshDraws { get; private set; }
+    public int ShadowQualitySets { get; private set; }
+    public SceneView? LastView { get; private set; }
 
     public void DrawMeshInstances(Engine.Renderer.Meshes.Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances) =>
         MeshDraws++;
 
-    public void BeginScene(in SceneView view) { }
+    public void BeginScene(in SceneView view) => LastView = view;
     public void EndScene() { }
     public void DrawCube(Matrix4x4 transform, Vector4 color, int entityId = -1,
         Engine.Renderer.Textures.Texture2D? texture = null, float tilingFactor = 1.0f,
@@ -30,7 +32,11 @@ internal sealed class MeshDrawRecordingGraphics3D : IGraphics3D
     public void BeginShadowCascade(Matrix4x4 lightViewProjection, int cascade) { }
     public void EndShadowPass() { }
     public void SetFarDirectionalShadow(Matrix4x4 lightViewProjection) { }
-    public void SetShadowQuality(ShadowQuality quality) => ShadowQuality = quality.Sanitized();
+    public void SetShadowQuality(ShadowQuality quality)
+    {
+        ShadowQualitySets++;
+        ShadowQuality = quality.Sanitized();
+    }
     public ShadowQuality ShadowQuality { get; private set; } = new();
     public bool BeginPointShadowFace(int lightIndex, int entityId, int face, Matrix4x4 viewProjection,
         Vector3 lightPosition, float range) => false;
