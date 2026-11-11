@@ -24,6 +24,7 @@ uniform int u_AlphaTest;
 uniform float u_AlphaCutoff;
 uniform int u_HasMetallicRoughnessMap;
 uniform int u_HasNormalMap;
+uniform int u_NormalTangentZReconstruct;
 uniform int u_HasOcclusionMap;
 uniform sampler2D u_DiffuseMap;
 uniform sampler2D u_MetallicRoughnessMap;
@@ -137,7 +138,9 @@ void main()
     vec3 norm;
     if (u_HasNormalMap != 0) {
         vec3 nts = texture(u_NormalMap, v_TexCoord * u_NormalUvScale).rgb * 2.0 - 1.0;
-        nts.z = sqrt(max(1.0 - nts.x * nts.x - nts.y * nts.y, 0.0));
+        if (u_NormalTangentZReconstruct != 0) {
+            nts.z = sqrt(max(1.0 - nts.x * nts.x - nts.y * nts.y, 0.0));
+        }
         norm = normalize(v_TBN * nts);
     } else {
         norm = normalize(v_Normal);

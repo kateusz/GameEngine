@@ -22,10 +22,13 @@ internal static class TextureBcSource
     private static bool NameContains(string path, params string[] tokens)
     {
         var stem = Path.GetFileNameWithoutExtension(path);
-        foreach (var token in tokens)
+        foreach (var part in stem.Split(['_', '-', '.', ' '], StringSplitOptions.RemoveEmptyEntries))
         {
-            if (stem.Contains(token, StringComparison.OrdinalIgnoreCase))
-                return true;
+            foreach (var token in tokens)
+            {
+                if (part.Equals(token, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
         }
 
         return false;

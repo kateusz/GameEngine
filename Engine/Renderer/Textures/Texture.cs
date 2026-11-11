@@ -15,6 +15,10 @@ public abstract class Texture : IDisposable
     [JsonIgnore]
     public virtual Vector2 UvScale { get; init; } = Vector2.One;
 
+    /// <summary>BC5 normal maps omit Z; reconstruct in the shader when true.</summary>
+    [JsonIgnore]
+    public virtual bool NormalTangentZReconstruct { get; init; }
+
     public string? Path { get; set; }
 
     public virtual void Bind(int slot = 0)

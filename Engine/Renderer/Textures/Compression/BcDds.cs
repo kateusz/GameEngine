@@ -58,6 +58,7 @@ internal static class BcDds
 
     public static bool Write(string path, BcImage image, DdsFile ddsFile)
     {
+        string? tempPath = null;
         try
         {
             var directory = Path.GetDirectoryName(path);
@@ -70,15 +71,15 @@ internal static class BcDds
             var bytes = ms.ToArray();
             BcDdsMetadata.Patch(bytes, image);
 
-            var tempPath = path + ".tmp";
+            tempPath = Path.Combine(directory, $"{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
             File.WriteAllBytes(tempPath, bytes);
             File.Move(tempPath, path, overwrite: true);
+            tempPath = null;
             return true;
         }
         catch
         {
-            var tempPath = path + ".tmp";
-            if (File.Exists(tempPath))
+            if (tempPath != null && File.Exists(tempPath))
             {
                 try { File.Delete(tempPath); }
                 catch { }

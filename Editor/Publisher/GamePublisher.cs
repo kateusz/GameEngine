@@ -76,7 +76,7 @@ public partial class GamePublisher(IProjectContext projectContext)
                 return renameResult;
 
             progress?.Report("Ensuring texture DDS siblings...");
-            var ddsSiblingsResult = EnsureTextureDdsSiblings();
+            var ddsSiblingsResult = EnsureTextureDdsSiblings(cancellationToken);
             if (!ddsSiblingsResult.Success)
                 return ddsSiblingsResult;
 
@@ -146,7 +146,7 @@ public partial class GamePublisher(IProjectContext projectContext)
         }
     }
 
-    private PublishResult EnsureTextureDdsSiblings()
+    private PublishResult EnsureTextureDdsSiblings(CancellationToken cancellationToken)
     {
         var assets = Path.Combine(projectContext.Root!, "assets");
         if (!Directory.Exists(assets))
@@ -154,6 +154,7 @@ public partial class GamePublisher(IProjectContext projectContext)
 
         foreach (var file in Directory.EnumerateFiles(assets, "*.*", SearchOption.AllDirectories))
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!TextureBcSidecar.TryEnsureUpToDate(file, out var error))
                 return PublishResult.Failed(error ?? $"BC DDS sibling failed for {file}");
         }

@@ -60,6 +60,14 @@ public class TextureBcCompressionTests
     }
 
     [Fact]
+    public void TextureBcSource_ChaosAlbedo_InferSrgb()
+    {
+        var (sRgb, isNormal) = TextureBcSource.InferEncodeRole("/assets/chaos_albedo.png");
+        Assert.True(sRgb);
+        Assert.False(isNormal);
+    }
+
+    [Fact]
     public void BcDdsSidecarPath_SeparatesByExtensionAndColorSpace()
     {
         var dir = Path.Combine(Path.GetTempPath(), "bc-sidecar-" + Guid.NewGuid());

@@ -94,9 +94,11 @@ internal sealed class Graphics3D(
 
         _depthShader.Bind();
         _depthShader.SetInt("u_DiffuseMap", 0);
+        _depthShader.SetFloat2("u_DiffuseUvScale", Vector2.One);
         _depthShader.Unbind();
         _pointDepthShader.Bind();
         _pointDepthShader.SetInt("u_DiffuseMap", 0);
+        _pointDepthShader.SetFloat2("u_DiffuseUvScale", Vector2.One);
         _pointDepthShader.Unbind();
         _equirectShader = shaderFactory.Create(ShaderId.EquirectToCube);
         _skyShader = shaderFactory.Create(ShaderId.Skybox);
@@ -117,11 +119,16 @@ internal sealed class Graphics3D(
         _modelShader.SetInt("u_BrdfLut", BrdfLutSlot);
         for (var i = 0; i < LightingMath.MaxPointLights; i++)
             _modelShader.SetInt(PointShadowMapUniforms[i], PointShadowSlot + i);
+        _modelShader.SetFloat2("u_DiffuseUvScale", Vector2.One);
+        _modelShader.SetFloat2("u_MetallicRoughnessUvScale", Vector2.One);
+        _modelShader.SetFloat2("u_NormalUvScale", Vector2.One);
+        _modelShader.SetFloat2("u_OcclusionUvScale", Vector2.One);
         _modelShader.Unbind();
 
         _emissiveShader = shaderFactory.Create(ShaderId.Emissive);
         _emissiveShader.Bind();
         _emissiveShader.SetInt("u_EmissiveMap", 0);
+        _emissiveShader.SetFloat2("u_EmissiveUvScale", Vector2.One);
         _emissiveShader.Unbind();
 
         _irradianceShader = shaderFactory.Create(ShaderId.Irradiance);
@@ -491,6 +498,8 @@ internal sealed class Graphics3D(
         _modelShader.SetInt("u_HasDiffuseMap", mesh.HasDiffuseMap ? 1 : 0);
         _modelShader.SetInt("u_HasMetallicRoughnessMap", mesh.HasMetallicRoughnessMap ? 1 : 0);
         _modelShader.SetInt("u_HasNormalMap", mesh.HasNormalMap ? 1 : 0);
+        _modelShader.SetInt("u_NormalTangentZReconstruct",
+            mesh.NormalTexture?.NormalTangentZReconstruct == true ? 1 : 0);
         _modelShader.SetInt("u_HasOcclusionMap", mesh.HasOcclusionMap ? 1 : 0);
         SetMapUvScale(_modelShader, "u_DiffuseUvScale", mesh.DiffuseTexture);
         SetMapUvScale(_modelShader, "u_MetallicRoughnessUvScale", mesh.MetallicRoughnessTexture);
@@ -661,8 +670,13 @@ internal sealed class Graphics3D(
             mesh.DiffuseTexture!.Bind(0);
     }
 
-    private static void SetMapUvScale(IShader shader, string uniform, Texture2D? texture) =>
-        shader.SetFloat2(uniform, texture?.UvScale ?? Vector2.One);
+    private static void SetMapUvScale(IShader shader, string uniform, Texture2D? texture)
+    {
+        var scale = texture?.UvScale ?? Vector2.One;
+        if (scale.X == 1f && scale.Y == 1f)
+            return;
+        shader.SetFloat2(uniform, scale);
+    }
 
     private void DrawShadow(Mesh mesh, Matrix4x4 transform)
     {

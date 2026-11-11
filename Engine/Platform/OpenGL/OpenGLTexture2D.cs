@@ -119,7 +119,10 @@ internal sealed class OpenGLTexture2D : Texture2D
                 image.SourceWidth / (float)image.GpuWidth,
                 image.SourceHeight / (float)image.GpuHeight);
             return new OpenGLTexture2D(path, handle, image.SourceWidth, image.SourceHeight, internalFormat,
-                PixelFormat.Rgba, uvScale);
+                PixelFormat.Rgba, uvScale)
+            {
+                NormalTangentZReconstruct = image.IsNormal && image.Format == BcGpuFormat.Bc5
+            };
         }
         catch
         {
