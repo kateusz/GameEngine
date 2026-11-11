@@ -34,7 +34,7 @@ public sealed record PerfRunOptions(
         var height = 720;
         var warmup = 5f;
         var measure = 5f;
-        var measureIterations = 5;
+        var measureIterations = 1;
         var seed = 12345;
         var fps = 0;
         var output = "";
