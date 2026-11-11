@@ -5,9 +5,7 @@ namespace Engine.Renderer.Textures.Compression;
 internal static class BcDdsMetadata
 {
     private const uint Magic = 0x474E454Du; // 'MENG'
-
-    private const int HeaderSizeOffset = 4;
-    private const int Reserved1Offset = HeaderSizeOffset + 28;
+    private const int Reserved1Offset = 32;
 
     public static void Patch(byte[] ddsBytes, BcGpuFormat format, int sourceWidth, int sourceHeight)
     {
@@ -28,7 +26,6 @@ internal static class BcDdsMetadata
         sourceHeight = 0;
         if (ddsBytes.Length < Reserved1Offset + 16)
             return false;
-
         if (BinaryPrimitives.ReadUInt32LittleEndian(ddsBytes.Slice(Reserved1Offset)) != Magic)
             return false;
 
@@ -41,14 +38,4 @@ internal static class BcDdsMetadata
         sourceHeight = BinaryPrimitives.ReadInt32LittleEndian(ddsBytes.Slice(Reserved1Offset + 12));
         return sourceWidth > 0 && sourceHeight > 0;
     }
-
-    public static int GpuWidth(ReadOnlySpan<byte> ddsBytes) =>
-        ddsBytes.Length >= HeaderSizeOffset + 16
-            ? BinaryPrimitives.ReadInt32LittleEndian(ddsBytes.Slice(HeaderSizeOffset + 12))
-            : 0;
-
-    public static int GpuHeight(ReadOnlySpan<byte> ddsBytes) =>
-        ddsBytes.Length >= HeaderSizeOffset + 12
-            ? BinaryPrimitives.ReadInt32LittleEndian(ddsBytes.Slice(HeaderSizeOffset + 8))
-            : 0;
 }

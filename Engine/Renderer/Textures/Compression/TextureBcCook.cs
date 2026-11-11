@@ -2,13 +2,11 @@ namespace Engine.Renderer.Textures.Compression;
 
 public static class TextureBcCook
 {
-    public static bool IsCookable(string path) => TextureCookInference.IsCookableExtension(path);
-
     public static bool TryCookFile(string sourcePath, out string? error)
     {
         error = null;
         var normalized = Path.GetFullPath(sourcePath);
-        if (!IsCookable(normalized))
+        if (!TextureCookInference.IsCookableExtension(normalized))
             return true;
 
         if (!File.Exists(normalized))
@@ -18,8 +16,10 @@ public static class TextureBcCook
         }
 
         var (sRgb, isNormal) = TextureCookInference.InferCookRole(normalized);
-        var sidecar = TextureSidecar.PathFor(normalized);
-        if (TextureSidecar.IsFresh(normalized, sidecar) && BcDds.TryRead(sidecar, out _))
+        var sidecar = Path.ChangeExtension(normalized, ".dds");
+        if (File.Exists(sidecar)
+            && File.GetLastWriteTimeUtc(sidecar) >= File.GetLastWriteTimeUtc(normalized)
+            && BcDds.TryRead(sidecar, out _))
             return true;
 
         byte[] rgba;
@@ -27,7 +27,7 @@ public static class TextureBcCook
         int height;
         try
         {
-            (rgba, width, height) = DecodeDimensions(normalized, sRgb);
+            (rgba, width, height) = BcTextureEncoder.DecodeToRgba(normalized, sRgb);
         }
         catch (Exception ex)
         {
@@ -50,12 +50,5 @@ public static class TextureBcCook
         }
 
         return true;
-    }
-
-    private static (byte[] Rgba, int Width, int Height) DecodeDimensions(string path, bool sRgb)
-    {
-        var rgba = BcTextureEncoder.DecodeToRgba(path, sRgb);
-        var decoded = Engine.Platform.OpenGL.TextureFileDecoder.Decode(path, sRgb);
-        return (rgba, decoded.Width, decoded.Height);
     }
 }

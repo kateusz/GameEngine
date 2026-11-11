@@ -1,4 +1,3 @@
-using BCnEncoder.Encoder;
 using BCnEncoder.Shared;
 using BCnEncoder.Shared.ImageFiles;
 
@@ -22,10 +21,6 @@ internal static class BcDds
             return false;
         }
 
-        if (fileBytes.Length < 128 || fileBytes[0] != 'D' || fileBytes[1] != 'D' || fileBytes[2] != 'S' ||
-            fileBytes[3] != ' ')
-            return false;
-
         DdsFile dds;
         try
         {
@@ -39,17 +34,15 @@ internal static class BcDds
         if (dds.Faces.Count == 0 || dds.Faces[0].MipMaps.Length == 0)
             return false;
 
+        var gpuWidth = (int)dds.Faces[0].MipMaps[0].Width;
+        var gpuHeight = (int)dds.Faces[0].MipMaps[0].Height;
         if (!BcDdsMetadata.TryRead(fileBytes, out var format, out var sourceWidth, out var sourceHeight))
         {
-            sourceWidth = BcDdsMetadata.GpuWidth(fileBytes);
-            sourceHeight = BcDdsMetadata.GpuHeight(fileBytes);
-            if (sourceWidth <= 0 || sourceHeight <= 0)
-                return false;
+            sourceWidth = gpuWidth;
+            sourceHeight = gpuHeight;
             format = BcGpuFormat.Dxt5Linear;
         }
 
-        var gpuWidth = BcDdsMetadata.GpuWidth(fileBytes);
-        var gpuHeight = BcDdsMetadata.GpuHeight(fileBytes);
         var mips = new BcMip[dds.Faces[0].MipMaps.Length];
         for (var i = 0; i < mips.Length; i++)
         {
@@ -75,12 +68,12 @@ internal static class BcDds
                 return false;
 
             Directory.CreateDirectory(directory);
-            var tempPath = path + ".tmp";
-            using (var stream = File.Create(tempPath))
-                ddsFile.Write(stream);
-
-            var bytes = File.ReadAllBytes(tempPath);
+            using var ms = new MemoryStream();
+            ddsFile.Write(ms);
+            var bytes = ms.ToArray();
             BcDdsMetadata.Patch(bytes, image.Format, image.SourceWidth, image.SourceHeight);
+
+            var tempPath = path + ".tmp";
             File.WriteAllBytes(tempPath, bytes);
             File.Move(tempPath, path, overwrite: true);
             return true;
@@ -90,13 +83,8 @@ internal static class BcDds
             var tempPath = path + ".tmp";
             if (File.Exists(tempPath))
             {
-                try
-                {
-                    File.Delete(tempPath);
-                }
-                catch
-                {
-                }
+                try { File.Delete(tempPath); }
+                catch { }
             }
 
             return false;
@@ -105,18 +93,15 @@ internal static class BcDds
 
     private static bool ValidateMipSize(BcGpuFormat format, int width, int height, int dataLength)
     {
-        var blocksWide = (width + 3) / 4;
-        var blocksHigh = (height + 3) / 4;
         var blockBytes = format is BcGpuFormat.Dxt1Srgb ? 8 : 16;
-        return dataLength == blocksWide * blocksHigh * blockBytes;
+        return dataLength == (width + 3) / 4 * ((height + 3) / 4) * blockBytes;
     }
 
     internal static CompressionFormat ToBcEncoderFormat(BcGpuFormat format) =>
         format switch
         {
             BcGpuFormat.Dxt1Srgb => CompressionFormat.Bc1,
-            BcGpuFormat.Dxt5Srgb => CompressionFormat.Bc3,
-            BcGpuFormat.Dxt5Linear => CompressionFormat.Bc3,
+            BcGpuFormat.Dxt5Srgb or BcGpuFormat.Dxt5Linear => CompressionFormat.Bc3,
             BcGpuFormat.Bc4 => CompressionFormat.Bc4,
             BcGpuFormat.Bc5 => CompressionFormat.Bc5,
             _ => CompressionFormat.Bc3

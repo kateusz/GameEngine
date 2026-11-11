@@ -109,26 +109,24 @@ internal sealed class TextureFactory : ITextureFactory
 
         if (normalizedPath.EndsWith(".dds", StringComparison.OrdinalIgnoreCase)
             && BcDds.TryRead(normalizedPath, out var sourceBc))
-            return TryCreateCompressed(normalizedPath, sourceBc) ?? FallbackUncompressed(normalizedPath, sRgb);
+            return TryCreateCompressed(normalizedPath, sourceBc) ?? OpenGLTexture2D.Create(normalizedPath, sRgb);
 
-        var sidecar = TextureSidecar.PathFor(normalizedPath);
-        if (TextureSidecar.IsFresh(normalizedPath, sidecar) && BcDds.TryRead(sidecar, out var bc))
-            return TryCreateCompressed(normalizedPath, bc) ?? FallbackUncompressed(normalizedPath, sRgb);
+        var sidecar = Path.ChangeExtension(normalizedPath, ".dds");
+        if (File.Exists(sidecar)
+            && File.GetLastWriteTimeUtc(sidecar) >= File.GetLastWriteTimeUtc(normalizedPath)
+            && BcDds.TryRead(sidecar, out var bc))
+            return TryCreateCompressed(normalizedPath, bc) ?? OpenGLTexture2D.Create(normalizedPath, sRgb);
 
         if (_hostOptions.CookTextureSidecarOnLoad && TextureCookInference.IsCookableExtension(normalizedPath))
         {
             try
             {
-                var rgba = BcTextureEncoder.DecodeToRgba(normalizedPath, sRgb);
-                var decoded = TextureFileDecoder.Decode(normalizedPath, sRgb);
+                var (rgba, width, height) = BcTextureEncoder.DecodeToRgba(normalizedPath, sRgb);
                 var format = BcFormatPick.Pick(sRgb, TextureCookInference.IsNormalLoad(normalizedPath, sRgb), rgba,
-                    decoded.Width, decoded.Height);
-                if (CanUpload(format))
-                {
-                    var (image, dds) = BcTextureEncoder.EncodeWithDds(rgba, decoded.Width, decoded.Height, format);
-                    if (image != null && dds != null && BcDds.Write(sidecar, image.Value, dds))
-                        return OpenGLTexture2D.CreateCompressed(normalizedPath, image.Value);
-                }
+                    width, height);
+                var (image, dds) = BcTextureEncoder.EncodeWithDds(rgba, width, height, format);
+                if (image != null && dds != null && BcDds.Write(sidecar, image.Value, dds))
+                    return OpenGLTexture2D.CreateCompressed(normalizedPath, image.Value);
             }
             catch (Exception ex)
             {
@@ -139,35 +137,21 @@ internal sealed class TextureFactory : ITextureFactory
         if (TextureCookInference.IsCookableExtension(normalizedPath))
             Logger.Warning("BC sibling missing, stale, or unsupported for {Path}; uploading uncompressed", path);
 
-        return FallbackUncompressed(normalizedPath, sRgb);
+        return OpenGLTexture2D.Create(normalizedPath, sRgb);
     }
 
     private static Texture2D? TryCreateCompressed(string path, BcImage bc)
     {
-        if (!BcFormatPick.UsesS3Tc(bc.Format) || OpenGLTextureCaps.SupportsS3Tc)
+        try
         {
-            try
-            {
-                return OpenGLTexture2D.CreateCompressed(path, bc);
-            }
-            catch (Exception ex)
-            {
-                Logger.Warning(ex, "Compressed upload failed for {Path}", path);
-            }
+            return OpenGLTexture2D.CreateCompressed(path, bc);
         }
-        else
+        catch (Exception ex)
         {
-            Logger.Warning("S3TC unavailable; cannot upload {Format} for {Path}", bc.Format, path);
+            Logger.Warning(ex, "Compressed upload failed for {Path}", path);
+            return null;
         }
-
-        return null;
     }
-
-    private static bool CanUpload(BcGpuFormat format) =>
-        !BcFormatPick.UsesS3Tc(format) || OpenGLTextureCaps.SupportsS3Tc;
-
-    private static Texture2D FallbackUncompressed(string path, bool sRgb) =>
-        OpenGLTexture2D.Create(path, sRgb);
 
     private static string ToCacheKey(string path, bool sRgb)
     {
