@@ -24,6 +24,19 @@ for name, p in json.load(open(sys.argv[1]))["presets"].items():
 PY
 }
 
+perf_preset_warmup_seconds() {
+  python3 - "$PERF_SCENES_JSON" "$1" <<'PY'
+import json, sys
+e = json.load(open(sys.argv[1]))["presets"][sys.argv[2]]
+if "warmupSeconds" in e:
+    print(e["warmupSeconds"])
+elif e.get("scene") == "3D:GlbModels" or e.get("projectRoot"):
+    print(10)
+else:
+    print(5)
+PY
+}
+
 perf_write_scenario_snapshot() {
   python3 - "$1" "$PERF_SCENES_JSON" "$2" <<'PY'
 import json, sys
@@ -31,12 +44,18 @@ out, catalog, preset = sys.argv[1:4]
 e = json.load(open(catalog))["presets"][preset]
 scene = e["scene"]
 cat, tid = scene.split(":", 1)
+if "warmupSeconds" in e:
+    warmup = e["warmupSeconds"]
+elif scene == "3D:GlbModels" or e.get("projectRoot"):
+    warmup = 10
+else:
+    warmup = 5
 json.dump({
     "preset": preset,
     "category": cat, "testId": tid,
     "count": e.get("count", 1000),
     "width": 1280, "height": 720,
-    "warmupSeconds": 5, "measureSeconds": 5,
+    "warmupSeconds": warmup, "measureSeconds": 5,
     "seed": 12345, "targetFrameRate": 0,
 }, open(out, "w"), indent=2)
 PY

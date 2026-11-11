@@ -9,6 +9,7 @@ DIMENSION=""
 OUT_DIR=""
 WITH_TESTS=0
 WARMUP=5
+WARMUP_EXPLICIT=0
 MEASURE=5
 
 tolower() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
@@ -19,7 +20,7 @@ while [[ $# -gt 0 ]]; do
     --dimension|-d) DIMENSION="$(tolower "$2")"; shift 2 ;;
     --output-dir) OUT_DIR="$2"; shift 2 ;;
     --with-tests) WITH_TESTS=1; shift ;;
-    --warmup-seconds) WARMUP="$2"; shift 2 ;;
+    --warmup-seconds) WARMUP="$2"; WARMUP_EXPLICIT=1; shift 2 ;;
     --measure-seconds) MEASURE="$2"; shift 2 ;;
     -h|--help)
       echo "perf 2d|3d [--output-dir DIR] [--with-tests]"
@@ -41,8 +42,9 @@ PRESETS="$(perf_presets_for_dimension "$DIMENSION")"
 FAIL=0
 while IFS= read -r preset; do
   [[ -z "$preset" ]] && continue
-  "$PERF_RUN" --preset "$preset" --warmup-seconds "$WARMUP" --measure-seconds "$MEASURE" \
-    --output "$OUT_DIR/${preset}.json" || FAIL=1
+  RUN_ARGS=(--preset "$preset" --measure-seconds "$MEASURE" --output "$OUT_DIR/${preset}.json")
+  [[ $WARMUP_EXPLICIT -eq 1 ]] && RUN_ARGS+=(--warmup-seconds "$WARMUP")
+  "$PERF_RUN" "${RUN_ARGS[@]}" || FAIL=1
 done <<< "$PRESETS"
 
 [[ $WITH_TESTS -eq 1 ]] && "$ROOT/tools/performance/perf-tests" "$DIMENSION" || FAIL=1
