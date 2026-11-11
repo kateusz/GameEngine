@@ -186,7 +186,7 @@ Docked **ImGui** layout for 2D and 3D projects. Day-to-day workflow: [scene edit
 ### Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-- OpenGL 3.3+ compatible graphics card
+- OpenGL 4.1+ compatible graphics card
 
 ### Build & Run
 

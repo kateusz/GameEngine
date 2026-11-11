@@ -1,4 +1,4 @@
-#version 330 core
+#version 410 core
 
 layout(location = 0) in vec3 a_Position;
 layout(location = 1) in vec3 a_Normal;
@@ -9,7 +9,7 @@ layout(location = 6) in mat4 a_InstanceModel;
 layout(location = 10) in mat4 a_InstanceNormal;
 layout(location = 14) in int a_InstanceEntityId;
 
-uniform mat4 u_ViewProjection;
+#include "frame.glsl"
 uniform mat4 u_Model;
 uniform mat4 u_NormalMatrix;
 uniform int u_Instanced;

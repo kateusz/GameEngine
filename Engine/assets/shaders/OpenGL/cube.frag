@@ -1,6 +1,4 @@
-#version 330 core
-// u_PointShadowMaps[i] is indexed by a loop counter; GLSL 3.30 only allows that with gpu_shader5 (Mesa enforces it).
-#extension GL_ARB_gpu_shader5 : enable
+#version 410 core
 
 layout(location = 0) out vec4 o_Color;
 layout(location = 1) out int  o_EntityID;
@@ -10,20 +8,15 @@ in vec3 v_Normal;
 in vec2 v_TexCoord;
 flat in int v_EntityID;
 
+#include "frame.glsl"
 uniform vec4 u_Color;
 uniform int  u_EntityID;
-uniform vec3 u_AmbientColor;
-uniform float u_AmbientStrength;
-uniform vec3 u_LightDirection;
-uniform vec3 u_LightColor;
-uniform vec3 u_ViewPosition;
 uniform sampler2D u_Texture;
 uniform int u_UseTexture;
 uniform float u_Metallic;
 uniform float u_Roughness;
 uniform float u_Ao;
 uniform vec3 u_Emissive;
-uniform int u_Ibl;
 uniform samplerCube u_Irradiance;
 uniform samplerCube u_Prefilter;
 uniform sampler2D u_BrdfLut;
@@ -31,13 +24,6 @@ uniform sampler2D u_BrdfLut;
 const int c_MaxPointLights = 8;
 const float c_PointEpsilon = 0.0001;
 
-uniform int u_PointLightCount;
-uniform vec3 u_PointLightPositions[c_MaxPointLights];
-uniform vec3 u_PointLightColors[c_MaxPointLights];
-uniform float u_PointLightIntensities[c_MaxPointLights];
-uniform float u_PointLightRanges[c_MaxPointLights];
-
-uniform int u_PointShadowsEnabled[c_MaxPointLights];
 uniform samplerCubeShadow u_PointShadowMaps[c_MaxPointLights];
 
 #include "shadow.glsl"
@@ -95,19 +81,19 @@ vec3 PointLights(vec3 N, vec3 V, vec3 fragPos, vec3 albedo, float metallic, floa
         if (i >= u_PointLightCount)
             break;
 
-        vec3 toLight = u_PointLightPositions[i] - fragPos;
+        vec3 toLight = u_PointLightPositions[i].xyz - fragPos;
         float dist = length(toLight);
-        if (dist >= u_PointLightRanges[i])
+        if (dist >= u_PointLightIntensityRange[i].y)
             continue;
 
-        vec3 radiance = u_PointLightColors[i] * u_PointLightIntensities[i];
+        vec3 radiance = u_PointLightColors[i].xyz * u_PointLightIntensityRange[i].x;
         if (dist < c_PointEpsilon)
         {
             sum += radiance * albedo;
             continue;
         }
 
-        float remaining = 1.0 - dist / u_PointLightRanges[i];
+        float remaining = 1.0 - dist / u_PointLightIntensityRange[i].y;
         radiance *= remaining * remaining;
         sum += CookTorrance(N, V, toLight / dist, radiance, albedo, metallic, roughness)
             * PointShadow(i, fragPos);

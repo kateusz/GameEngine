@@ -19,12 +19,12 @@ C4Context
     System(engine, "Game Engine", "ECS-based engine with visual editor, hot-reloadable C# scripting, cross-platform (Windows/macOS)")
 
     System_Ext(os, "Operating System", "Windows, macOS — provides windowing, input, and GPU access")
-    System_Ext(gpu, "GPU / Graphics Driver", "OpenGL 3.3+ rendering")
+    System_Ext(gpu, "GPU / Graphics Driver", "OpenGL 4.1+ rendering")
     System_Ext(audio, "Audio Driver", "OpenAL-compatible audio output")
 
     Rel(dev, engine, "Writes scripts, builds scenes, publishes games")
     Rel(engine, os, "Windowing & input via Silk.NET")
-    Rel(engine, gpu, "Rendering via OpenGL 3.3+")
+    Rel(engine, gpu, "Rendering via OpenGL 4.1+")
     Rel(engine, audio, "Audio playback via OpenAL")
 ```
 
@@ -47,7 +47,7 @@ C4Container
         Container(runtime, "Runtime", "C# Application", "Standalone game player — loads published scenes and runs them without editor overhead")
     }
 
-    System_Ext(silknet, "Silk.NET", "OpenGL 3.3+ bindings & windowing")
+    System_Ext(silknet, "Silk.NET", "OpenGL 4.1+ bindings & windowing")
     System_Ext(box2d, "Box2D", "2D rigid-body physics simulation")
     System_Ext(openal, "OpenAL", "Spatial audio")
     System_Ext(imgui, "ImGui.NET", "Immediate-mode GUI for editor")

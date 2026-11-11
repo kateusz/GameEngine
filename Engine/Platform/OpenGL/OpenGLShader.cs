@@ -20,59 +20,12 @@ internal sealed class OpenGLShader : IShader
 
     public OpenGLShader(string vertPath, string fragPath)
     {
-        uint vertex = 0;
-        uint fragment = 0;
-        try
-        {
-            vertex = LoadShader(ShaderType.VertexShader, vertPath);
-            fragment = LoadShader(ShaderType.FragmentShader, fragPath);
-
-            _handle = SilkNetContext.GL.CreateProgram();
-            OpenGLDebug.CheckError(SilkNetContext.GL, "CreateProgram");
-
-            SilkNetContext.GL.AttachShader(_handle, vertex);
-            OpenGLDebug.CheckError(SilkNetContext.GL, "AttachShader(vertex)");
-            SilkNetContext.GL.AttachShader(_handle, fragment);
-            OpenGLDebug.CheckError(SilkNetContext.GL, "AttachShader(fragment)");
-
-            SilkNetContext.GL.LinkProgram(_handle);
-            OpenGLDebug.CheckError(SilkNetContext.GL, "LinkProgram");
-
-            SilkNetContext.GL.GetProgram(_handle, GLEnum.LinkStatus, out var status);
-            if (status == 0)
-            {
-                throw new InvalidOperationException(
-                    $"Program failed to link with error: {SilkNetContext.GL.GetProgramInfoLog(_handle)}");
-            }
-
-            SilkNetContext.GL.DeleteShader(vertex);
-            OpenGLDebug.CheckError(SilkNetContext.GL, "DeleteShader(vertex)");
-            vertex = 0;
-            SilkNetContext.GL.DeleteShader(fragment);
-            OpenGLDebug.CheckError(SilkNetContext.GL, "DeleteShader(fragment)");
-            fragment = 0;
-
-            SilkNetContext.GL.GetProgram(_handle, ProgramPropertyARB.ActiveUniforms, out var numberOfUniforms);
-
-            for (uint i = 0; i < numberOfUniforms; i++)
-            {
-                var key = SilkNetContext.GL.GetActiveUniform(_handle, i, out _, out _);
-                var location = SilkNetContext.GL.GetUniformLocation(_handle, key);
-                _uniformLocations.Add(key, location);
-            }
-        }
-        catch
-        {
-            DeleteShaderIfNeeded(vertex);
-            DeleteShaderIfNeeded(fragment);
-            if (_handle != 0)
-            {
-                SilkNetContext.GL.DeleteProgram(_handle);
-                _handle = 0;
-            }
-
-            throw;
-        }
+        var dir = Path.GetDirectoryName(vertPath)!;
+        CompileFromSource(
+            ExpandIncludes(File.ReadAllText(vertPath), dir),
+            ExpandIncludes(File.ReadAllText(fragPath), dir));
+        BindFrameBlock();
+        CacheUniforms();
     }
 
     public void Bind()
@@ -91,33 +44,29 @@ internal sealed class OpenGLShader : IShader
     {
         if (!TryGetUniformLocation(name, out var location))
             return;
-        SilkNetContext.GL.UseProgram(_handle);
-        SilkNetContext.GL.Uniform1(location, data);
+        SilkNetContext.GL.ProgramUniform1(_handle, location, data);
     }
 
     public void SetIntArray(string name, int[] values, uint count)
     {
         if (!TryGetUniformLocation(name, out var location))
             return;
-        SilkNetContext.GL.UseProgram(_handle);
-        SilkNetContext.GL.Uniform1(location, values);
+        SilkNetContext.GL.ProgramUniform1(_handle, location, values.AsSpan(0, (int)count));
     }
 
     public void SetFloat(string name, float data)
     {
         if (!TryGetUniformLocation(name, out var location))
             return;
-        SilkNetContext.GL.UseProgram(_handle);
-        SilkNetContext.GL.Uniform1(location, data);
+        SilkNetContext.GL.ProgramUniform1(_handle, location, data);
     }
 
     public void SetMat4(string name, Matrix4x4 data)
     {
         if (!TryGetUniformLocation(name, out var location))
             return;
-        SilkNetContext.GL.UseProgram(_handle);
         var matrix = MemoryMarshal.CreateReadOnlySpan(ref data.M11, 16);
-        SilkNetContext.GL.UniformMatrix4(location, true, matrix);
+        SilkNetContext.GL.ProgramUniformMatrix4(_handle, location, true, matrix);
     }
 
     public void SetMat4Array(string name, Matrix4x4[] matrices)
@@ -138,25 +87,22 @@ internal sealed class OpenGLShader : IShader
             return;
         }
 
-        SilkNetContext.GL.UseProgram(_handle);
         var floats = MemoryMarshal.Cast<Matrix4x4, float>(matrices);
-        SilkNetContext.GL.UniformMatrix4(location, (uint)matrices.Length, true, floats);
+        SilkNetContext.GL.ProgramUniformMatrix4(_handle, location, (uint)matrices.Length, true, floats);
     }
 
     public void SetFloat3(string name, Vector3 data)
     {
         if (!TryGetUniformLocation(name, out var location))
             return;
-        SilkNetContext.GL.UseProgram(_handle);
-        SilkNetContext.GL.Uniform3(location, data);
+        SilkNetContext.GL.ProgramUniform3(_handle, location, data);
     }
 
     public void SetFloat4(string name, Vector4 data)
     {
         if (!TryGetUniformLocation(name, out var location))
             return;
-        SilkNetContext.GL.UseProgram(_handle);
-        SilkNetContext.GL.Uniform4(location, data);
+        SilkNetContext.GL.ProgramUniform4(_handle, location, data);
     }
 
     private bool TryGetUniformLocation(string name, out int location)
@@ -182,19 +128,91 @@ internal sealed class OpenGLShader : IShader
         return location;
     }
 
-    private static uint LoadShader(ShaderType type, string path)
+    internal static string ExpandIncludes(string src, string directory)
     {
-        var src = File.ReadAllText(path);
         const string include = "#include \"";
-        var at = src.IndexOf(include, StringComparison.Ordinal);
-        if (at >= 0)
+        while (true)
         {
+            var at = src.IndexOf(include, StringComparison.Ordinal);
+            if (at < 0)
+                return src;
             var nameAt = at + include.Length;
             var end = src.IndexOf('"', nameAt);
-            var included = File.ReadAllText(Path.Combine(Path.GetDirectoryName(path)!, src[nameAt..end]));
+            if (end < 0)
+                throw new InvalidOperationException("Unterminated #include");
+            var included = File.ReadAllText(Path.Combine(directory, src[nameAt..end]));
             src = src.Remove(at, end - at + 1).Insert(at, included);
         }
+    }
 
+    private void CompileFromSource(string vertSrc, string fragSrc)
+    {
+        uint vertex = 0;
+        uint fragment = 0;
+        try
+        {
+            vertex = CompileStage(ShaderType.VertexShader, vertSrc);
+            fragment = CompileStage(ShaderType.FragmentShader, fragSrc);
+
+            _handle = SilkNetContext.GL.CreateProgram();
+            OpenGLDebug.CheckError(SilkNetContext.GL, "CreateProgram");
+            SilkNetContext.GL.AttachShader(_handle, vertex);
+            OpenGLDebug.CheckError(SilkNetContext.GL, "AttachShader(vertex)");
+            SilkNetContext.GL.AttachShader(_handle, fragment);
+            OpenGLDebug.CheckError(SilkNetContext.GL, "AttachShader(fragment)");
+            SilkNetContext.GL.LinkProgram(_handle);
+            OpenGLDebug.CheckError(SilkNetContext.GL, "LinkProgram");
+            EnsureLinked();
+
+            SilkNetContext.GL.DeleteShader(vertex);
+            vertex = 0;
+            SilkNetContext.GL.DeleteShader(fragment);
+            fragment = 0;
+        }
+        catch
+        {
+            DeleteShaderIfNeeded(vertex);
+            DeleteShaderIfNeeded(fragment);
+            if (_handle != 0)
+            {
+                SilkNetContext.GL.DeleteProgram(_handle);
+                _handle = 0;
+            }
+
+            throw;
+        }
+    }
+
+    private void EnsureLinked()
+    {
+        SilkNetContext.GL.GetProgram(_handle, GLEnum.LinkStatus, out var status);
+        if (status == 0)
+        {
+            throw new InvalidOperationException(
+                $"Program failed to link with error: {SilkNetContext.GL.GetProgramInfoLog(_handle)}");
+        }
+    }
+
+    private void BindFrameBlock()
+    {
+        var block = SilkNetContext.GL.GetUniformBlockIndex(_handle, "Frame");
+        if (block != uint.MaxValue)
+            SilkNetContext.GL.UniformBlockBinding(_handle, block, 0);
+    }
+
+    private void CacheUniforms()
+    {
+        SilkNetContext.GL.GetProgram(_handle, ProgramPropertyARB.ActiveUniforms, out var numberOfUniforms);
+        for (uint i = 0; i < numberOfUniforms; i++)
+        {
+            var key = SilkNetContext.GL.GetActiveUniform(_handle, i, out _, out _);
+            var location = SilkNetContext.GL.GetUniformLocation(_handle, key);
+            _uniformLocations[key] = location;
+        }
+    }
+
+    private static uint CompileStage(ShaderType type, string src)
+    {
         var handle = SilkNetContext.GL.CreateShader(type);
         OpenGLDebug.CheckError(SilkNetContext.GL, $"CreateShader({type})");
         try
@@ -227,14 +245,6 @@ internal sealed class OpenGLShader : IShader
         SilkNetContext.GL.DeleteShader(handle);
     }
 
-    /// <summary>
-    /// Releases all resources used by the shader program.
-    /// </summary>
-    /// <remarks>
-    /// This method should be called when the shader is no longer needed to prevent GPU resource leaks.
-    /// The shader program handle and uniform location cache will be cleaned up.
-    /// Calling this method multiple times is safe due to the disposed flag check.
-    /// </remarks>
     public void Dispose()
     {
         if (_disposed)
@@ -252,7 +262,7 @@ internal sealed class OpenGLShader : IShader
         }
         catch (Exception e)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to delete OpenGL shader program {_handle}: {e.Message}");
+            Debug.WriteLine($"Failed to delete OpenGL shader program {_handle}: {e.Message}");
         }
 
         _disposed = true;
@@ -263,11 +273,7 @@ internal sealed class OpenGLShader : IShader
     ~OpenGLShader()
     {
         if (!_disposed && _handle != 0)
-        {
-            Debug.WriteLine(
-                $"GPU LEAK: Shader program {_handle} not disposed!"
-            );
-        }
+            Debug.WriteLine($"GPU LEAK: Shader program {_handle} not disposed!");
     }
 #endif
 }

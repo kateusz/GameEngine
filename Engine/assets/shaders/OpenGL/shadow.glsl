@@ -1,13 +1,4 @@
-uniform mat4 u_LightViewProjection;
-uniform mat4 u_FarLightViewProjection;
 uniform sampler2DShadow u_ShadowMap;
-uniform int u_ShadowsEnabled;
-uniform int u_CascadeCount;
-uniform float u_CascadeSplit;
-uniform int u_ShadowPcf;
-uniform float u_ShadowMapSize;
-uniform int u_PointPcf;
-uniform float u_PointMapSize;
 
 const float c_ShadowBias = 0.002;
 const float c_PointShadowBias = 0.05;
@@ -60,11 +51,11 @@ float DirectionalShadow(vec3 fragPos)
 
 float PointShadow(int i, vec3 fragPos)
 {
-    if (u_PointShadowsEnabled[i] == 0)
+    if ((u_PointShadowMask & (1 << i)) == 0)
         return 1.0;
 
-    vec3 toFrag = fragPos - u_PointLightPositions[i];
-    float range = u_PointLightRanges[i];
+    vec3 toFrag = fragPos - u_PointLightPositions[i].xyz;
+    float range = u_PointLightIntensityRange[i].y;
     float current = length(toFrag) / range;
     float bias = c_PointShadowBias / range;
     if (u_PointPcf <= 1)

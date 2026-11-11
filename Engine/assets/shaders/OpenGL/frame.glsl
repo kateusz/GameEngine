@@ -1,0 +1,26 @@
+layout(std140) uniform Frame {
+    mat4  u_ViewProjection;
+    mat4  u_LightViewProjection;
+    mat4  u_FarLightViewProjection;
+    vec3  u_AmbientColor;
+    float u_AmbientStrength;
+    vec3  u_LightDirection;
+    float _pad0;
+    vec3  u_LightColor;
+    float _pad1;
+    vec3  u_ViewPosition;
+    float _pad2;
+    vec4  u_PointLightPositions[8];
+    vec4  u_PointLightColors[8];
+    vec4  u_PointLightIntensityRange[8];
+    int   u_PointLightCount;
+    int   u_ShadowsEnabled;
+    int   u_CascadeCount;
+    int   u_ShadowPcf;
+    float u_CascadeSplit;
+    float u_ShadowMapSize;
+    int   u_PointPcf;
+    float u_PointMapSize;
+    int   u_PointShadowMask;
+    int   u_Ibl;
+};

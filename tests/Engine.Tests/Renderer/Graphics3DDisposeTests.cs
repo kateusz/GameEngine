@@ -24,7 +24,7 @@ public class Graphics3DDisposeTests
         meshFactory.CreateCube().Returns(mesh);
 
         var graphics = new Graphics3D(
-            Substitute.For<IRendererAPI>(),
+            FakeUniformBuffer.Renderer(),
             shaderFactory,
             meshFactory,
             Substitute.For<ITextureFactory>(),

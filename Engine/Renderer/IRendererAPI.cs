@@ -1,3 +1,4 @@
+using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Textures;
 using System.Numerics;
@@ -36,6 +37,7 @@ public interface IRendererAPI
     void SetCullFrontFaces(bool cullFront);
     void SetPolygonMode(PolygonMode mode);
     void SetViewport(int x, int y, uint width, uint height);
+    IUniformBuffer CreateUniformBuffer(int byteSize);
     void Init();
     int GetError();
 }

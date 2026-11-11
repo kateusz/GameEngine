@@ -51,6 +51,7 @@ public class Graphics3DSkyboxTests
                 return false;
             });
 
+        FakeUniformBuffer.Attach(renderer);
         var graphics = new Graphics3D(
             renderer,
             shaderFactory,

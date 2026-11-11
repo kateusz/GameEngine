@@ -107,6 +107,11 @@ public static class EngineIoCContainer
     {
         container.RegisterInstance(hostOptions);
         var windowOptions = WindowOptions.Default;
+        windowOptions.API = new GraphicsAPI(
+            ContextAPI.OpenGL,
+            ContextProfile.Core,
+            ContextFlags.ForwardCompatible,
+            new APIVersion(4, 1));
         windowOptions.Size = new Vector2D<int>(hostOptions.WindowWidth, hostOptions.WindowHeight);
         windowOptions.Title = hostOptions.WindowTitle;
         windowOptions.WindowState = hostOptions.Fullscreen
