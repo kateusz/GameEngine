@@ -22,6 +22,7 @@ internal static class TextureRasterToRgba8
         var bpp = decoded.Data.Length / pixels;
         return (decoded.DataFormat, bpp, decoded.InternalFormat) switch
         {
+            (PixelFormat.Rgba, 4, _) => decoded.Data,
             (PixelFormat.Bgra, 4, _) => TexturePreviewScaling.ToPackedRgba(decoded.Data, 4),
             (PixelFormat.Bgr, 3, _) => TexturePreviewScaling.ToPackedRgba(decoded.Data, 3),
             (PixelFormat.Bgr, 2, InternalFormat.Rgb565) => ExpandRgb565(decoded.Data, pixels),

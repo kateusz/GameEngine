@@ -80,6 +80,7 @@ public partial class GamePublisher(IProjectContext projectContext)
             if (!ddsSiblingsResult.Success)
                 return ddsSiblingsResult;
 
+            cancellationToken.ThrowIfCancellationRequested();
             progress?.Report("Copying assets...");
             var copyAssetsResult = CopyAssets(tempOutputPath);
             if (!copyAssetsResult.Success)

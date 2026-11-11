@@ -128,6 +128,7 @@ public class TextureBcCompressionTests
         {
             Assert.True(BcDds.Write(path, image!.Value, dds!));
             Assert.True(BcDds.TryRead(path, out var read));
+            Assert.False(TextureBcSidecar.TryReadUsableSidecar(path, path, sRgb: true, isNormal: false, out _));
             Assert.Equal(6, read.SourceWidth);
             Assert.Equal(6, read.SourceHeight);
             Assert.Equal(8, read.GpuWidth);
@@ -158,8 +159,16 @@ public class TextureBcCompressionTests
 
         try
         {
-            Assert.False(TextureBcSidecar.SidecarUsable(src, sidecar, sRgb: true, isNormal: false));
-            Assert.True(TextureBcSidecar.SidecarUsable(src, sidecar, sRgb: false, isNormal: false));
+            Assert.False(TextureBcSidecar.TryReadUsableSidecar(src, sidecar, sRgb: true, isNormal: false, out _));
+            Assert.True(TextureBcSidecar.TryReadUsableSidecar(src, sidecar, sRgb: false, isNormal: false, out _));
+            Assert.True(BcDds.Write(sidecar, image.Value, dds));
+
+            using var authored = new MemoryStream();
+            dds.Write(authored);
+            var authoredBytes = authored.ToArray();
+            File.WriteAllBytes(sidecar, authoredBytes);
+            Assert.False(BcDds.Write(sidecar, image.Value, dds));
+            Assert.Equal(authoredBytes, File.ReadAllBytes(sidecar));
         }
         finally
         {

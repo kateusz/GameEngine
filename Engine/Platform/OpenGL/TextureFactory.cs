@@ -112,8 +112,7 @@ internal sealed class TextureFactory : ITextureFactory
         var isOcclusion = TextureBcSource.IsOcclusionMap(normalizedPath);
         var sidecar = BcDdsSidecarPath.ForSource(normalizedPath, sRgb);
 
-        if (TextureBcSidecar.SidecarUsable(normalizedPath, sidecar, sRgb, isNormal)
-            && BcDds.TryRead(sidecar, out var bc))
+        if (TextureBcSidecar.TryReadUsableSidecar(normalizedPath, sidecar, sRgb, isNormal, out var bc))
             return TryCreateCompressed(normalizedPath, bc) ?? OpenGLTexture2D.Create(normalizedPath, sRgb);
 
         if (_hostOptions.EnsureTextureDdsSiblingOnLoad)
@@ -121,6 +120,9 @@ internal sealed class TextureFactory : ITextureFactory
             try
             {
                 var (rgba, width, height) = BcTextureEncoder.DecodeToRgba(normalizedPath, sRgb);
+                if (!TextureBcSidecar.CanEncodeWithoutPadding(width, height))
+                    return OpenGLTexture2D.Create(normalizedPath, sRgb);
+
                 var format = BcFormatPick.Pick(sRgb, isNormal, isOcclusion, rgba, width, height);
                 var (image, dds) = BcTextureEncoder.EncodeWithDds(rgba, width, height, format, sRgb, isNormal);
                 if (image != null && dds != null && BcDds.Write(sidecar, image.Value, dds))

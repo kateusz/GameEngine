@@ -12,6 +12,7 @@ flat in int v_EntityID;
 uniform vec4 u_Color;
 uniform int  u_EntityID;
 uniform sampler2D u_Texture;
+uniform vec2 u_TextureUvScale;
 uniform int u_UseTexture;
 uniform float u_Metallic;
 uniform float u_Roughness;
@@ -121,7 +122,7 @@ vec3 ImageBasedLight(vec3 N, vec3 V, vec3 albedo, float metallic, float roughnes
 
 void main()
 {
-    vec3 albedo = (u_UseTexture == 1 ? texture(u_Texture, v_TexCoord).rgb : vec3(1.0)) * u_Color.rgb;
+    vec3 albedo = (u_UseTexture == 1 ? texture(u_Texture, v_TexCoord * u_TextureUvScale).rgb : vec3(1.0)) * u_Color.rgb;
     float metallic = clamp(u_Metallic, 0.0, 1.0);
     float roughness = max(clamp(u_Roughness, 0.0, 1.0), c_MinRoughness);
     float ao = clamp(u_Ao, 0.0, 1.0);

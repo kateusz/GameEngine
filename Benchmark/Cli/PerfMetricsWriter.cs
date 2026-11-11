@@ -85,6 +85,7 @@ public static class PerfMetricsWriter
             {
                 FileName = "git",
                 Arguments = "rev-parse HEAD",
+                WorkingDirectory = AppContext.BaseDirectory,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -92,9 +93,21 @@ public static class PerfMetricsWriter
             });
             if (process == null)
                 return "";
-            var sha = process.StandardOutput.ReadToEnd().Trim();
-            process.WaitForExit(2000);
-            return process.ExitCode == 0 ? sha : "";
+            var stdout = process.StandardOutput.ReadToEndAsync();
+            var stderr = process.StandardError.ReadToEndAsync();
+            try
+            {
+                Task.WhenAll(stdout, stderr, process.WaitForExitAsync())
+                    .WaitAsync(TimeSpan.FromSeconds(2)).GetAwaiter().GetResult();
+            }
+            catch (TimeoutException)
+            {
+                if (!process.HasExited)
+                    process.Kill(entireProcessTree: true);
+                return "";
+            }
+
+            return process.ExitCode == 0 ? stdout.GetAwaiter().GetResult().Trim() : "";
         }
         catch
         {

@@ -71,9 +71,19 @@ internal static class BcDds
             var bytes = ms.ToArray();
             BcDdsMetadata.Patch(bytes, image);
 
+            var exists = File.Exists(path);
+            if (exists)
+            {
+                using var existing = File.OpenRead(path);
+                Span<byte> header = stackalloc byte[BcDdsMetadata.HeaderLength];
+                existing.ReadExactly(header);
+                if (!BcDdsMetadata.TryRead(header, out _))
+                    return false;
+            }
+
             tempPath = Path.Combine(directory, $"{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
             File.WriteAllBytes(tempPath, bytes);
-            File.Move(tempPath, path, overwrite: true);
+            File.Move(tempPath, path, overwrite: exists);
             tempPath = null;
             return true;
         }

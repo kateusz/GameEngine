@@ -8,10 +8,11 @@ internal static class BcDdsMetadata
     private const int Reserved1Offset = 32;
     private const int ImportSRgbOffset = Reserved1Offset + 16;
     private const int ImportIsNormalOffset = Reserved1Offset + 20;
+    internal const int HeaderLength = ImportIsNormalOffset + 4;
 
     public static void Patch(byte[] ddsBytes, BcImage image)
     {
-        if (ddsBytes.Length < ImportIsNormalOffset + 4)
+        if (ddsBytes.Length < HeaderLength)
             return;
 
         BinaryPrimitives.WriteUInt32LittleEndian(ddsBytes.AsSpan(Reserved1Offset), Magic);
@@ -25,7 +26,7 @@ internal static class BcDdsMetadata
     public static bool TryRead(ReadOnlySpan<byte> ddsBytes, out BcImage image)
     {
         image = default!;
-        if (ddsBytes.Length < ImportIsNormalOffset + 4)
+        if (ddsBytes.Length < HeaderLength)
             return false;
         if (BinaryPrimitives.ReadUInt32LittleEndian(ddsBytes.Slice(Reserved1Offset)) != Magic)
             return false;

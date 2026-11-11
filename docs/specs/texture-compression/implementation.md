@@ -76,7 +76,7 @@ internal static class TextureSidecar
 }
 ```
 
-`BcEncoder.Encode(rgba, width, height, format)` pads to multiples of four, builds mips, returns `BcImage`. `BcDds.Write(path, image)` writes temp then replace. `BcDds.TryRead(path, out image)` validates mip sizes against `imageSize = ((w+3)/4)*((h+3)/4)*blockBytes`.
+Automatic sidecars use block-aligned rasters. Other rasters keep their original dimensions for repeat sampling. The encoder builds mipmaps and returns a `BcImage`. `BcDds.Write` writes a temporary file and replaces an existing sibling only if it carries engine metadata. `BcDds.TryRead` validates the byte count of each mip against its rounded-up block dimensions.
 
 Block bytes: DXT1 and BC4 = 8; DXT5 and BC5 = 16.
 

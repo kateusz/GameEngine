@@ -100,6 +100,7 @@ internal sealed class Graphics3D(
         _frame = rendererApi.CreateUniformBuffer(FrameUniforms.ByteSize);
 
         _cubeShader.Bind();
+        _cubeShader.SetInt("u_Texture", 0);
         _cubeShader.SetInt("u_ShadowMap", ShadowMapSlot);
         _cubeShader.SetInt("u_Irradiance", IrradianceSlot);
         _cubeShader.SetInt("u_Prefilter", PrefilterSlot);
@@ -454,8 +455,8 @@ internal sealed class Graphics3D(
         _cubeShader.SetInt("u_UseTexture", texture != null ? 1 : 0);
         if (texture != null)
         {
+            _cubeShader.SetFloat2("u_TextureUvScale", texture.UvScale);
             texture.Bind(0);
-            _cubeShader.SetInt("u_Texture", 0);
         }
 
         _cubeMesh.Bind();

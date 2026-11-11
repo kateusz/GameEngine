@@ -18,7 +18,7 @@ public static class TextureBcSidecar
         var (sRgb, isNormal) = TextureBcSource.InferEncodeRole(normalized);
         var isOcclusion = TextureBcSource.IsOcclusionMap(normalized);
         var sidecar = BcDdsSidecarPath.ForSource(normalized, sRgb);
-        if (SidecarUsable(normalized, sidecar, sRgb, isNormal))
+        if (TryReadUsableSidecar(normalized, sidecar, sRgb, isNormal, out _))
             return true;
 
         byte[] rgba;
@@ -33,6 +33,9 @@ public static class TextureBcSidecar
             error = $"Failed to decode {normalized}: {ex.Message}";
             return false;
         }
+
+        if (!CanEncodeWithoutPadding(width, height))
+            return true;
 
         var format = BcFormatPick.Pick(sRgb, isNormal, isOcclusion, rgba, width, height);
         var (image, dds) = BcTextureEncoder.EncodeWithDds(rgba, width, height, format, sRgb, isNormal);
@@ -51,13 +54,24 @@ public static class TextureBcSidecar
         return true;
     }
 
-    internal static bool SidecarUsable(string sourcePath, string sidecarPath, bool sRgb, bool isNormal)
+    internal static bool TryReadUsableSidecar(
+        string sourcePath, string sidecarPath, bool sRgb, bool isNormal, out BcImage image)
     {
+        image = default;
         if (!File.Exists(sidecarPath)
             || File.GetLastWriteTimeUtc(sidecarPath) < File.GetLastWriteTimeUtc(sourcePath)
             || !BcDds.TryRead(sidecarPath, out var bc))
             return false;
 
-        return bc.SRgb == sRgb && bc.IsNormal == isNormal;
+        if (bc.SRgb != sRgb || bc.IsNormal != isNormal
+            || bc.SourceWidth != bc.GpuWidth || bc.SourceHeight != bc.GpuHeight)
+            return false;
+
+        image = bc;
+        return true;
     }
+
+    // Repeat uses the uploaded dimensions. Use the original raster when padding would change the repeat period.
+    internal static bool CanEncodeWithoutPadding(int width, int height) =>
+        width % 4 == 0 && height % 4 == 0;
 }
