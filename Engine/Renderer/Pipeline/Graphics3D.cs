@@ -13,7 +13,6 @@ internal sealed class Graphics3D(
     IRendererAPI rendererApi,
     IShaderFactory shaderFactory,
     IMeshFactory meshFactory,
-    ITextureFactory textureFactory,
     IFrameBufferFactory frameBuffers) : IGraphics3D
 {
     private const string ViewProjectionUniform = "u_ViewProjection";
@@ -25,10 +24,26 @@ internal sealed class Graphics3D(
     private const int BrdfLutSlot = 15;
     private const uint FrameBinding = 0;
 
+    // Keep in sync with the material flags in modelShader.frag.
+    [Flags]
+    private enum MaterialFlags
+    {
+        DiffuseMap = 1,
+        MetallicRoughnessMap = 2,
+        NormalMap = 4,
+        ReconstructNormalZ = 8,
+        OcclusionMap = 16,
+        AlphaCutout = 32
+    }
+
+    private readonly record struct ModelMaterial(
+        Vector4 Tint, Vector4 Factors, Vector3 Emissive, Vector3 BaseColor, MaterialFlags Flags);
+
     private static readonly string[] PointShadowMapUniforms = Names("u_PointShadowMaps");
     
     private IShader _cubeShader = null!;
     private IShader _modelShader = null!;
+    private ModelMaterial? _modelMaterial;
     private IShader _emissiveShader = null!;
     private IShader _depthShader = null!;
     private IShader _pointDepthShader = null!;
@@ -78,6 +93,7 @@ internal sealed class Graphics3D(
     {
         _cubeShader = shaderFactory.Create(ShaderId.Cube);
         _modelShader = shaderFactory.Create(ShaderId.Model);
+        _modelMaterial = null;
         _depthShader = shaderFactory.Create(ShaderId.Depth);
         _pointDepthShader = shaderFactory.Create(ShaderId.PointDepth);
         _cubeMesh = meshFactory.CreateCube();
@@ -407,6 +423,7 @@ internal sealed class Graphics3D(
 
     public void BeginScene(in SceneView view)
     {
+        _modelMaterial = null;
         _viewProjection = view.ViewProjection;
         _viewPosition = view.ViewPosition;
         UploadFrame();
@@ -479,42 +496,60 @@ internal sealed class Graphics3D(
                 return;
             }
 
-            ApplySurface(_depthShader, mesh);
+            ApplyShadowSurface(_depthShader, mesh);
             UploadAndDraw(mesh, instances, _depthShader);
             rendererApi.SetFaceCulling(true);
             return;
         }
 
         rendererApi.SetDepthTest(true);
-        var first = instances[0];
         _modelShader.Bind();
-        ApplySurface(_modelShader, mesh);
-        _modelShader.SetFloat4("u_Color", first.Tint);
-        _modelShader.SetFloat("u_Metallic", first.Metallic);
-        _modelShader.SetFloat("u_Roughness", first.Roughness);
-        _modelShader.SetFloat("u_Ao", first.Ao);
-        _modelShader.SetFloat3("u_Emissive", WithoutEmissiveMap(mesh, first.Emissive));
-        _modelShader.SetFloat3("u_BaseColor", mesh.BaseColorFactor);
-        _modelShader.SetInt("u_HasDiffuseMap", mesh.HasDiffuseMap ? 1 : 0);
-        _modelShader.SetInt("u_HasMetallicRoughnessMap", mesh.HasMetallicRoughnessMap ? 1 : 0);
-        _modelShader.SetInt("u_HasNormalMap", mesh.HasNormalMap ? 1 : 0);
-        _modelShader.SetInt("u_NormalTangentZReconstruct",
-            mesh.NormalTexture?.NormalTangentZReconstruct == true ? 1 : 0);
-        _modelShader.SetInt("u_HasOcclusionMap", mesh.HasOcclusionMap ? 1 : 0);
-        SetMapUvScale(_modelShader, "u_DiffuseUvScale", mesh.DiffuseTexture);
-        SetMapUvScale(_modelShader, "u_MetallicRoughnessUvScale", mesh.MetallicRoughnessTexture);
-        SetMapUvScale(_modelShader, "u_NormalUvScale", mesh.NormalTexture);
-        SetMapUvScale(_modelShader, "u_OcclusionUvScale", mesh.OcclusionTexture);
-
-        (mesh.DiffuseTexture ?? textureFactory.GetWhiteTexture()).Bind(0);
-        (mesh.MetallicRoughnessTexture ?? textureFactory.GetWhiteTexture()).Bind(1);
-        (mesh.NormalTexture ?? textureFactory.GetFlatNormalTexture()).Bind(2);
-        (mesh.OcclusionTexture ?? textureFactory.GetWhiteTexture()).Bind(OcclusionMapSlot);
+        rendererApi.SetFaceCulling(!mesh.DoubleSided);
+        UploadModelMaterial(mesh, instances[0]);
+        BindModelTexture(mesh.DiffuseTexture, 0, "u_DiffuseUvScale");
+        BindModelTexture(mesh.MetallicRoughnessTexture, 1, "u_MetallicRoughnessUvScale");
+        BindModelTexture(mesh.NormalTexture, 2, "u_NormalUvScale");
+        BindModelTexture(mesh.OcclusionTexture, OcclusionMapSlot, "u_OcclusionUvScale");
 
         UploadAndDraw(mesh, instances, _modelShader);
         _modelShader.Unbind();
         rendererApi.SetFaceCulling(true);
         DrawEmissive(mesh, instances);
+    }
+
+    private void UploadModelMaterial(Mesh mesh, in MeshDrawInstance instance)
+    {
+        var cutout = mesh.AlphaCutout && mesh.HasDiffuseMap;
+        var flags = (mesh.HasDiffuseMap ? MaterialFlags.DiffuseMap : 0)
+                    | (mesh.HasMetallicRoughnessMap ? MaterialFlags.MetallicRoughnessMap : 0)
+                    | (mesh.HasNormalMap ? MaterialFlags.NormalMap : 0)
+                    | (mesh.NormalTexture?.NormalTangentZReconstruct == true ? MaterialFlags.ReconstructNormalZ : 0)
+                    | (mesh.HasOcclusionMap ? MaterialFlags.OcclusionMap : 0)
+                    | (cutout ? MaterialFlags.AlphaCutout : 0);
+        var material = new ModelMaterial(
+            instance.Tint,
+            new Vector4(instance.Metallic, instance.Roughness, instance.Ao, cutout ? mesh.AlphaCutoff : 0f),
+            WithoutEmissiveMap(mesh, instance.Emissive),
+            mesh.BaseColorFactor,
+            flags);
+        if (_modelMaterial == material)
+            return;
+
+        _modelShader.SetFloat4("u_Color", material.Tint);
+        _modelShader.SetFloat4("u_MaterialFactors", material.Factors);
+        _modelShader.SetFloat3("u_Emissive", material.Emissive);
+        _modelShader.SetFloat3("u_BaseColor", material.BaseColor);
+        _modelShader.SetInt("u_MaterialFlags", (int)material.Flags);
+        _modelMaterial = material;
+    }
+
+    private void BindModelTexture(Texture2D? texture, int slot, string scaleUniform)
+    {
+        if (texture is null)
+            return;
+
+        _modelShader.SetFloat2(scaleUniform, texture.UvScale);
+        texture.Bind(slot);
     }
 
     private void DrawEmissive(Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances)
@@ -659,30 +694,30 @@ internal sealed class Graphics3D(
         }
     }
 
-    private void ApplySurface(IShader shader, Mesh mesh)
+    private void ApplyShadowSurface(IShader shader, Mesh mesh)
     {
         var cutout = mesh.AlphaCutout && mesh.HasDiffuseMap;
         shader.SetInt("u_AlphaTest", cutout ? 1 : 0);
-        shader.SetFloat("u_AlphaCutoff", mesh.AlphaCutoff);
-        SetMapUvScale(shader, "u_DiffuseUvScale", mesh.DiffuseTexture);
         rendererApi.SetFaceCulling(!mesh.DoubleSided);
         if (cutout)
+        {
+            shader.SetFloat("u_AlphaCutoff", mesh.AlphaCutoff);
+            SetMapUvScale(shader, "u_DiffuseUvScale", mesh.DiffuseTexture);
             mesh.DiffuseTexture!.Bind(0);
+        }
     }
 
     private static void SetMapUvScale(IShader shader, string uniform, Texture2D? texture)
     {
-        var scale = texture?.UvScale ?? Vector2.One;
-        if (scale.X == 1f && scale.Y == 1f)
-            return;
-        shader.SetFloat2(uniform, scale);
+        if (texture is not null)
+            shader.SetFloat2(uniform, texture.UvScale);
     }
 
     private void DrawShadow(Mesh mesh, Matrix4x4 transform)
     {
         var shader = _pointShadowPass ? _pointDepthShader : _depthShader;
         rendererApi.SetDepthTest(true);
-        ApplySurface(shader, mesh);
+        ApplyShadowSurface(shader, mesh);
         if (!_pointShadowPass)
             shader.SetInt("u_Instanced", 0);
         shader.SetMat4("u_Model", transform);

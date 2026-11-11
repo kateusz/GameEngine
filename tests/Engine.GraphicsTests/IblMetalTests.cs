@@ -30,7 +30,6 @@ public class IblMetalTests(HeadlessGraphicsContextFixture fixture)
             fixture.RendererApi,
             fixture.ShaderFactory,
             meshes,
-            textures,
             fixture.FrameBufferFactory);
         try
         {

@@ -7,7 +7,6 @@ using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Meshes;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Shaders;
-using Engine.Renderer.Textures;
 using NSubstitute;
 using Shouldly;
 
@@ -37,7 +36,6 @@ public class Graphics3DFrameUniformTests
             renderer,
             shaderFactory,
             meshFactory,
-            Substitute.For<ITextureFactory>(),
             Substitute.For<IFrameBufferFactory>());
         graphics.Init();
 
@@ -102,7 +100,6 @@ public class Graphics3DFrameUniformTests
             renderer,
             shaderFactory,
             meshFactory,
-            Substitute.For<ITextureFactory>(),
             Substitute.For<IFrameBufferFactory>());
         graphics.Init();
 
@@ -136,7 +133,6 @@ public class Graphics3DFrameUniformTests
             renderer,
             shaderFactory,
             meshFactory,
-            Substitute.For<ITextureFactory>(),
             Substitute.For<IFrameBufferFactory>());
         graphics.Init();
 
@@ -182,7 +178,6 @@ public class Graphics3DFrameUniformTests
             FakeUniformBuffer.Renderer(out var frame),
             shaderFactory,
             meshFactory,
-            Substitute.For<ITextureFactory>(),
             Substitute.For<IFrameBufferFactory>());
         graphics.Init();
 
@@ -225,7 +220,6 @@ public class Graphics3DFrameUniformTests
             FakeUniformBuffer.Renderer(),
             shaderFactory,
             meshFactory,
-            Substitute.For<ITextureFactory>(),
             frameBuffers);
         graphics.Init();
 
@@ -270,7 +264,6 @@ public class Graphics3DFrameUniformTests
             FakeUniformBuffer.Renderer(),
             shaderFactory,
             meshFactory,
-            Substitute.For<ITextureFactory>(),
             frameBuffers);
         graphics.Init();
 

@@ -56,7 +56,6 @@ public class Graphics3DSkyboxTests
             renderer,
             shaderFactory,
             meshFactory,
-            Substitute.For<ITextureFactory>(),
             Substitute.For<IFrameBufferFactory>());
         graphics.Init();
 

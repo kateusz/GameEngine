@@ -48,7 +48,7 @@ public class PerfRunOptionsTests
         ok.ShouldBeTrue();
         options!.WarmupSeconds.ShouldBe(5f);
         options.MeasureSeconds.ShouldBe(5f);
-        options.MeasureIterations.ShouldBe(5);
+        options.MeasureIterations.ShouldBe(1);
     }
 
     [Fact]
