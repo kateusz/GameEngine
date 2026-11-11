@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 # shellcheck source=perf-lib.sh
 source "$ROOT/tools/performance/perf-lib.sh"
 
-PRESET="${PRESET:-3d-instancing}"
+PRESET="${PRESET:-3d-loaded-scene}"
 REPETITIONS=1
 FOCUS=""
 RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-$$"
@@ -22,7 +22,7 @@ while [[ $# -gt 0 ]]; do
     --skip-tests) SKIP_TESTS=1; shift ;;
     --no-revert) NO_REVERT=1; shift ;;
     -h|--help)
-      echo "perf-improve.sh [--preset 3d-instancing] [--repetitions N] [--optimization-path FILE]..."
+      echo "perf-improve.sh [--preset 3d-loaded-scene] [--repetitions N] [--optimization-path FILE]..."
       exit 0 ;;
     *) echo "Unknown: $1" >&2; exit 1 ;;
   esac

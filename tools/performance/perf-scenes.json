@@ -1,4 +1,8 @@
 {
+  "defaults": {
+    "project3dRoot": "Editor/bin/Debug/net10.0/3d",
+    "scene3d": "assets/scenes/sponza.scene"
+  },
   "presets": {
     "2d-batching": {
       "scene": "2D:Profiling2D",
@@ -33,8 +37,8 @@
     "3d-loaded-scene": {
       "scene": "3D:GlbModels",
       "dimension": "3d",
-      "projectRoot": "Editor",
-      "sceneFile": "Editor/bin/Debug/net10.0/3d/assets/scenes/sponza.scene"
+      "projectRoot": "Editor/bin/Debug/net10.0/3d",
+      "sceneFile": "assets/scenes/sponza.scene"
     },
     "3d-shadows-directional": {
       "scene": "Shadows:directional",

@@ -49,6 +49,16 @@ if [[ -n "$PRESET" ]]; then
 fi
 
 [[ -z "$COUNT" ]] && COUNT=1000
+if [[ "$SCENE" == "3D:GlbModels" ]]; then
+  has_proj=0
+  for ((wi = 0; wi < ${#EXTRA[@]}; wi++)); do
+    [[ "${EXTRA[wi]}" == "--project-root" ]] && has_proj=1 && break
+  done
+  if [[ $has_proj -eq 0 ]]; then
+    IFS='|' read -r DEF_PROJ DEF_SCENE <<< "$(perf_default_3d_paths)"
+    EXTRA+=(--project-root "$DEF_PROJ" --scene-file "$DEF_SCENE")
+  fi
+fi
 if [[ $WARMUP_EXPLICIT -eq 0 && -z "$PRESET" ]]; then
   [[ "$SCENE" == "3D:GlbModels" ]] && WARMUP=10
   for ((wi = 0; wi < ${#EXTRA[@]}; wi++)); do

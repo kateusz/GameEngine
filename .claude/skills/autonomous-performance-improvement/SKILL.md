@@ -12,6 +12,16 @@ description: >-
 
 End-to-end workflow for this repository. **Do not** ask the user to open the editor, press Play, or click benchmarks.
 
+## Default 3D project
+
+Unless the user names another game folder or scene, **3D project-scene benchmarks** use the editor layout project at:
+
+`Editor/bin/Debug/net10.0/3d` (repo-relative; on this machine: `/Users/mateuszkulesza/projects/GameEngine/Editor/bin/Debug/net10.0/3d`).
+
+Configured in `tools/performance/perf-scenes.json` → `defaults.project3dRoot` and `defaults.scene3d` (default scene: `assets/scenes/sponza.scene`). Preset **`3d-loaded-scene`** (`3D:GlbModels`) uses that project. `perf-improve.sh` defaults to **`3d-loaded-scene`**. For `3D:GlbModels`, `perf-run --scene 3D:GlbModels` without `--project-root` picks the same defaults.
+
+Other scenes under that project: `assets/scenes/castle.scene`, `bistro.scene`, etc. — pass `--scene-file` with an absolute path or override `--preset` / preset fields in JSON.
+
 ## Repository map
 
 | Piece | Location |
@@ -36,7 +46,7 @@ End-to-end workflow for this repository. **Do not** ask the user to open the edi
 
 ```bash
 tools/performance/perf-run \
-  --preset 3d-instancing \
+  --preset 3d-loaded-scene \
   --run-dir artifacts/performance/manual/before
 ```
 
@@ -44,7 +54,7 @@ tools/performance/perf-run \
 
 ```bash
 tools/performance/perf-improve.sh \
-  --preset 3d-instancing \
+  --preset 3d-loaded-scene \
   --focus "describe bottleneck" \
   --optimization-path Engine/Scene/SceneRenderPipeline.cs
 ```
@@ -61,7 +71,7 @@ Pass every file that belongs to the **single** optimization via repeated `--opti
 
 ## Agent checklist (strict order)
 
-1. **Recon** — Read `reference-metrics.md`, grep the focus area, pick a scenario (`3D:InstancedMesh` for opaque pipeline, `2D:Profiling2D` for sprites, `Shadows:directional` for shadow CPU/GPU).
+1. **Recon** — Read `reference-metrics.md`, grep the focus area, pick a scenario (default real scene: **`3d-loaded-scene`** / `3D:GlbModels` on the default 3D project; synthetic: `3D:InstancedMesh`, `2D:Profiling2D`, `Shadows:directional`).
 2. **Hypothesis** — One bottleneck, one primary metric (default: `avgFps`), guard metrics `p99FrameTimeMs` and renderer-specific CPU ms from `customMetrics`.
 3. **Baseline A** — `perf-improve.sh` or `perf-run` with optimization files **stashed** for variant A (script stashes `--optimization-path` or full dirty tree when `--optimization-path` is set / tree is dirty).
 4. **Change** — One cohesive optimization only; no quality cuts; no unrelated refactors.

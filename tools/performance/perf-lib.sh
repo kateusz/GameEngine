@@ -2,6 +2,21 @@
 # Source from perf-run / perf / perf-improve (requires ROOT).
 PERF_SCENES_JSON="${ROOT}/tools/performance/perf-scenes.json"
 
+perf_default_3d_paths() {
+  export GAMEENGINE_ROOT="$ROOT"
+  python3 - "$PERF_SCENES_JSON" <<'PY'
+import json, os, sys
+catalog = json.load(open(sys.argv[1]))
+d = catalog.get("defaults", {})
+repo = os.environ["GAMEENGINE_ROOT"]
+rel_root = d.get("project3dRoot", "Editor/bin/Debug/net10.0/3d")
+pr = os.path.join(repo, rel_root)
+rel_scene = d.get("scene3d", "assets/scenes/sponza.scene")
+sf = rel_scene if os.path.isabs(rel_scene) else os.path.join(pr, rel_scene)
+print(f"{pr}|{sf}")
+PY
+}
+
 perf_resolve_preset() {
   export GAMEENGINE_ROOT="$ROOT"
   python3 - "$PERF_SCENES_JSON" "$1" <<'PY'
@@ -9,7 +24,12 @@ import json, os, sys
 p = json.load(open(sys.argv[1]))["presets"][sys.argv[2]]
 root = os.environ["GAMEENGINE_ROOT"]
 pr = os.path.join(root, p["projectRoot"]) if p.get("projectRoot") else ""
-sf = os.path.join(root, p["sceneFile"]) if p.get("sceneFile") else ""
+sf = p.get("sceneFile", "")
+if sf:
+    if p.get("projectRoot"):
+        sf = sf if os.path.isabs(sf) else os.path.join(pr, sf)
+    else:
+        sf = os.path.join(root, sf)
 count = p.get("count", 1000)
 print(f"{p['scene']}|{count}|{pr}|{sf}|{p.get('dimension', '3d')}")
 PY

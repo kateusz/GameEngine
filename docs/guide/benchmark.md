@@ -33,7 +33,9 @@ Domyślnie (`perf-run`, `perf-improve.sh`): **5 s** warm-up (**10 s** dla `3D:Gl
 
 ### Project scene from the CLI
 
-For `3D:GlbModels`, pass the project and scene file:
+Default project root (when omitted): `Editor/bin/Debug/net10.0/3d` with `assets/scenes/sponza.scene` — see `tools/performance/perf-scenes.json` → `defaults`. Preset: `3d-loaded-scene`.
+
+For `3D:GlbModels`, pass the project and scene file (or rely on defaults):
 
 ```bash
 tools/performance/perf-run \
