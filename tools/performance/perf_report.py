@@ -22,6 +22,37 @@ _META_KEYS = frozenset({
     "iterationAvgFrameTimeMs",
 })
 
+# Run configuration — stored in JSON but not shown as benchmark result metrics.
+_CONFIG_KEYS = frozenset({
+    "count",
+    "seed",
+    "width",
+    "height",
+    "targetFrameRate",
+    "warmupSeconds",
+    "measureSeconds",
+    "measureIterations",
+})
+
+# Scalar metrics shown in the interactive benchmark UI + perf JSON (reference-metrics.md).
+_BENCHMARK_SCALAR_METRICS: tuple[str, ...] = (
+    "frameCount",
+    "measuredWallSeconds",
+    "avgFps",
+    "minFps",
+    "maxFps",
+    "avgFrameTimeMs",
+    "medianFrameTimeMs",
+    "p95FrameTimeMs",
+    "p99FrameTimeMs",
+    "avgCpuUsagePct",
+    "minCpuUsagePct",
+    "maxCpuUsagePct",
+    "avgMemoryUsageMb",
+    "minMemoryUsageMb",
+    "maxMemoryUsageMb",
+)
+
 
 def parse_metric_value(value: Any) -> float:
     if value is None:
@@ -52,7 +83,21 @@ def flatten_run(data: dict[str, Any]) -> dict[str, float]:
 
 
 def metric_keys(main: dict[str, float], feature: dict[str, float]) -> list[str]:
-    keys = sorted(set(main) | set(feature))
+    return metric_keys_for_report(main, feature)
+
+
+def metric_keys_for_report(*metric_dicts: dict[str, float]) -> list[str]:
+    discovered: set[str] = set()
+    for d in metric_dicts:
+        discovered |= set(d.keys())
+    discovered -= _CONFIG_KEYS
+
+    keys: list[str] = list(_BENCHMARK_SCALAR_METRICS)
+    for key in sorted(discovered):
+        if key.startswith("custom."):
+            keys.append(key)
+        elif key not in _BENCHMARK_SCALAR_METRICS:
+            keys.append(key)
     return keys
 
 
@@ -68,7 +113,7 @@ def compare_pair(main_path: Path, feature_path: Path) -> dict[str, Any]:
     main = flatten_run(main_raw)
     feature = flatten_run(feature_raw)
     rows = []
-    for key in metric_keys(main, feature):
+    for key in metric_keys_for_report(main, feature):
         mb, fb = main.get(key, float("nan")), feature.get(key, float("nan"))
         rows.append({
             "metric": key,
@@ -99,8 +144,6 @@ def write_markdown_report(comparisons: list[dict[str, Any]], out: Path, title: s
         ])
         for row in block["metrics"]:
             m, f = row["main"], row["feature"]
-            if math.isnan(m) and math.isnan(f):
-                continue
             ms = "—" if math.isnan(m) else f"{m:.4g}"
             fs = "—" if math.isnan(f) else f"{f:.4g}"
             da = row["delta_abs"]

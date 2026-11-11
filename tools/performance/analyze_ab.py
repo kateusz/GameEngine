@@ -98,14 +98,17 @@ def metric_row(name: str, before: dict, after: dict, deltas: dict) -> str:
     b = before.get("mean", float("nan"))
     a = after.get("mean", float("nan"))
     d = deltas.get(name)
-    d_abs = a - b if not (isinstance(b, float) and b != b) else float("nan")
+    d_abs = a - b if not (math.isnan(b) or math.isnan(a)) else float("nan")
     d_s = "N/A" if d is None else f"{d:+.2f}%"
+    b_s = "—" if math.isnan(b) else f"{b:.3f}"
+    a_s = "—" if math.isnan(a) else f"{a:.3f}"
+    da_s = "—" if math.isnan(d_abs) else f"{d_abs:+.3f}"
     better = ""
     if name == "avgFps" and d is not None:
         better = "better" if d > 0 else "worse" if d < 0 else "flat"
     if name in ("avgFrameTimeMs", "p95FrameTimeMs", "p99FrameTimeMs") and d is not None:
         better = "better" if d < 0 else "worse" if d > 0 else "flat"
-    return f"| {name} | {b:.3f} | {a:.3f} | {d_abs:+.3f} | {d_s} | {better} |"
+    return f"| {name} | {b_s} | {a_s} | {da_s} | {d_s} | {better} |"
 
 
 def write_report(
@@ -154,14 +157,7 @@ def write_report(
         "## Wyniki before / after",
     ]
 
-    report_keys = analysis.get("metric_keys") or [
-        "avgFps",
-        "avgFrameTimeMs",
-        "medianFrameTimeMs",
-        "p95FrameTimeMs",
-        "p99FrameTimeMs",
-        "frameCount",
-    ]
+    report_keys = analysis.get("metric_keys") or list(perf_report._BENCHMARK_SCALAR_METRICS)
     lines.extend([
         "",
         "### Wszystkie metryki liczbowe z `result.json` (top-level + `customMetrics`)",
@@ -228,7 +224,7 @@ def main() -> int:
 
     before_flat = flattened(before_runs)
     after_flat = flattened(after_runs)
-    metric_keys = sorted(set().union(*(f.keys() for f in before_flat + after_flat)))
+    metric_keys = perf_report.metric_keys_for_report(*before_flat, *after_flat)
 
     def agg_flat(flat_runs: list[dict[str, float]], key: str) -> dict[str, float]:
         wrapped = [{key: r[key]} for r in flat_runs if key in r and not math.isnan(r[key])]
