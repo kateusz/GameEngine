@@ -38,11 +38,13 @@ public partial class GamePublisher
 
     private PublishResult ValidateStartupScene(GameConfiguration gameConfig)
     {
-        var startupScenePath = Path.Combine(projectContext.Root!, gameConfig.StartupScenePath);
-        if (File.Exists(startupScenePath))
+        if (GameConfiguration.TryResolveStartupSceneFile(
+                projectContext.Root!,
+                gameConfig.StartupScenePath,
+                out _))
             return PublishResult.Ok();
 
-        var error = $"Startup scene not found: {startupScenePath}";
+        var error = $"Startup scene not found: {gameConfig.StartupScenePath}";
         Logger.Error(error);
         return PublishResult.Failed(error);
     }

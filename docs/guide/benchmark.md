@@ -15,13 +15,13 @@ The window opens on a category picker. Each category lists tests; **Start** buil
 Use this to benchmark a real `.scene` from your game project, not only synthetic cubes.
 
 1. Choose **3D**.
-2. **Project folder** — path to the game project root (the folder that contains `assets/`), same as **Project → Open…** in the editor. Click **Open project**.
-3. **Scene** — combo lists every `*.scene` under `assets/scenes/` (recursive). Pick one; the scene **renders immediately** in the viewport (live preview, no timer).
+2. **Project folder** — path to the game project root (the folder that contains `assets/`), same as **Project → Open…** in the editor. On Windows use **Browse…** for the native folder picker, then **Open project** (fills the scene list only — nothing loads yet).
+3. **Scene** — combo lists every `*.scene` under `assets/scenes/` (recursive). Pick one; the scene **renders in the viewport** (live preview, no timer).
 4. Run **Project scene** to measure that file. Result name: `3D_GlbModels` (both directional and point shadows on in the view, matching imported content).
 
 If the scene has a **Primary** camera, the benchmark uses its transform for the initial eye position; otherwise the default orbit camera applies.
 
-**macOS / Linux:** there is no native folder picker in the benchmark app yet — paste the project path into the text field.
+**macOS / Linux:** no native folder picker — paste the project path, then **Open project**.
 
 **Assets:** opening the project sets `IProjectContext` so mesh and texture paths resolve the same way as in the editor. Scripts are not started; the timed path uses `SceneRenderPipeline` only.
 

@@ -121,10 +121,12 @@ public class EditorLifecycle(
         if (string.IsNullOrWhiteSpace(config.StartupScenePath))
             return;
 
-        var scenePath = Path.GetFullPath(Path.Combine(projectContext.Root, config.StartupScenePath));
-        if (!File.Exists(scenePath))
+        if (!GameConfiguration.TryResolveStartupSceneFile(projectContext.Root, config.StartupScenePath, out var scenePath))
         {
-            Logger.Warning("Default scene not found: {ScenePath}", scenePath);
+            Logger.Warning(
+                "Default scene not found: {ScenePath} (project root: {ProjectRoot})",
+                config.StartupScenePath,
+                projectContext.Root);
             return;
         }
 

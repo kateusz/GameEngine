@@ -15,33 +15,12 @@ public class ProjectSettingsUI(IProjectContext projectContext)
     private bool _open;
     private GameConfiguration? _gameConfig;
     private string _errorMessage = string.Empty;
+    private string? _loadedForRoot;
 
     public void Show()
     {
         _open = true;
-        _errorMessage = string.Empty;
-        _gameConfig = null;
-
-        if (projectContext.Root is null)
-        {
-            _errorMessage = "No project is currently loaded.";
-            return;
-        }
-
-        var path = GameConfiguration.PathFor(projectContext.Root);
-        if (!File.Exists(path))
-        {
-            var folder = new DirectoryInfo(projectContext.Root).Name;
-            GameConfiguration.Save(path, GameConfiguration.ForNewProject(folder, $"assets/scenes/{folder}.scene"));
-        }
-
-        if (!GameConfiguration.TryLoad(path, out var config, out var error))
-        {
-            _errorMessage = error ?? "Failed to load game configuration.";
-            return;
-        }
-
-        _gameConfig = config;
+        Reload();
     }
 
     public void Render()
@@ -55,6 +34,9 @@ public class ProjectSettingsUI(IProjectContext projectContext)
 
         if (!_open)
             return;
+
+        if (projectContext.Root is not null && !string.Equals(projectContext.Root, _loadedForRoot, StringComparison.Ordinal))
+            Reload();
 
         ImGui.SetNextWindowSizeConstraints(new Vector2(480f, 0f), new Vector2(float.MaxValue, float.MaxValue));
 
@@ -87,7 +69,7 @@ public class ProjectSettingsUI(IProjectContext projectContext)
         DrawLabel("Default Scene");
         LayoutDrawer.DrawComboBox(
             "##defaultScene",
-            _gameConfig.StartupScenePath,
+            StartupScenePathForCombo(),
             EnumerateScenes(),
             selected =>
             {
@@ -152,6 +134,54 @@ public class ProjectSettingsUI(IProjectContext projectContext)
             return;
 
         GameConfiguration.Save(GameConfiguration.PathFor(projectContext.Root), _gameConfig);
+    }
+
+    private void Reload()
+    {
+        _errorMessage = string.Empty;
+        _gameConfig = null;
+        _loadedForRoot = projectContext.Root;
+
+        if (projectContext.Root is null)
+        {
+            _errorMessage = "No project is currently loaded.";
+            return;
+        }
+
+        var path = GameConfiguration.PathFor(projectContext.Root);
+        if (!File.Exists(path))
+        {
+            var folder = new DirectoryInfo(projectContext.Root).Name;
+            var startup = GameConfiguration.FirstSceneRelativePath(projectContext.Root)
+                          ?? $"assets/scenes/{folder}.scene";
+            GameConfiguration.Save(path, GameConfiguration.ForNewProject(folder, startup));
+        }
+
+        if (!GameConfiguration.TryLoad(path, out var config, out var error))
+        {
+            _errorMessage = error ?? "Failed to load game configuration.";
+            return;
+        }
+
+        var canonical = GameConfiguration.CanonicalStartupScenePath(projectContext.Root, config.StartupScenePath);
+        if (canonical is not null && !string.Equals(canonical, config.StartupScenePath, StringComparison.Ordinal))
+        {
+            config.StartupScenePath = canonical;
+            GameConfiguration.Save(path, config);
+        }
+
+        _gameConfig = config;
+    }
+
+    private string StartupScenePathForCombo()
+    {
+        if (_gameConfig is null || projectContext.Root is null)
+            return string.Empty;
+
+        var current = _gameConfig.StartupScenePath;
+        var match = EnumerateScenes()
+            .FirstOrDefault(path => string.Equals(path, current, StringComparison.OrdinalIgnoreCase));
+        return match ?? current;
     }
 
     private string[] EnumerateScenes()

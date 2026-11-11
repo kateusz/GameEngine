@@ -35,7 +35,7 @@ public class SceneSettingsPopup(
     public void ShowOpenScenePopup()
     {
         _openScenePaths = EnumerateProjectScenes();
-        _openSceneSelected = _openScenePaths.Length > 0 ? 0 : -1;
+        _openSceneSelected = ResolveOpenSceneSelection();
         _showOpenScene = true;
     }
 
@@ -110,6 +110,31 @@ public class SceneSettingsPopup(
             .Select(file => Path.GetRelativePath(root, file).Replace('\\', '/'))
             .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
             .ToArray();
+    }
+
+    private int ResolveOpenSceneSelection()
+    {
+        if (_openScenePaths.Length == 0)
+            return -1;
+
+        if (projectContext.Root is null)
+            return 0;
+
+        var configPath = GameConfiguration.PathFor(projectContext.Root);
+        if (!GameConfiguration.TryLoad(configPath, out var config, out _) || config is null)
+            return 0;
+
+        var startup = GameConfiguration.CanonicalStartupScenePath(projectContext.Root, config.StartupScenePath);
+        if (startup is null)
+            return 0;
+
+        for (var i = 0; i < _openScenePaths.Length; i++)
+        {
+            if (string.Equals(_openScenePaths[i], startup, StringComparison.OrdinalIgnoreCase))
+                return i;
+        }
+
+        return 0;
     }
 
     private void RenderSettingsModal()

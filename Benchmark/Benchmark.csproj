@@ -2,12 +2,26 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net10.0</TargetFramework>
+        <TargetFramework Condition="$([MSBuild]::IsOSPlatform('Windows'))">net10.0-windows</TargetFramework>
+        <TargetFramework Condition="!$([MSBuild]::IsOSPlatform('Windows'))">net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PublishAot>false</PublishAot>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <UseWindowsForms Condition="$([MSBuild]::IsOSPlatform('Windows'))">true</UseWindowsForms>
     </PropertyGroup>
+
+    <ItemGroup Condition="!$([MSBuild]::IsOSPlatform('Windows'))">
+        <Compile Remove="Platform\WindowsFolderPicker.cs" />
+    </ItemGroup>
+    <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+        <Compile Remove="Platform\WindowsFolderPicker.Unsupported.cs" />
+    </ItemGroup>
+
+    <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+        <PackageReference Include="FolderBrowserEx" Version="1.0.1" />
+        <Using Remove="System.Windows.Forms" />
+    </ItemGroup>
 
     <Import Project="..\Engine\Engine.Shaders.props" />
 

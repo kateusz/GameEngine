@@ -32,12 +32,13 @@ public class GameLayer(
     {
         Logger.Information("Game layer attached.");
 
-        var startupScenePath = Path.Combine(AppContext.BaseDirectory, gameConfig.StartupScenePath);
-
-        if (!File.Exists(startupScenePath))
+        if (!GameConfiguration.TryResolveStartupSceneFile(
+                AppContext.BaseDirectory,
+                gameConfig.StartupScenePath,
+                out var startupScenePath))
         {
             throw new InvalidOperationException(
-                $"Startup scene not found: {startupScenePath} (base directory: {AppContext.BaseDirectory})");
+                $"Startup scene not found: {gameConfig.StartupScenePath} (base directory: {AppContext.BaseDirectory})");
         }
 
         Logger.Information("Loading startup scene from: {Path}", startupScenePath);

@@ -1,4 +1,5 @@
 using System.Numerics;
+using Benchmark.Platform;
 using Engine.Events.Input;
 using Engine.Project;
 using Engine.Renderer.Models;
@@ -173,15 +174,21 @@ public sealed class Benchmark3DRunner(
             ImGui.TextUnformatted("No project open — open one to list .scene files.");
 
         ImGui.InputText("Project folder", ref _projectPathInput, 512);
-        if (ImGui.Button("Open project"))
+        if (FolderPicker.IsAvailable)
         {
-            if (BenchmarkProjectAccess.TryOpenProject(_projectPathInput, projectContext, out _projectError))
+            ImGui.SameLine();
+            if (ImGui.Button("Browse…"))
             {
-                _projectError = null;
-                _projectPathInput = projectContext.Root ?? _projectPathInput;
-                RefreshSceneList(selectFirst: true);
+                var initial = string.IsNullOrWhiteSpace(_projectPathInput)
+                    ? projectContext.Root
+                    : _projectPathInput;
+                if (FolderPicker.PickFolder("Select Project Folder", initial) is { } picked)
+                    _projectPathInput = picked;
             }
         }
+
+        if (ImGui.Button("Open project"))
+            TryOpenProjectAndListScenes();
 
         if (_projectError is not null)
             ImGui.TextWrapped(_projectError);
@@ -192,7 +199,7 @@ public sealed class Benchmark3DRunner(
             return;
         }
 
-        var label = SceneListLabel(_selectedScene >= 0 ? _selectedScene : 0);
+        var label = _selectedScene >= 0 ? SceneListLabel(_selectedScene) : "(choose scene)";
         ImGui.TextUnformatted("Scene:");
         ImGui.SameLine();
         if (ImGui.BeginCombo("##benchmarkScene", label))
@@ -227,14 +234,17 @@ public sealed class Benchmark3DRunner(
         return Path.GetFileName(full);
     }
 
-    void RefreshSceneList(bool selectFirst)
+    void TryOpenProjectAndListScenes()
     {
+        if (!BenchmarkProjectAccess.TryOpenProject(_projectPathInput, projectContext, out _projectError))
+            return;
+
+        _projectError = null;
+        _projectPathInput = projectContext.Root ?? _projectPathInput;
+        _sceneLoadError = null;
+        SetPreview(null);
         _scenePaths = BenchmarkProjectAccess.EnumerateScenes(projectContext);
-        if (selectFirst && _scenePaths.Length > 0)
-            _selectedScene = 0;
-        else if (_selectedScene >= _scenePaths.Length)
-            _selectedScene = _scenePaths.Length > 0 ? 0 : -1;
-        EnableSelectedScene();
+        _selectedScene = -1;
     }
 
     void EnableSelectedScene()

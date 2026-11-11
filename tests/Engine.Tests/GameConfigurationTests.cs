@@ -114,6 +114,35 @@ public class GameConfigurationTests : IDisposable
     }
 
     [Fact]
+    public void TryResolveStartupSceneFile_matches_case_insensitive_relative_path()
+    {
+        var scenesDir = Path.Combine(_tempRoot, "assets", "scenes");
+        Directory.CreateDirectory(scenesDir);
+        var scenePath = Path.Combine(scenesDir, "Main.scene");
+        File.WriteAllText(scenePath, "{}");
+
+        GameConfiguration.TryResolveStartupSceneFile(
+                _tempRoot,
+                "Assets/Scenes/Main.scene",
+                out var absolute)
+            .ShouldBeTrue();
+        absolute.ShouldBe(Path.GetFullPath(scenePath));
+        GameConfiguration.CanonicalStartupScenePath(_tempRoot, "Assets/Scenes/Main.scene")
+            .ShouldBe("assets/scenes/Main.scene");
+    }
+
+    [Fact]
+    public void FirstSceneRelativePath_returns_first_scene_sorted()
+    {
+        var scenesDir = Path.Combine(_tempRoot, "assets", "scenes");
+        Directory.CreateDirectory(scenesDir);
+        File.WriteAllText(Path.Combine(scenesDir, "z.scene"), "{}");
+        File.WriteAllText(Path.Combine(scenesDir, "a.scene"), "{}");
+
+        GameConfiguration.FirstSceneRelativePath(_tempRoot).ShouldBe("assets/scenes/a.scene");
+    }
+
+    [Fact]
     public void Json_deserialize_ignores_removed_legacy_fields()
     {
         const string json = """

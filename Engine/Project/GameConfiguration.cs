@@ -7,7 +7,11 @@ public class GameConfiguration
 {
     public const string FileName = "game.config.json";
 
-    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNameCaseInsensitive = true
+    };
 
     public string GameAssemblyPath { get; set; } = "GameAssembly.dll";
     public string StartupScenePath { get; set; } = "assets/scenes/game.scene";
@@ -62,5 +66,54 @@ public class GameConfiguration
     {
         var json = JsonSerializer.Serialize(config, JsonOptions);
         File.WriteAllText(path, json);
+    }
+
+    public static string NormalizeSceneRelativePath(string path) =>
+        path.Replace('\\', '/').Trim();
+
+    public static bool TryResolveStartupSceneFile(
+        string projectRoot,
+        string startupScenePath,
+        [NotNullWhen(true)] out string? absolutePath)
+    {
+        absolutePath = null;
+        if (string.IsNullOrWhiteSpace(startupScenePath))
+            return false;
+
+        if (!Directory.Exists(projectRoot))
+            return false;
+
+        var normalized = NormalizeSceneRelativePath(startupScenePath);
+        foreach (var file in Directory.EnumerateFiles(projectRoot, "*.scene", SearchOption.AllDirectories))
+        {
+            var relative = NormalizeSceneRelativePath(Path.GetRelativePath(projectRoot, file));
+            if (string.Equals(relative, normalized, StringComparison.OrdinalIgnoreCase))
+            {
+                absolutePath = Path.GetFullPath(file);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static string? CanonicalStartupScenePath(string projectRoot, string startupScenePath)
+    {
+        if (!TryResolveStartupSceneFile(projectRoot, startupScenePath, out var absolute))
+            return null;
+
+        return NormalizeSceneRelativePath(Path.GetRelativePath(projectRoot, absolute));
+    }
+
+    public static string? FirstSceneRelativePath(string projectRoot)
+    {
+        var scenesDir = Path.Combine(projectRoot, "assets", "scenes");
+        if (!Directory.Exists(scenesDir))
+            return null;
+
+        return Directory.EnumerateFiles(scenesDir, "*.scene", SearchOption.AllDirectories)
+            .Select(file => NormalizeSceneRelativePath(Path.GetRelativePath(projectRoot, file)))
+            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault();
     }
 }
