@@ -25,6 +25,7 @@ End-to-end workflow for this repository. **Do not** ask the user to open the edi
 | Sceny perf | `tools/performance/perf-scenes.json` |
 | A/B orchestrator | `tools/performance/perf-improve.sh` |
 | Analysis + report | `tools/performance/analyze_ab.py` (`--report` for `report.md`) |
+| Branch A/B tables | `tools/performance/perf_report.py` (`comparison.json` + `report.md`, **all** JSON metrics) |
 | Artifacts | `artifacts/performance/<run-id>/` |
 | Metric reference | [reference-metrics.md](reference-metrics.md) |
 | Correctness filters (2D / 3D) | `tools/performance/test-suites.json` |
@@ -67,7 +68,7 @@ Pass every file that belongs to the **single** optimization via repeated `--opti
 5. **Variant B** — Same scenario, same repetitions, same build configuration (`Release`).
 6. **Correctness** — `tools/performance/perf-tests 2d` or `3d` (wymiar z presetu w A/B). Filtry w `test-suites.json`. Failed tests → prefer REVERT.
 7. **Analyze** — `analyze_ab.py` thresholds: +3% primary FPS, p99 regression ≤ +2% frame time (pass `--report` for markdown).
-8. **Report** — `artifacts/performance/<run-id>/report.md` (from `analyze_ab.py --report`).
+8. **Report** — `artifacts/performance/<run-id>/report.md` must list **every numeric metric** from each `result.json`: all top-level scalars (FPS, frame times, CPU %, memory MB, `frameCount`, …) **plus every key** under `customMetrics` (same names as [reference-metrics.md](reference-metrics.md)). Use `analyze_ab.py --report` (before/after) or `perf_report.py RUN_DIR` (main vs feature folder). Never summarize to FPS-only if the JSON contains more.
 9. **Policy** — `KEEP` keep code; `REVERT` / `INCONCLUSIVE` revert only `--optimization-path` files; `BLOCKED` revert unverified optimization, document cause.
 
 Never: `git reset --hard`, force push, commit/push unless user asks.

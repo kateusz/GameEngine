@@ -13,14 +13,17 @@ Collected in `Benchmark/Cli` during the **measure** window only (after warm-up).
 | `medianFrameTimeMs` | ms | p50 of frame times | lower |
 | `p95FrameTimeMs` | ms | 95th percentile | lower |
 | `p99FrameTimeMs` | ms | 99th percentile | lower |
+| `minFps` / `maxFps` | FPS | min/max frame time in measure window | higher max / lower min frame time |
 | `minFrameTimeMs` / `maxFrameTimeMs` | ms | per-repetition extrema | — |
 
 Process metrics (approximate, not GPU-isolated):
 
 | Field | Unit | Source | Better |
 |-------|------|--------|--------|
-| `AverageCpuUsage` (in JSON via custom path) | % | `Process.TotalProcessorTime` delta | lower |
-| Working set in `BenchmarkResult` | MiB | `Process.WorkingSet64` | context-dependent |
+| `avgCpuUsagePct` | % | `Process.TotalProcessorTime` delta | lower |
+| `maxCpuUsagePct` / `minCpuUsagePct` | % | samples during measure | lower max |
+| `avgMemoryUsageMb` | MiB | `Process.WorkingSet64` | context-dependent |
+| `maxMemoryUsageMb` / `minMemoryUsageMb` | MiB | samples during measure | — |
 
 Raw per-frame samples: `*.frames.csv` (`frame_index,frame_time_ms`).
 
@@ -74,6 +77,10 @@ Release CLI runs typically show `0` for GPU quad/line ms — document as N/A unl
 | Opaque / instancing / sort | `avgFps` or `Avg Color CPU Ms` | `p99FrameTimeMs`, draw calls |
 | 2D batching | `avgFps` | `Avg Flush Ms`, `Avg Texture Binds` |
 | Shadows | `avgFps` or `Avg Shadow CPU Ms` | `Avg Total Draw Calls`, `p99` |
+
+## Reporting rule
+
+Any human or agent **report.md** / A/B summary must include the full metric set from each `result.json` (top-level numerics + all `customMetrics` keys). Helpers: `tools/performance/perf_report.py`, `analyze_ab.py --report`.
 
 ## Acceptance policy (default)
 

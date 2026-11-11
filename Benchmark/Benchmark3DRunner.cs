@@ -336,7 +336,12 @@ public sealed class Benchmark3DRunner(
             var world = transform.GetWorldTransform();
             eye = new Vector3(world.M41, world.M42, world.M43);
             var forward = Vector3.Normalize(Vector3.TransformNormal(-Vector3.UnitZ, world));
-            focal = eye + forward * 8f;
+            // ponytail: scene primary cameras are often placed in-room; pull back for stable perf framing
+            const float lookAhead = 12f;
+            const float orbitDistance = 64f;
+            var lookAt = eye + forward * lookAhead;
+            eye = lookAt - forward * orbitDistance;
+            focal = lookAt;
             return true;
         }
 

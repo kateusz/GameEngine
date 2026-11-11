@@ -13,6 +13,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+_PERF_DIR = Path(__file__).resolve().parent
+if str(_PERF_DIR) not in sys.path:
+    sys.path.insert(0, str(_PERF_DIR))
+import perf_report  # noqa: E402
 
 PRIMARY = "avgFps"
 GUARD_P99 = "p99FrameTimeMs"
@@ -148,19 +152,24 @@ def write_report(
         f"- Seed: {scenario.get('seed')}",
         "",
         "## Wyniki before / after",
-        "",
-        "| Metryka | Before A | After B | Zmiana | Zmiana % | Ocena |",
-        "|---------|----------|---------|--------|----------|-------|",
     ]
 
-    for key in [
+    report_keys = analysis.get("metric_keys") or [
         "avgFps",
         "avgFrameTimeMs",
         "medianFrameTimeMs",
         "p95FrameTimeMs",
         "p99FrameTimeMs",
         "frameCount",
-    ]:
+    ]
+    lines.extend([
+        "",
+        "### Wszystkie metryki liczbowe z `result.json` (top-level + `customMetrics`)",
+        "",
+        "| Metryka | Before A | After B | Zmiana | Zmiana % | Ocena |",
+        "|---------|----------|---------|--------|----------|-------|",
+    ])
+    for key in report_keys:
         lines.append(metric_row(key, before.get(key, {}), after.get(key, {}), deltas))
 
     lines.extend(
@@ -214,21 +223,24 @@ def main() -> int:
             write_report(summary, args.scenario, args.artifact_dir, args.report, args.hypothesis, args.tests_log)
         return 2
 
-    metric_keys = [
-        "avgFps",
-        "avgFrameTimeMs",
-        "medianFrameTimeMs",
-        "p95FrameTimeMs",
-        "p99FrameTimeMs",
-        "frameCount",
-    ]
+    def flattened(runs: list[dict[str, Any]]) -> list[dict[str, float]]:
+        return [perf_report.flatten_run(r) for r in runs]
 
-    before_agg = {k: aggregate(before_runs, k) for k in metric_keys}
-    after_agg = {k: aggregate(after_runs, k) for k in metric_keys}
+    before_flat = flattened(before_runs)
+    after_flat = flattened(after_runs)
+    metric_keys = sorted(set().union(*(f.keys() for f in before_flat + after_flat)))
+
+    def agg_flat(flat_runs: list[dict[str, float]], key: str) -> dict[str, float]:
+        wrapped = [{key: r[key]} for r in flat_runs if key in r and not math.isnan(r[key])]
+        return aggregate(wrapped, key) if wrapped else {"mean": float("nan"), "stdev": float("nan"), "n": 0}
+
+    before_agg = {k: agg_flat(before_flat, k) for k in metric_keys}
+    after_agg = {k: agg_flat(after_flat, k) for k in metric_keys}
     verdict = decide(before_agg, after_agg, args.primary_improve_pct, args.p99_regress_pct)
 
     summary = {
         "verdict": verdict,
+        "metric_keys": metric_keys,
         "before": before_agg,
         "after": after_agg,
         "deltas_pct": {
