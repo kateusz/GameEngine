@@ -69,4 +69,13 @@ public static class BenchmarkResultBuilder
         var index = (int)System.Math.Clamp(System.Math.Ceiling(p * sortedAscending.Length) - 1, 0, sortedAscending.Length - 1);
         return sortedAscending[index];
     }
+
+    public static float Median(IReadOnlyList<float> values)
+    {
+        if (values.Count == 0)
+            return 0f;
+        var sorted = values.ToArray();
+        Array.Sort(sorted);
+        return Percentile(sorted, 0.5);
+    }
 }

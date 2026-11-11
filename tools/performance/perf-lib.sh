@@ -36,7 +36,7 @@ json.dump({
     "category": cat, "testId": tid,
     "count": e.get("count", 1000),
     "width": 1280, "height": 720,
-    "warmupSeconds": 5, "measureSeconds": 5,
+    "warmupSeconds": 30, "measureSeconds": 5,
     "seed": 12345, "targetFrameRate": 0,
 }, open(out, "w"), indent=2)
 PY

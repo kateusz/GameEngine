@@ -8,7 +8,7 @@ source "$ROOT/tools/performance/perf-lib.sh"
 PRESET=""
 REPETITION=1
 CONFIGURATION="Release"
-WARMUP=5
+WARMUP=30
 MEASURE=5
 SEED=12345
 COUNT=""
