@@ -1,5 +1,6 @@
 using System.Numerics;
 using Benchmark.Platform;
+using Engine.Core.Window;
 using Engine.Events.Input;
 using Engine.Project;
 using Engine.Renderer.Models;
@@ -19,8 +20,12 @@ public sealed class Benchmark3DRunner(
     ITextureFactory textures,
     IModelFactory models,
     ISceneSerializer scenes,
-    IProjectContext projectContext) : IBenchmarkRunner
+    IProjectContext projectContext,
+    IGameWindow window,
+    FxaaPass hdrTarget,
+    TonemapPass tonemap) : IBenchmarkRunner
 {
+    private readonly EditorScenePresenter _editorDisplay = new(window, hdrTarget, tonemap);
     private int _count = 1000;
     private float _duration = 5f;
     private string _projectPathInput = "";
@@ -307,7 +312,9 @@ public sealed class Benchmark3DRunner(
             plan.DirectionalShadows, plan.PointShadows,
             graphics2D, graphics3D, textures, models,
             clearModelCache: false,
-            ExpectedShadow.None);
+            ExpectedShadow.None,
+            display: _editorDisplay,
+            matchEditorLight: true);
         if (TryPrimaryLook(scene, out var eye, out var focal))
             pipeline.Frame(eye, focal);
         return true;
@@ -336,7 +343,11 @@ public sealed class Benchmark3DRunner(
             var world = transform.GetWorldTransform();
             eye = new Vector3(world.M41, world.M42, world.M43);
             var forward = Vector3.Normalize(Vector3.TransformNormal(-Vector3.UnitZ, world));
-            focal = eye + forward * 8f;
+            // Pull back from in-room cameras for stable benchmark framing.
+            const float lookAhead = 12f;
+            const float orbitDistance = 64f;
+            focal = eye + forward * lookAhead;
+            eye = focal - forward * orbitDistance;
             return true;
         }
 

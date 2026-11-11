@@ -78,7 +78,7 @@ Test ids are `Cubes`, `InstancedMesh`, `UniqueMeshes`, and `GlbModels`. Result n
 
 #### Project scene (`GlbModels`)
 
-User-facing steps and CLI flags: [Benchmark guide](../../guide/benchmark.md). Implementation: `BenchmarkProjectAccess` + shared `TryLoadProjectScenePipeline`; view flags `DirectionalShadows` and `PointShadows` true (unlike synthetic 3D).
+User-facing steps and CLI flags: [Benchmark guide](../../guide/benchmark.md). Implementation: `BenchmarkProjectAccess` + shared `TryLoadProjectScenePipeline`. View flags match the editor viewport: `DirectionalShadows` true, `PointShadows` false. `EditorScenePresenter` draws that frame into an HDR target and tonemaps it onto the window, same curve as the editor. Synthetic 3D tests stay on the default framebuffer with both shadow flags false.
 
 ### 5. Stage lighting and shadows on the steady grid
 

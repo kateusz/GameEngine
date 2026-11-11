@@ -28,6 +28,8 @@ public sealed class PipelineBenchmarkRun : BenchmarkRun
     private readonly bool _clearModelCache;
     private readonly Action? _onDispose;
     private readonly ExpectedShadow _expected;
+    private readonly IScenePresenter _display;
+    private readonly bool _matchEditorLight;
     private bool _disposed;
     private Statistics _last = new();
 
@@ -43,7 +45,9 @@ public sealed class PipelineBenchmarkRun : BenchmarkRun
         IModelFactory models,
         bool clearModelCache,
         ExpectedShadow expected,
-        Action? onDispose = null)
+        Action? onDispose = null,
+        IScenePresenter? display = null,
+        bool matchEditorLight = false)
     {
         ResultName = resultName;
         DurationSeconds = durationSeconds;
@@ -57,13 +61,20 @@ public sealed class PipelineBenchmarkRun : BenchmarkRun
         _clearModelCache = clearModelCache;
         _onDispose = onDispose;
         _expected = expected;
+        _display = display ?? DirectScenePresenter.Instance;
+        _matchEditorLight = matchEditorLight;
     }
 
     public override string ResultName { get; }
     public override float DurationSeconds { get; }
 
-    public override void Tick(TimeSpan delta)
+    public override void Tick(TimeSpan delta) => _display.Present(DrawFrame);
+
+    void DrawFrame()
     {
+        if (_matchEditorLight)
+            _graphics3D.SetShadowQuality(ShadowQuality.For(ShadowPreset.Low)); // ponytail: stock editor defaults; ignores editor-preferences.json
+
         _graphics2D.SetClearColor(_scene.BackgroundColor);
         _graphics2D.Clear();
         _graphics3D.ResetStats();
