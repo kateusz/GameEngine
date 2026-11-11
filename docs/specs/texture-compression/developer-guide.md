@@ -42,7 +42,7 @@ sequenceDiagram
 | Term | Implementation meaning |
 |------|------------------------|
 | Sibling path | `Path.Combine(dir, Path.GetFileNameWithoutExtension(source) + ".dds")` |
-| Cookable extension | `.png`, `.jpg`, `.jpeg`, `.tga` (case-insensitive) |
+| Raster source extension | `.png`, `.jpg`, `.jpeg`, `.tga` (case-insensitive) |
 | Source DDS | A `.dds` the scene already points at; GPU path uploads it compressed when the FourCC is DXT or RGTC |
 | Format pick | `sRgb` true plus any `a < 255` → DXT5 sRGB; `sRgb` true opaque → DXT1 sRGB; linear one channel → BC4; linear two-plus channels on a normal map → BC5; other linear → DXT5 |
 | Normal map | The load that already passes `sRgb: false` for the model normal path (same as today’s factory call) |
@@ -92,11 +92,13 @@ The model fragment shader currently expands `texture(u_NormalMap).rgb`. After BC
 
 Why: BC5 is the cheap two-channel format; the third channel of a unit normal is determined by XY.
 
-### 6. Cook in the editor on `Create`, and in publish before copy
+### 6. Ensure DDS siblings in the editor on `Create`, and in publish before copy
 
-Editor `Create`: if the cook flag is on and the sibling is missing or older, cook then upload. Runtime `Create`: never write; missing sibling → warning and RGBA.
+Sibling paths: `{source}.srgb.dds` and `{source}.linear.dds` (metadata stores `sRgb` / normal role).
 
-Publish: before `CopyAssets`, walk `assets/` for cookable extensions (skip `.hdr`, skip cubemap conventions already excluded). Cook with the same encoder. `sRgb` for a file without a caller: treat as sRGB DXT unless the name matches the existing data-map suffixes the importer already uses (`normal`, `orm`, `metallic`, `roughness`, `occlusion`, `ao`). One failed cook fails publish.
+Editor `Create`: when `EnsureTextureDdsSiblingOnLoad` is on and the matching sibling is missing, stale, or import flags disagree, encode then upload. Runtime: never write; missing sibling → warning and RGBA.
+
+Publish: before `CopyAssets`, call `TextureBcSidecar.TryEnsureUpToDate` on raster sources. Publish infers `sRgb` from file name tokens (`normal`, `orm`, `metallic`, …). One failed encode fails publish.
 
 Why: The player’s `assets/` copy must already contain siblings. The copy step stays a tree copy.
 
@@ -113,7 +115,7 @@ Do not decompress BC for GPU upload. Do not generate 4K mips on the GPU when the
 | Encode throws in editor | Keep previous sibling; this load RGBA |
 | Encode throws in publish | `PublishResult.Failed` |
 | Non-multiple of 4 | Pad at encode; report source size on `Texture2D` |
-| `rock.png` and `rock.jpg` | One sibling; last successful cook wins — do not ship both |
+| `rock.png` and `rock.jpg` | Separate siblings (`rock.png.srgb.dds` vs `rock.jpg.srgb.dds`) |
 
 ## OpenGL check
 

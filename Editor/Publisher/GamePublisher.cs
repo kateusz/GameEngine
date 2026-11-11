@@ -75,10 +75,10 @@ public partial class GamePublisher(IProjectContext projectContext)
             if (!renameResult.Success)
                 return renameResult;
 
-            progress?.Report("Cooking texture BC sidecars...");
-            var cookTexturesResult = CookTextureSidecars();
-            if (!cookTexturesResult.Success)
-                return cookTexturesResult;
+            progress?.Report("Ensuring texture DDS siblings...");
+            var ddsSiblingsResult = EnsureTextureDdsSiblings();
+            if (!ddsSiblingsResult.Success)
+                return ddsSiblingsResult;
 
             progress?.Report("Copying assets...");
             var copyAssetsResult = CopyAssets(tempOutputPath);
@@ -146,7 +146,7 @@ public partial class GamePublisher(IProjectContext projectContext)
         }
     }
 
-    private PublishResult CookTextureSidecars()
+    private PublishResult EnsureTextureDdsSiblings()
     {
         var assets = Path.Combine(projectContext.Root!, "assets");
         if (!Directory.Exists(assets))
@@ -154,8 +154,8 @@ public partial class GamePublisher(IProjectContext projectContext)
 
         foreach (var file in Directory.EnumerateFiles(assets, "*.*", SearchOption.AllDirectories))
         {
-            if (!TextureBcCook.TryCookFile(file, out var error))
-                return PublishResult.Failed(error ?? $"BC cook failed for {file}");
+            if (!TextureBcSidecar.TryEnsureUpToDate(file, out var error))
+                return PublishResult.Failed(error ?? $"BC DDS sibling failed for {file}");
         }
 
         return PublishResult.Ok();

@@ -34,7 +34,7 @@ internal sealed class TextureFactory : ITextureFactory
             if (_textureCache.TryGetValue(cacheKey, out var cachedTexture))
                 return cachedTexture;
 
-            var texture = LoadOrCook(path, sRgb);
+            var texture = LoadWithDdsSibling(path, sRgb);
             _textureCache[cacheKey] = texture;
             return texture;
         }
@@ -48,15 +48,8 @@ internal sealed class TextureFactory : ITextureFactory
 
     public (byte[] Data, int Width, int Height) Decode(string path, bool sRgb)
     {
-        var decoded = TextureFileDecoder.Decode(path, sRgb);
-        var bytesPerPixel = decoded.Data.Length / (decoded.Width * decoded.Height);
-        var rgba = (decoded.DataFormat, bytesPerPixel) switch
-        {
-            (PixelFormat.Bgra, 4) => TexturePreviewScaling.ToPackedRgba(decoded.Data, 4),
-            (PixelFormat.Bgr, 3) => TexturePreviewScaling.ToPackedRgba(decoded.Data, 3),
-            _ => decoded.Data
-        };
-        return (rgba, decoded.Width, decoded.Height);
+        var (rgba, width, height) = TextureRasterToRgba8.Decode(path, sRgb);
+        return (rgba, width, height);
     }
 
     public Texture2D CreateFromRgba(byte[] rgba, int width, int height, bool sRgb = false, string? cachePath = null)
@@ -103,42 +96,48 @@ internal sealed class TextureFactory : ITextureFactory
         _disposed = true;
     }
 
-    private Texture2D LoadOrCook(string path, bool sRgb)
+    private Texture2D LoadWithDdsSibling(string path, bool sRgb)
     {
         var normalizedPath = Path.GetFullPath(path);
 
         if (normalizedPath.EndsWith(".dds", StringComparison.OrdinalIgnoreCase)
-            && BcDds.TryRead(normalizedPath, out var sourceBc))
+            && BcDds.TryRead(normalizedPath, out var sourceBc)
+            && SidecarMatchesLoad(sourceBc, sRgb, TextureBcSource.IsNormalLoad(normalizedPath, sRgb)))
             return TryCreateCompressed(normalizedPath, sourceBc) ?? OpenGLTexture2D.Create(normalizedPath, sRgb);
 
-        var sidecar = Path.ChangeExtension(normalizedPath, ".dds");
-        if (File.Exists(sidecar)
-            && File.GetLastWriteTimeUtc(sidecar) >= File.GetLastWriteTimeUtc(normalizedPath)
+        if (!TextureBcSource.IsRasterSourceExtension(normalizedPath))
+            return OpenGLTexture2D.Create(normalizedPath, sRgb);
+
+        var isNormal = TextureBcSource.IsNormalLoad(normalizedPath, sRgb);
+        var isOcclusion = TextureBcSource.IsOcclusionMap(normalizedPath);
+        var sidecar = BcDdsSidecarPath.ForSource(normalizedPath, sRgb);
+
+        if (TextureBcSidecar.SidecarUsable(normalizedPath, sidecar, sRgb, isNormal)
             && BcDds.TryRead(sidecar, out var bc))
             return TryCreateCompressed(normalizedPath, bc) ?? OpenGLTexture2D.Create(normalizedPath, sRgb);
 
-        if (_hostOptions.CookTextureSidecarOnLoad && TextureCookInference.IsCookableExtension(normalizedPath))
+        if (_hostOptions.EnsureTextureDdsSiblingOnLoad)
         {
             try
             {
                 var (rgba, width, height) = BcTextureEncoder.DecodeToRgba(normalizedPath, sRgb);
-                var format = BcFormatPick.Pick(sRgb, TextureCookInference.IsNormalLoad(normalizedPath, sRgb), rgba,
-                    width, height);
-                var (image, dds) = BcTextureEncoder.EncodeWithDds(rgba, width, height, format);
+                var format = BcFormatPick.Pick(sRgb, isNormal, isOcclusion, rgba, width, height);
+                var (image, dds) = BcTextureEncoder.EncodeWithDds(rgba, width, height, format, sRgb, isNormal);
                 if (image != null && dds != null && BcDds.Write(sidecar, image.Value, dds))
                     return OpenGLTexture2D.CreateCompressed(normalizedPath, image.Value);
             }
             catch (Exception ex)
             {
-                Logger.Warning(ex, "BC cook failed for {Path}; falling back to RGBA", normalizedPath);
+                Logger.Warning(ex, "BC encode failed for {Path}; falling back to RGBA", normalizedPath);
             }
         }
 
-        if (TextureCookInference.IsCookableExtension(normalizedPath))
-            Logger.Warning("BC sibling missing, stale, or unsupported for {Path}; uploading uncompressed", path);
-
+        Logger.Warning("BC sibling missing, stale, or unsupported for {Path}; uploading uncompressed", path);
         return OpenGLTexture2D.Create(normalizedPath, sRgb);
     }
+
+    private static bool SidecarMatchesLoad(BcImage bc, bool sRgb, bool isNormal) =>
+        bc.SRgb == sRgb && bc.IsNormal == isNormal;
 
     private static Texture2D? TryCreateCompressed(string path, BcImage bc)
     {

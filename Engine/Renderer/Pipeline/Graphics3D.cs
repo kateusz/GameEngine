@@ -492,6 +492,10 @@ internal sealed class Graphics3D(
         _modelShader.SetInt("u_HasMetallicRoughnessMap", mesh.HasMetallicRoughnessMap ? 1 : 0);
         _modelShader.SetInt("u_HasNormalMap", mesh.HasNormalMap ? 1 : 0);
         _modelShader.SetInt("u_HasOcclusionMap", mesh.HasOcclusionMap ? 1 : 0);
+        SetMapUvScale(_modelShader, "u_DiffuseUvScale", mesh.DiffuseTexture);
+        SetMapUvScale(_modelShader, "u_MetallicRoughnessUvScale", mesh.MetallicRoughnessTexture);
+        SetMapUvScale(_modelShader, "u_NormalUvScale", mesh.NormalTexture);
+        SetMapUvScale(_modelShader, "u_OcclusionUvScale", mesh.OcclusionTexture);
 
         (mesh.DiffuseTexture ?? textureFactory.GetWhiteTexture()).Bind(0);
         (mesh.MetallicRoughnessTexture ?? textureFactory.GetWhiteTexture()).Bind(1);
@@ -520,6 +524,7 @@ internal sealed class Graphics3D(
         {
             _emissiveShader.Bind();
             _emissiveShader.SetFloat3("u_Emissive", factor);
+            SetMapUvScale(_emissiveShader, "u_EmissiveUvScale", mesh.EmissiveTexture);
             mesh.EmissiveTexture.Bind(0);
             UploadAndDraw(mesh, instances, _emissiveShader);
         }
@@ -650,10 +655,14 @@ internal sealed class Graphics3D(
         var cutout = mesh.AlphaCutout && mesh.HasDiffuseMap;
         shader.SetInt("u_AlphaTest", cutout ? 1 : 0);
         shader.SetFloat("u_AlphaCutoff", mesh.AlphaCutoff);
+        SetMapUvScale(shader, "u_DiffuseUvScale", mesh.DiffuseTexture);
         rendererApi.SetFaceCulling(!mesh.DoubleSided);
         if (cutout)
             mesh.DiffuseTexture!.Bind(0);
     }
+
+    private static void SetMapUvScale(IShader shader, string uniform, Texture2D? texture) =>
+        shader.SetFloat2(uniform, texture?.UvScale ?? Vector2.One);
 
     private void DrawShadow(Mesh mesh, Matrix4x4 transform)
     {
