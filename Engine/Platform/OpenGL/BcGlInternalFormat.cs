@@ -1,3 +1,4 @@
+using Engine.Platform.SilkNet;
 using Engine.Renderer.Textures.Compression;
 using InternalFormat = Silk.NET.OpenGL.InternalFormat;
 
@@ -5,15 +6,18 @@ namespace Engine.Platform.OpenGL;
 
 internal static class BcGlInternalFormat
 {
+    private static bool? _s3Tc;
+
+    public static bool SupportsS3Tc =>
+        _s3Tc ??= SilkNetContext.GL.IsExtensionPresent("GL_EXT_texture_compression_s3tc")
+                  || SilkNetContext.GL.IsExtensionPresent("EXT_texture_compression_s3tc");
+
     public static bool TryGet(BcGpuFormat format, out InternalFormat internalFormat)
     {
-        if (format is BcGpuFormat.Dxt1Srgb or BcGpuFormat.Dxt5Srgb or BcGpuFormat.Dxt5Linear)
+        if (BcFormatPick.UsesS3Tc(format) && !SupportsS3Tc)
         {
-            if (!OpenGLTextureCaps.SupportsS3Tc)
-            {
-                internalFormat = default;
-                return false;
-            }
+            internalFormat = default;
+            return false;
         }
 
         internalFormat = format switch

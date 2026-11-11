@@ -1,6 +1,7 @@
 using Editor.Scripting;
 using Engine.Core;
 using Engine.Project;
+using Engine.Renderer.Textures.Compression;
 using Serilog;
 
 namespace Editor.Publisher;
@@ -143,6 +144,21 @@ public partial class GamePublisher(IProjectContext projectContext)
         {
             CleanupTempDirectory(tempOutputPath);
         }
+    }
+
+    private PublishResult CookTextureSidecars()
+    {
+        var assets = Path.Combine(projectContext.Root!, "assets");
+        if (!Directory.Exists(assets))
+            return PublishResult.Ok();
+
+        foreach (var file in Directory.EnumerateFiles(assets, "*.*", SearchOption.AllDirectories))
+        {
+            if (!TextureBcCook.TryCookFile(file, out var error))
+                return PublishResult.Failed(error ?? $"BC cook failed for {file}");
+        }
+
+        return PublishResult.Ok();
     }
 
     private string GetDefaultOutputPath()

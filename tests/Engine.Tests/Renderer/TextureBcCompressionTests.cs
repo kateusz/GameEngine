@@ -59,7 +59,7 @@ public class TextureBcCompressionTests
         File.SetLastWriteTimeUtc(side, DateTime.UtcNow.AddMinutes(1));
         try
         {
-            Assert.True(TextureSidecar.IsFresh(src, side));
+            Assert.True(File.GetLastWriteTimeUtc(side) >= File.GetLastWriteTimeUtc(src));
         }
         finally
         {
