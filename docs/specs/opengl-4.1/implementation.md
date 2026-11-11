@@ -53,43 +53,41 @@ public struct FrameVec4x8
     private Vector4 _e0;
 }
 
-[StructLayout(LayoutKind.Sequential)]
+[StructLayout(LayoutKind.Explicit, Size = ByteSize)]
 public struct FrameUniforms
 {
-    public Matrix4x4 ViewProjection;
-    public Matrix4x4 LightViewProjection;
-    public Matrix4x4 FarLightViewProjection;
-    public Vector4 AmbientColorStrength;
-    public Vector4 LightDirection;
-    public Vector4 LightColor;
-    public Vector4 ViewPosition;
-    public FrameVec4x8 PointPositions;
-    public FrameVec4x8 PointColors;
-    public FrameVec4x8 PointIntensityRange;
-    public int PointLightCount;
-    public int ShadowsEnabled;
-    public int CascadeCount;
-    public int ShadowPcf;
-    public float CascadeSplit;
-    public float ShadowMapSize;
-    public int PointPcf;
-    public float PointMapSize;
-    public int PointShadowMask;
-    public int Ibl;
-    public int Pad0;
-    public int Pad1;
+    [FieldOffset(0)] public Matrix4x4 ViewProjection;
+    [FieldOffset(64)] public Matrix4x4 LightViewProjection;
+    [FieldOffset(128)] public Matrix4x4 FarLightViewProjection;
+    [FieldOffset(192)] public Vector4 AmbientColorStrength;
+    [FieldOffset(208)] public Vector4 LightDirection;
+    [FieldOffset(224)] public Vector4 LightColor;
+    [FieldOffset(240)] public Vector4 ViewPosition;
+    [FieldOffset(256)] public FrameVec4x8 PointPositions;
+    [FieldOffset(384)] public FrameVec4x8 PointColors;
+    [FieldOffset(512)] public FrameVec4x8 PointIntensityRange;
+    [FieldOffset(640)] public int PointLightCount;
+    [FieldOffset(644)] public int ShadowsEnabled;
+    [FieldOffset(648)] public int CascadeCount;
+    [FieldOffset(652)] public int ShadowPcf;
+    [FieldOffset(656)] public float CascadeSplit;
+    [FieldOffset(660)] public float ShadowMapSize;
+    [FieldOffset(664)] public int PointPcf;
+    [FieldOffset(668)] public float PointMapSize;
+    [FieldOffset(672)] public int PointShadowMask;
+    [FieldOffset(676)] public int Ibl;
 
     public const int ByteSize = 688;
 }
 ```
 
-**Why:** `InlineArray` is already on .NET 10. `Pad0`/`Pad1` round 680 to 688 (vec4). Add `FrameUniformsTests` that asserts `Unsafe.SizeOf<FrameUniforms>() == FrameUniforms.ByteSize`.
+**Why:** `InlineArray` is already on .NET 10. `Size = 688` rounds the last vec4. Add `FrameUniformsTests` that asserts `Unsafe.SizeOf<FrameUniforms>() == FrameUniforms.ByteSize`.
 
 When packing from `Graphics3D`, transpose each `Matrix4x4` the same way `SetMat4` already does (`UniformMatrix4` with `transpose: true`): write columns as rows into the struct (or copy 16 floats in that order). `AmbientColorStrength` is color.xyz + strength in w. `PointIntensityRange[i]` is intensity, range, 0, 0. Bit `i` of `PointShadowMask` is today’s `u_PointShadowsEnabled[i]`.
 
 ## 5. IUniformBuffer
 
-`Engine/Renderer/Buffers/IUniformBuffer.cs` and factory:
+`Engine/Renderer/Buffers/IUniformBuffer.cs`:
 
 ```csharp
 namespace Engine.Renderer.Buffers;
@@ -99,20 +97,13 @@ public interface IUniformBuffer : IDisposable
     void SetData(ReadOnlySpan<byte> data);
     void BindTo(uint bindingPoint);
 }
-
-public interface IUniformBufferFactory
-{
-    IUniformBuffer Create(int byteSize);
-}
 ```
 
-`Engine/Platform/OpenGL/Buffers/OpenGLUniformBuffer.cs`: `GenBuffer`, `BindBuffer(UniformBuffer)`, `BufferData` with `DynamicDraw` at create. `SetData` is `BindBuffer` + `BufferSubData`. `BindTo` is `BindBufferBase(UniformBuffer, bindingPoint, id)`. `GLDebug.CheckError` after each call. Cap the size with the same 256 MB constant vertex buffers use.
-
-`UniformBufferFactory` in `Engine/Platform/OpenGL/`, register in `RegisterFactories` next to the vertex-buffer factory.
+`IRendererAPI.CreateUniformBuffer(int byteSize)` returns `OpenGLUniformBuffer`. That type: `GenBuffer`, `BindBuffer(UniformBuffer)`, `BufferData` with `DynamicDraw` at create. `SetData` is `BindBuffer` + `BufferSubData`. `BindTo` is `BindBufferBase(UniformBuffer, bindingPoint, id)`. `GLDebug.CheckError` after each call. Reject `byteSize <= 0`.
 
 ## 6. Graphics3D
 
-Constructor: add `IUniformBufferFactory uniformBuffers`. Field `_frame` created in `Init` with `FrameUniforms.ByteSize`.
+Field `_frame` created in `Init` with `rendererApi.CreateUniformBuffer(FrameUniforms.ByteSize)`.
 
 Replace `UploadFrame(IShader)` with:
 
@@ -133,7 +124,7 @@ private void UploadFrame()
 
 `BeginScene` calls `UploadFrame()` once. Remove `_cubeShader` / `_modelShader` bind/unbind around frame uniforms. Keep sampler `SetInt` in `Init`.
 
-Every unit test that does `new Graphics3D(...)` passes a substitute factory whose `Create` returns a substitute `IUniformBuffer`. Change `Graphics3DFrameUniformTests.BeginScene_UploadsViewAndLights_*` to expect `_frame.SetData` / `BindTo(0)` and `DidNotReceive` the old `SetMat4("u_ViewProjection", …)` on cube/model.
+Every unit test that does `new Graphics3D(...)` stubs `IRendererAPI.CreateUniformBuffer` to return a concrete `FakeUniformBuffer` (NSubstitute cannot stub `ReadOnlySpan`). Change `Graphics3DFrameUniformTests.BeginScene_UploadsViewAndLights_*` to expect `_frame.SetData` / `BindTo(0)` and `DidNotReceive` the old `SetMat4("u_ViewProjection", …)` on cube/model.
 
 ## 7. ProgramUniform and Frame binding
 
@@ -143,7 +134,7 @@ Every unit test that does `new Graphics3D(...)` passes a substitute factory whos
 SilkNetContext.GL.ProgramUniform1(_handle, location, data);
 ```
 
-No `UseProgram` in setters. After a successful link, including the binary path:
+No `UseProgram` in setters. After a successful link:
 
 ```csharp
 var block = SilkNetContext.GL.GetUniformBlockIndex(_handle, "Frame");
@@ -153,19 +144,7 @@ if (block != uint.MaxValue)
 
 (`GL_INVALID_INDEX` is `0xFFFFFFFFu`.)
 
-## 8. Program binaries
-
-In `ShaderFactory.Create(string, string)`, still lock on the path pair. On miss, call a new `OpenGLShader.TryLoad` that:
-
-1. Expands sources (shared with `LoadShader`).
-2. `var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(vertSrc + "\n" + fragSrc)));`
-3. Path = `Path.Combine(AppContext.BaseDirectory, "cache", "shader-binaries", hash + ".bin")`.
-4. `GetInteger(NumProgramBinaryFormats, out var n)`. If `n > 0` and the file exists, `CreateProgram`, `ProgramBinary(handle, format, blob)`, `LinkProgram`. Format is the first 4 bytes (little-endian `int` of `GLEnum`). On link failure, `DeleteProgram` and fall through.
-5. Else compile as today. Then `GetProgram(handle, ProgramBinaryLength, out len)` and `GetProgramBinary`; write format + bytes. Swallow IO exceptions.
-
-`OpenGLShader` needs a constructor or static factory that takes already-expanded strings so the hash matches the compiled text.
-
-## 9. GLSL
+## 8. GLSL
 
 `Engine/assets/shaders/OpenGL/frame.glsl` — `vec3` then `float` so `u_ViewPosition` and `u_AmbientColor` stay the names `shadow.glsl` already uses. The trailing floats on the light vectors are padding only:
 
@@ -210,11 +189,11 @@ Every other shader: first line `#version 410 core` only.
 
 `Engine.Shaders.props` already copies the OpenGL folder; `frame.glsl` is included automatically.
 
-## 10. DryIoc, editor, Runtime
+## 9. DryIoc, editor, Runtime
 
-No new system priority. `RegisterFactories` adds the uniform-buffer factory. Editor and Runtime pick it up through `Graphics3D`’s constructor. Serialization unchanged.
+No new system priority. Editor and Runtime get the UBO through `IRendererAPI.CreateUniformBuffer`. Serialization unchanged.
 
-## 11. Tests worth adding
+## 10. Tests worth adding
 
 - `FrameUniformsTests.SizeOf_Is688`
 - `Graphics3DFrameUniformTests` rewritten for one UBO write
@@ -222,6 +201,6 @@ No new system priority. `RegisterFactories` adds the uniform-buffer factory. Edi
 - `GraphicsContextInitTests`: `GetInteger(MajorVersion) == 4` and `MinorVersion >= 1` on the headless window (skip on the existing macOS graphics skip)
 - Existing `ShaderFactoryCacheTests` still compile every listed pair
 
-## 12. Doc nits in the same PR
+## 11. Doc nits in the same PR
 
 Replace “OpenGL 3.3+” with “OpenGL 4.1+” in `docs/architecture/README.md`, `docs/guide/index.md`, and root `README.md`. Leave historical spec GLSL samples as 330.

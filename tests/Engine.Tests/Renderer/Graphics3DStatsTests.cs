@@ -60,17 +60,20 @@ public class Graphics3DStatsTests
         textures.GetFlatNormalTexture().Returns(white);
 
         var renderer = Substitute.For<IRendererAPI>();
+        FakeUniformBuffer.Attach(renderer);
         var graphics = new Graphics3D(
-            renderer, shaderFactory, meshFactory, textures, Substitute.For<IFrameBufferFactory>(),
-            FakeUniformBuffers.Create());
+            renderer, shaderFactory, meshFactory, textures, Substitute.For<IFrameBufferFactory>());
         graphics.Init();
-        graphics.BeginScene(new SceneView(Matrix4x4.Identity, Vector3.Zero));
+        var vp = Matrix4x4.CreateLookAt(new Vector3(0f, 0f, 4f), Vector3.Zero, Vector3.UnitY)
+            * Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 3f, 1f, 0.1f, 20f);
+        graphics.BeginScene(new SceneView(vp, new Vector3(0f, 0f, 4f)));
         graphics.ResetStats();
 
         graphics.DrawMesh(Matrix4x4.Identity, cube, Vector4.One, emissive: new Vector3(1.5f, 1f, 1f));
 
         modelShader.Received().SetFloat3("u_Emissive", new Vector3(0.5f, 0f, 0f));
         emissiveShader.Received().SetFloat3("u_Emissive", new Vector3(1f, 1f, 1f));
+        emissiveShader.DidNotReceive().SetMat4("u_ViewProjection", Arg.Any<Matrix4x4>());
         renderer.Received().SetAdditiveBlend(true);
         renderer.Received().SetBlend(false);
         graphics.GetStats().DrawCalls.ShouldBe(2u);
@@ -113,12 +116,11 @@ public class Graphics3DStatsTests
             frameBuffers.Create(Arg.Any<FrameBufferSpecification>()).Returns(Substitute.For<IFrameBuffer>());
 
         return new Graphics3D(
-            Substitute.For<IRendererAPI>(),
+            FakeUniformBuffer.Renderer(),
             shaderFactory,
             meshFactory,
             textureFactory,
-            frameBuffers,
-            FakeUniformBuffers.Create());
+            frameBuffers);
     }
 
     private static Mesh InitializedMesh()

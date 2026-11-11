@@ -12,7 +12,6 @@ Per color frame, the 3D layer walks the cube program and the model program and s
 - Every GLSL file is `#version 410 core`. Dynamic sampler indexing is core. The gpu_shader5 lines go away.
 - Cube and model color programs share one **std140 frame block** (view, lights, numeric shadow knobs, IBL flag). `BeginScene` writes that buffer once. Material values, instance flags, and texture units stay per draw.
 - Setting a uniform does not require the program to be bound first (4.1 program uniforms). Draws still bind the program they use.
-- A machine-local **program binary** cache skips GLSL compile when the driver accepts a blob for the same expanded source. A driver that reports no binary formats, or that rejects a blob, compiles from text and still runs.
 - Cubemap face filtering stays the global seamless enable already done at renderer init. This work does not add a second path.
 - 2D then 3D, depth on only for 3D, and “no OpenGL outside the platform layer” stay as they are. Scene files do not change.
 
@@ -24,19 +23,17 @@ Per color frame, the 3D layer walks the cube program and the model program and s
 
 **Program uniform** — A uniform write that names the program in the call. The current program object does not have to be the one being written.
 
-**Program binary** — A driver-specific blob from a linked program. It is a cache, not an asset. It is not checked in and not shipped as part of a scene.
-
-**Expanded source** — Shader text after `#include` files are spliced in. The binary cache key is a hash of that text, so a change to `shadow.glsl` invalidates cube and model blobs.
+**Expanded source** — Shader text after `#include` files are spliced in.
 
 ## How It Works
 
 The window options request OpenGL 4.1 core. After the context exists, renderer init reads the major and minor version. Too old throws the existing renderer initialization error with the version that was found.
 
-Shader load still goes through the shader factory. On a cache miss it hashes the expanded vertex and fragment text. If a blob for that hash exists and the driver lists binary formats, it loads the program from the blob. Any failure falls through to compile-from-text, then stores a new blob when the driver allows it. Linked cube and model programs bind their `Frame` block to point 0. Other programs have no such block.
+Shader load still goes through the shader factory. It expands includes and compiles from GLSL. Linked cube and model programs bind their `Frame` block to point 0. Other programs have no such block.
 
 Each color `BeginScene` packs the current camera, lights, and shadow numbers into one CPU struct that matches std140, uploads it, and binds the buffer to point 0. It still binds shadow maps and IBL textures to the same units as today. A cube or mesh draw only writes model, material, and entity values.
 
-2D sprites, lines, depth-only shadows, sky, IBL bake, emissive add, tonemap, bloom, FXAA, and selection outline keep ordinary uniforms. They are not on the frame block.
+2D sprites, lines, depth-only shadows, sky, IBL bake, tonemap, bloom, FXAA, and selection outline keep ordinary uniforms and do not read the frame block. The emissive add pass reuses `modelShader.vert`, which includes `frame.glsl`, so it reads the same binding-0 block as the lit model pass instead of taking `u_ViewProjection` from C#.
 
 If a 4.1 context cannot be created, the process does not open a window on a silent 3.3 path. The user sees the initialization error.
 
@@ -46,5 +43,4 @@ If a 4.1 context cannot be created, the process does not open a window on a sile
 - Compute shaders, shader storage buffers, immutable texture storage, explicit `layout(binding = …)` (4.2), persistent maps, and direct state access (4.5). macOS cannot grow past 4.1.
 - A frame block for 2D, post, depth, or bake programs.
 - Changing PCF, light counts, pass order, or the depth policy.
-- Shipping program binaries with the game. They stay a local cache.
 - A second renderer backend.

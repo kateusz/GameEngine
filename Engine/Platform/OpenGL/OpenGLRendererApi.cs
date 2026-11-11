@@ -2,6 +2,8 @@ using System.Numerics;
 using Engine.Platform.SilkNet;
 using Engine.Renderer;
 using Engine.Renderer.Exceptions;
+using Engine.Platform.OpenGL.Buffers;
+using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Textures;
 using Serilog;
@@ -354,6 +356,8 @@ internal sealed class OpenGLRendererApi : IRendererAPI
         SilkNetContext.GL.Viewport(x, y, width, height);
         OpenGLDebug.CheckError(SilkNetContext.GL, "Viewport");
     }
+
+    public IUniformBuffer CreateUniformBuffer(int byteSize) => new OpenGLUniformBuffer(byteSize);
 
     public void Init()
     {

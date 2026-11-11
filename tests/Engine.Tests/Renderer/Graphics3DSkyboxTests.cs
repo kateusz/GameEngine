@@ -51,13 +51,13 @@ public class Graphics3DSkyboxTests
                 return false;
             });
 
+        FakeUniformBuffer.Attach(renderer);
         var graphics = new Graphics3D(
             renderer,
             shaderFactory,
             meshFactory,
             Substitute.For<ITextureFactory>(),
-            Substitute.For<IFrameBufferFactory>(),
-            FakeUniformBuffers.Create());
+            Substitute.For<IFrameBufferFactory>());
         graphics.Init();
 
         var first = Path.Combine(Path.GetTempPath(), "ibl-a.hdr");

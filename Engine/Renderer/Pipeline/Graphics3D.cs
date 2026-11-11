@@ -14,8 +14,7 @@ internal sealed class Graphics3D(
     IShaderFactory shaderFactory,
     IMeshFactory meshFactory,
     ITextureFactory textureFactory,
-    IFrameBufferFactory frameBuffers,
-    IUniformBufferFactory uniformBuffers) : IGraphics3D
+    IFrameBufferFactory frameBuffers) : IGraphics3D
 {
     private const string ViewProjectionUniform = "u_ViewProjection";
     private const int ShadowMapSlot = 3;
@@ -82,7 +81,7 @@ internal sealed class Graphics3D(
         _depthShader = shaderFactory.Create(ShaderId.Depth);
         _pointDepthShader = shaderFactory.Create(ShaderId.PointDepth);
         _cubeMesh = meshFactory.CreateCube();
-        _frame = uniformBuffers.Create(FrameUniforms.ByteSize);
+        _frame = rendererApi.CreateUniformBuffer(FrameUniforms.ByteSize);
 
         _cubeShader.Bind();
         _cubeShader.SetInt("u_ShadowMap", ShadowMapSlot);

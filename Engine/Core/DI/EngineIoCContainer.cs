@@ -145,7 +145,6 @@ public static class EngineIoCContainer
         container.Register<IMeshFactory, MeshFactory>(Reuse.Singleton);
         container.Register<IModelFactory, ModelFactory>(Reuse.Singleton);
         container.Register<IVertexBufferFactory, VertexBufferFactory>(Reuse.Singleton);
-        container.Register<IUniformBufferFactory, UniformBufferFactory>(Reuse.Singleton);
         container.Register<IIndexBufferFactory, IndexBufferFactory>(Reuse.Singleton);
         container.Register<IFrameBufferFactory, FrameBufferFactory>(Reuse.Singleton);
         container.Register<IVertexArrayFactory, VertexArrayFactory>(Reuse.Singleton);

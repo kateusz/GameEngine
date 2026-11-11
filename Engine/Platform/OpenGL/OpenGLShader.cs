@@ -1,8 +1,6 @@
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
 using Engine.Platform.SilkNet;
 using Engine.Renderer.Shaders;
 using Silk.NET.OpenGL;
@@ -22,18 +20,10 @@ internal sealed class OpenGLShader : IShader
 
     public OpenGLShader(string vertPath, string fragPath)
     {
-        var vertDir = Path.GetDirectoryName(vertPath)!;
-        var fragDir = Path.GetDirectoryName(fragPath)!;
-        var vertSrc = ExpandIncludes(File.ReadAllText(vertPath), vertDir);
-        var fragSrc = ExpandIncludes(File.ReadAllText(fragPath), fragDir);
-        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(vertSrc + "\n" + fragSrc)));
-
-        if (!TryLoadBinary(hash))
-        {
-            CompileFromSource(vertSrc, fragSrc);
-            TrySaveBinary(hash);
-        }
-
+        var dir = Path.GetDirectoryName(vertPath)!;
+        CompileFromSource(
+            ExpandIncludes(File.ReadAllText(vertPath), dir),
+            ExpandIncludes(File.ReadAllText(fragPath), dir));
         BindFrameBlock();
         CacheUniforms();
     }
@@ -166,7 +156,6 @@ internal sealed class OpenGLShader : IShader
 
             _handle = SilkNetContext.GL.CreateProgram();
             OpenGLDebug.CheckError(SilkNetContext.GL, "CreateProgram");
-            SilkNetContext.GL.ProgramParameter(_handle, ProgramParameterPName.BinaryRetrievableHint, 1);
             SilkNetContext.GL.AttachShader(_handle, vertex);
             OpenGLDebug.CheckError(SilkNetContext.GL, "AttachShader(vertex)");
             SilkNetContext.GL.AttachShader(_handle, fragment);
@@ -203,83 +192,6 @@ internal sealed class OpenGLShader : IShader
                 $"Program failed to link with error: {SilkNetContext.GL.GetProgramInfoLog(_handle)}");
         }
     }
-
-    private bool TryLoadBinary(string hash)
-    {
-        SilkNetContext.GL.GetInteger(GetPName.NumProgramBinaryFormats, out var formats);
-        if (formats <= 0)
-            return false;
-
-        var path = BinaryPath(hash);
-        if (!File.Exists(path))
-            return false;
-
-        try
-        {
-            var bytes = File.ReadAllBytes(path);
-            if (bytes.Length < 4)
-                return false;
-            var format = (GLEnum)BitConverter.ToInt32(bytes, 0);
-            _handle = SilkNetContext.GL.CreateProgram();
-            SilkNetContext.GL.ProgramBinary(_handle, format, bytes.AsSpan(4));
-            SilkNetContext.GL.GetProgram(_handle, GLEnum.LinkStatus, out var status);
-            if (status == 0)
-            {
-                SilkNetContext.GL.DeleteProgram(_handle);
-                _handle = 0;
-                File.Delete(path);
-                return false;
-            }
-
-            return true;
-        }
-        catch
-        {
-            if (_handle != 0)
-            {
-                SilkNetContext.GL.DeleteProgram(_handle);
-                _handle = 0;
-            }
-
-            return false;
-        }
-    }
-
-    private void TrySaveBinary(string hash)
-    {
-        SilkNetContext.GL.GetInteger(GetPName.NumProgramBinaryFormats, out var formats);
-        if (formats <= 0)
-            return;
-
-        SilkNetContext.GL.GetProgram(_handle, ProgramPropertyARB.ProgramBinaryLength, out var length);
-        if (length <= 0)
-            return;
-
-        var blob = new byte[length];
-        GLEnum format;
-        unsafe
-        {
-            uint written;
-            fixed (byte* p = blob)
-                SilkNetContext.GL.GetProgramBinary(_handle, (uint)blob.Length, &written, &format, p);
-        }
-        try
-        {
-            var path = BinaryPath(hash);
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            var file = new byte[4 + blob.Length];
-            BitConverter.GetBytes((int)format).CopyTo(file, 0);
-            blob.CopyTo(file, 4);
-            File.WriteAllBytes(path, file);
-        }
-        catch
-        {
-            // ponytail: cache is optional; a full disk must not fail the link.
-        }
-    }
-
-    private static string BinaryPath(string hash) =>
-        Path.Combine(AppContext.BaseDirectory, "cache", "shader-binaries", hash + ".bin");
 
     private void BindFrameBlock()
     {

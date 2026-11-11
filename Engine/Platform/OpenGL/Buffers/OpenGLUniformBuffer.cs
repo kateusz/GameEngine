@@ -8,7 +8,6 @@ namespace Engine.Platform.OpenGL.Buffers;
 internal sealed class OpenGLUniformBuffer : IUniformBuffer
 {
     private static readonly ILogger Logger = Log.ForContext<OpenGLUniformBuffer>();
-    private const uint MaxBufferSize = 256 * 1024 * 1024;
     private readonly int _byteSize;
     private uint _id;
     private bool _disposed;
@@ -17,9 +16,6 @@ internal sealed class OpenGLUniformBuffer : IUniformBuffer
     {
         if (byteSize <= 0)
             throw new ArgumentException("Buffer size must be greater than zero", nameof(byteSize));
-        if (byteSize > MaxBufferSize)
-            throw new ArgumentException(
-                $"Buffer size {byteSize} bytes exceeds maximum {MaxBufferSize} bytes", nameof(byteSize));
 
         _byteSize = byteSize;
         _id = SilkNetContext.GL.GenBuffer();

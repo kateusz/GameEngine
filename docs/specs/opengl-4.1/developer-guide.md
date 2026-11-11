@@ -1,6 +1,6 @@
 # OpenGL 4.1 — Developer Guide
 
-How to raise the context, retarget shaders, add the frame buffer object, and cache binaries. Assumes the current `IRendererAPI` boundary, `ShaderFactory`, and `Graphics3D.BeginScene`.
+How to raise the context, retarget shaders, and add the frame uniform buffer. Assumes the current `IRendererAPI` boundary, `ShaderFactory`, and `Graphics3D.BeginScene`.
 
 ## Implementation Overview
 
@@ -11,12 +11,8 @@ flowchart TD
     C -->|No| D[RendererInitializationException]
     C -->|Yes| E[Enable existing blend, depth, cull, seamless cubes]
     E --> F[ShaderFactory miss]
-    F --> G{Binary for expanded-source hash?}
-    G -->|Yes and driver accepts| H[Program from blob]
-    G -->|No or reject| I[Compile GLSL 410]
-    I --> J[Store blob if formats exist]
-    H --> K[Cube/model: UniformBlockBinding Frame to 0]
-    J --> K
+    F --> I[Compile GLSL 410]
+    I --> K[Cube/model: UniformBlockBinding Frame to 0]
     K --> L[BeginScene packs FrameUniforms]
     L --> M[BufferSubData + BindBufferBase 0]
     M --> N[Bind shadow and IBL textures]
@@ -49,7 +45,6 @@ sequenceDiagram
 | Binding 0 | `glBindBufferBase(UNIFORM_BUFFER, 0, …)` plus `glUniformBlockBinding` on cube and model. Not a GLSL `layout(binding = 0)` qualifier |
 | FrameUniforms | One unmanaged struct whose field order and padding match the GLSL `Frame` block |
 | Point shadow mask | Eight enable flags packed into one int bit per light. Avoids an std140 `int[8]` (16 bytes per element) |
-| Binary directory | `cache/shader-binaries` under the process base directory. Not under `assets/` |
 | Include loop | Splice every `#include "name"` in the file, repeat until none remain. Today only the first include is expanded |
 
 ## Step-by-Step Requirements
@@ -76,11 +71,11 @@ Matrices occupy 64 bytes each and are stored in the byte order that today’s `U
 
 Samplers stay as `SetInt` at `Graphics3D.Init` on the same units as today (shadow 3, point cubes 4–11, occlusion 12, IBL 13–15).
 
-2D, depth, sky, bake, emissive, and post programs do not declare `Frame`. Emissive still sets its own view-projection uniform.
+2D, depth, sky, bake, and post programs do not declare `Frame`. The emissive program shares `modelShader.vert`, so it binds and reads the same `Frame` block as the lit model pass; `DrawEmissive` only sets material uniforms such as `u_Emissive`.
 
 ### 5. Write the UBO once per color BeginScene
 
-Create the buffer at `Graphics3D.Init` through a uniform-buffer factory (same shape as the vertex-buffer factory). `BeginScene` fills `FrameUniforms` from the fields `UploadFrame` already reads, uploads once, binds to point 0, then binds textures. Delete the per-shader `UploadFrame` uniform walk. `DrawCube` / `DrawMesh` must not write view, lights, or shadow knobs.
+Create the buffer at `Graphics3D.Init` with `IRendererAPI.CreateUniformBuffer`. `BeginScene` fills `FrameUniforms` from the fields `UploadFrame` already reads, uploads once, binds to point 0, then binds textures. Delete the per-shader `UploadFrame` uniform walk. `DrawCube` / `DrawMesh` must not write view, lights, or shadow knobs.
 
 Cheap win: two programs × ~30 uniforms become one `BufferSubData`. Texture binds stay once per `BeginScene`, unchanged.
 
@@ -90,18 +85,7 @@ Every `IShader.Set*` calls `glProgramUniform*` with the program id. Remove the `
 
 After link, if the program has a uniform block named `Frame`, set its binding to 0.
 
-### 7. Program binaries in ShaderFactory
-
-Keep the in-memory map of path pairs. On miss:
-
-1. Read and expand both files.
-2. Hash the pair (hex file name).
-3. If `GL_NUM_PROGRAM_BINARY_FORMATS` is not 0 and a file exists, `glProgramBinary`. On link failure, delete the file and compile from text.
-4. After a successful compile, `glGetProgramBinary` and write the format enum plus blob.
-
-A missing cache directory is created. A write failure is ignored; the program already linked. Do not fail startup because the cache disk is not writable.
-
-### 8. Tests and docs that still say 3.3
+### 7. Tests and docs that still say 3.3
 
 Unit: `FrameUniforms` byte size equals the GLSL block size; `BeginScene` updates the UBO mock once and a cube draw does not set view/lights. Graphics: init reports 4.1 or higher; every shader in the OpenGL tree still links. Add a test that every shader file’s first non-empty line is `#version 410 core`.
 
@@ -109,4 +93,4 @@ Update `docs/architecture/README.md`, the user guide GPU line, and the README re
 
 ## OpenGL practice
 
-Matches LearnOpenGL Advanced GLSL for std140 blocks, `glUniformBlockBinding`, and `glBindBufferBase`. Matches 4.1 program binaries and program uniforms. Divergences that stay: row-vector multiply (`vec4 * mat4`) with CPU transpose, already used everywhere; global seamless cubes instead of 4.0 per-texture flags, already in `Init`.
+Matches LearnOpenGL Advanced GLSL for std140 blocks, `glUniformBlockBinding`, and `glBindBufferBase`. Matches 4.1 program uniforms. Divergences that stay: row-vector multiply (`vec4 * mat4`) with CPU transpose, already used everywhere; global seamless cubes instead of 4.0 per-texture flags, already in `Init`.

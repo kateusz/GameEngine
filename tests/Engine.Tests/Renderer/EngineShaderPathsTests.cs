@@ -60,6 +60,7 @@ public class EngineShaderPathsTests
         var (vert, frag) = EngineShaderPaths.Resolve(ShaderId.Emissive);
         vert.ShouldBe(Path.Combine(dir, "modelShader.vert"));
         frag.ShouldBe(Path.Combine(dir, "emissive.frag"));
+        File.ReadAllText(vert).ShouldContain("frame.glsl");
     }
 
     [Fact]

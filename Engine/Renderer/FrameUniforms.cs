@@ -33,8 +33,6 @@ public struct FrameUniforms
     [FieldOffset(668)] public float PointMapSize;
     [FieldOffset(672)] public int PointShadowMask;
     [FieldOffset(676)] public int Ibl;
-    [FieldOffset(680)] public int Pad0;
-    [FieldOffset(684)] public int Pad1;
 
     public const int ByteSize = 688;
 }
