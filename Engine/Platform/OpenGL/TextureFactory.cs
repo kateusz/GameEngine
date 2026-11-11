@@ -136,7 +136,7 @@ internal sealed class TextureFactory : ITextureFactory
             }
         }
 
-        if (File.Exists(sidecar))
+        if (TextureCookInference.IsCookableExtension(normalizedPath))
             Logger.Warning("BC sibling missing, stale, or unsupported for {Path}; uploading uncompressed", path);
 
         return FallbackUncompressed(normalizedPath, sRgb);
