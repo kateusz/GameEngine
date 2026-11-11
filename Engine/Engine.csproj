@@ -10,6 +10,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="BCnEncoder.Net" Version="2.2.1" />
         <PackageReference Include="Box2D.NetStandard" Version="2.4.7-alpha" />
         <PackageReference Include="CSharpFunctionalExtensions" Version="3.7.0" />
         <PackageReference Include="DryIoc" Version="5.4.3" />

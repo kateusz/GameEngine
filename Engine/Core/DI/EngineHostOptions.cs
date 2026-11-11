@@ -23,12 +23,19 @@ public sealed record EngineHostOptions(string WindowTitle, int WindowWidth, int 
     /// </remarks>
     public bool EnsureRuntimeMeshSiblingOnLoad { get; init; }
 
+    /// <summary>
+    /// Editor and publish: encode a sibling <c>.dds</c> when missing or older than the source.
+    /// Runtime player: <c>false</c>.
+    /// </summary>
+    public bool CookTextureSidecarOnLoad { get; init; }
+
     public static EngineHostOptions EditorDefaults => new(
         "MulEngine",
         (int)DisplayConfig.DefaultWindowWidth,
         (int)DisplayConfig.DefaultWindowHeight)
     {
         Maximized = true,
-        EnsureRuntimeMeshSiblingOnLoad = false
+        EnsureRuntimeMeshSiblingOnLoad = false,
+        CookTextureSidecarOnLoad = true
     };
 }

@@ -130,9 +130,14 @@ vec3 ImageBasedLight(vec3 N, vec3 V, vec3 albedo, float metallic, float roughnes
 
 void main()
 {
-    vec3 norm = u_HasNormalMap != 0
-        ? normalize(v_TBN * (texture(u_NormalMap, v_TexCoord).rgb * 2.0 - 1.0))
-        : normalize(v_Normal);
+    vec3 norm;
+    if (u_HasNormalMap != 0) {
+        vec3 nts = texture(u_NormalMap, v_TexCoord).rgb * 2.0 - 1.0;
+        nts.z = sqrt(max(1.0 - nts.x * nts.x - nts.y * nts.y, 0.0));
+        norm = normalize(v_TBN * nts);
+    } else {
+        norm = normalize(v_Normal);
+    }
 
     vec4 texel = u_HasDiffuseMap != 0 ? texture(u_DiffuseMap, v_TexCoord) : vec4(1.0);
     if (u_AlphaTest != 0 && texel.a < u_AlphaCutoff)
