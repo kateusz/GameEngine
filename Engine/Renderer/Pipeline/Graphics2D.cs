@@ -194,11 +194,19 @@ internal sealed class Graphics2D(
             var vector3 = new Vector3(_data.QuadVertexPositions[i].X, _data.QuadVertexPositions[i].Y,
                 _data.QuadVertexPositions[i].Z);
 
+            var texCoord = textureCoords[i];
+            if (texture != null)
+            {
+                var uv = texture.UvScale;
+                if (uv.X > 0 && uv.Y > 0)
+                    texCoord *= uv;
+            }
+
             _data.QuadVertexBufferBase[_data.CurrentVertexBufferIndex] = new QuadVertex
             {
                 Position = Vector3.Transform(vector3, transform),
                 Color = tintColor.Value,
-                TexCoord = textureCoords[i],
+                TexCoord = texCoord,
                 TexIndex = textureIndex,
                 TilingFactor = tilingFactor,
                 EntityId = entityId

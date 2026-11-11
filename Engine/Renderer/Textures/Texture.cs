@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Text.Json.Serialization;
 
 namespace Engine.Renderer.Textures;
@@ -9,6 +10,10 @@ public abstract class Texture : IDisposable
 
     [JsonIgnore]
     public virtual int Height { get; set; }
+
+    /// <summary>Maps 0–1 UV to the logical image when GPU storage is padded to a BC block grid.</summary>
+    [JsonIgnore]
+    public virtual Vector2 UvScale { get; init; } = Vector2.One;
 
     public string? Path { get; set; }
 

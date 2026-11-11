@@ -7,10 +7,11 @@ in vec2 v_TexCoord;
 flat in int v_EntityID;
 
 uniform sampler2D u_EmissiveMap;
+uniform vec2 u_EmissiveUvScale;
 uniform vec3 u_Emissive;
 
 void main()
 {
-    o_Color = vec4(texture(u_EmissiveMap, v_TexCoord).rgb * u_Emissive, 0.0);
+    o_Color = vec4(texture(u_EmissiveMap, v_TexCoord * u_EmissiveUvScale).rgb * u_Emissive, 0.0);
     o_EntityID = v_EntityID;
 }

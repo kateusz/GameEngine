@@ -30,7 +30,7 @@ Publish copies the source tree as-is. A shipped game therefore repeats the same 
 
 **Source** — The file the scene already names.
 
-**Sibling** — `{directory}/{stem}.dds`. `rock.png` and `rock.jpg` in the same folder share one sibling; do not ship two sources with the same stem.
+**Sibling** — `{sourcePath}.srgb.dds` or `{sourcePath}.linear.dds` (e.g. `wall.png.srgb.dds`). Same stem with different extensions get separate siblings.
 
 **Cook** — Decode the source to RGBA, pick a BC format, encode mips on the CPU, write the sibling. Editor and publish do this. Runtime does not.
 

@@ -39,12 +39,25 @@ public sealed record SubTexture2D
         dest[3] = new Vector2(min.X, max.Y);
     }
 
-    private static Vector2 MinUv(Texture2D texture, Vector2 coords, Vector2 cellSize) =>
-        new((coords.X * cellSize.X) / texture.Width, (coords.Y * cellSize.Y) / texture.Height);
+    private static Vector2 EffectiveUvScale(Texture2D texture)
+    {
+        var s = texture.UvScale;
+        return s.X > 0 && s.Y > 0 ? s : Vector2.One;
+    }
 
-    private static Vector2 MaxUv(Texture2D texture, Vector2 coords, Vector2 cellSize, Vector2 spriteSize) =>
-        new(((coords.X + spriteSize.X) * cellSize.X) / texture.Width,
-            ((coords.Y + spriteSize.Y) * cellSize.Y) / texture.Height);
+    private static Vector2 MinUv(Texture2D texture, Vector2 coords, Vector2 cellSize)
+    {
+        var uv = EffectiveUvScale(texture);
+        return new((coords.X * cellSize.X) / texture.Width * uv.X,
+            (coords.Y * cellSize.Y) / texture.Height * uv.Y);
+    }
+
+    private static Vector2 MaxUv(Texture2D texture, Vector2 coords, Vector2 cellSize, Vector2 spriteSize)
+    {
+        var uv = EffectiveUvScale(texture);
+        return new(((coords.X + spriteSize.X) * cellSize.X) / texture.Width * uv.X,
+            ((coords.Y + spriteSize.Y) * cellSize.Y) / texture.Height * uv.Y);
+    }
     
     public void Deconstruct(out Texture2D texture, out Vector2[] texCoords)
     {

@@ -8,4 +8,6 @@ internal readonly record struct BcImage(
     int SourceHeight,
     int GpuWidth,
     int GpuHeight,
+    bool SRgb,
+    bool IsNormal,
     BcMip[] Mips);

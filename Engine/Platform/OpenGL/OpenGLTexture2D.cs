@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Numerics;
 using Engine.Platform.SilkNet;
 using Engine.Renderer.Textures;
 using Engine.Renderer.Textures.Compression;
@@ -21,15 +22,19 @@ internal sealed class OpenGLTexture2D : Texture2D
     private readonly int _hashCode;
     private readonly InternalFormat _internalFormat;
     private readonly PixelFormat _dataFormat;
+    private readonly Vector2 _uvScale;
     private bool _disposed;
 
+    public override Vector2 UvScale => _uvScale;
+
     private OpenGLTexture2D(uint rendererId, int width, int height, InternalFormat internalFormat,
-        PixelFormat dataFormat)
+        PixelFormat dataFormat, Vector2 uvScale)
     {
         _rendererId = rendererId;
         _hashCode = rendererId.GetHashCode();
         _internalFormat = internalFormat;
         _dataFormat = dataFormat;
+        _uvScale = uvScale;
 
         Width = width;
         Height = height;
@@ -38,7 +43,8 @@ internal sealed class OpenGLTexture2D : Texture2D
     }
 
     private OpenGLTexture2D(string path, uint rendererId, int width, int height, InternalFormat internalFormat,
-        PixelFormat dataFormat) : this(rendererId, width, height, internalFormat, dataFormat)
+        PixelFormat dataFormat, Vector2 uvScale)
+        : this(rendererId, width, height, internalFormat, dataFormat, uvScale)
     {
         Path = path;
     }
@@ -109,8 +115,11 @@ internal sealed class OpenGLTexture2D : Texture2D
             SilkNetContext.GL.TexParameter(TextureTarget.Texture2D,
                 (TextureParameterName)0x84FE, 16.0f);
 
+            var uvScale = new Vector2(
+                image.SourceWidth / (float)image.GpuWidth,
+                image.SourceHeight / (float)image.GpuHeight);
             return new OpenGLTexture2D(path, handle, image.SourceWidth, image.SourceHeight, internalFormat,
-                PixelFormat.Rgba);
+                PixelFormat.Rgba, uvScale);
         }
         catch
         {
@@ -184,7 +193,7 @@ internal sealed class OpenGLTexture2D : Texture2D
             }
 
             return new OpenGLTexture2D(path, handle, width, height, internalFormat,
-                dataFormat == PixelFormat.Bgra ? PixelFormat.Rgba : dataFormat);
+                dataFormat == PixelFormat.Bgra ? PixelFormat.Rgba : dataFormat, Vector2.One);
         }
         catch
         {
@@ -260,7 +269,7 @@ internal sealed class OpenGLTexture2D : Texture2D
         SilkNetContext.GL.TexParameter(GLEnum.Texture2D, GLEnum.TextureWrapT, (int)GLEnum.Repeat);
         OpenGLDebug.CheckError(SilkNetContext.GL, "TexParameter(wrap modes) in Create");
 
-        return new OpenGLTexture2D(rendererId, width, height, internalFormat, dataFormat);
+        return new OpenGLTexture2D(rendererId, width, height, internalFormat, dataFormat, Vector2.One);
     }
 
     public override bool Equals(object? obj)

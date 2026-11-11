@@ -27,7 +27,7 @@ public sealed record EngineHostOptions(string WindowTitle, int WindowWidth, int 
     /// Editor and publish: encode a sibling <c>.dds</c> when missing or older than the source.
     /// Runtime player: <c>false</c>.
     /// </summary>
-    public bool CookTextureSidecarOnLoad { get; init; }
+    public bool EnsureTextureDdsSiblingOnLoad { get; init; }
 
     public static EngineHostOptions EditorDefaults => new(
         "MulEngine",
@@ -36,6 +36,6 @@ public sealed record EngineHostOptions(string WindowTitle, int WindowWidth, int 
     {
         Maximized = true,
         EnsureRuntimeMeshSiblingOnLoad = false,
-        CookTextureSidecarOnLoad = true
+        EnsureTextureDdsSiblingOnLoad = true
     };
 }

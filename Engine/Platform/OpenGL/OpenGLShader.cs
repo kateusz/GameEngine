@@ -91,6 +91,14 @@ internal sealed class OpenGLShader : IShader
         SilkNetContext.GL.ProgramUniformMatrix4(_handle, location, (uint)matrices.Length, true, floats);
     }
 
+    public void SetFloat2(string name, Vector2 data)
+    {
+        if (!TryGetUniformLocation(name, out var location))
+            return;
+        SilkNetContext.GL.UseProgram(_handle);
+        SilkNetContext.GL.Uniform2(location, data);
+    }
+
     public void SetFloat3(string name, Vector3 data)
     {
         if (!TryGetUniformLocation(name, out var location))

@@ -21,6 +21,9 @@ internal static class BcDds
             return false;
         }
 
+        if (!BcDdsMetadata.TryRead(fileBytes, out var meta))
+            return false;
+
         DdsFile dds;
         try
         {
@@ -36,26 +39,20 @@ internal static class BcDds
 
         var gpuWidth = (int)dds.Faces[0].MipMaps[0].Width;
         var gpuHeight = (int)dds.Faces[0].MipMaps[0].Height;
-        if (!BcDdsMetadata.TryRead(fileBytes, out var format, out var sourceWidth, out var sourceHeight))
-        {
-            sourceWidth = gpuWidth;
-            sourceHeight = gpuHeight;
-            format = BcGpuFormat.Dxt5Linear;
-        }
-
         var mips = new BcMip[dds.Faces[0].MipMaps.Length];
         for (var i = 0; i < mips.Length; i++)
         {
             var mip = dds.Faces[0].MipMaps[i];
             var w = (int)mip.Width;
             var h = (int)mip.Height;
-            if (!ValidateMipSize(format, w, h, mip.Data.Length))
+            if (!ValidateMipSize(meta.Format, w, h, mip.Data.Length))
                 return false;
 
             mips[i] = new BcMip(mip.Data, w, h);
         }
 
-        image = new BcImage(format, sourceWidth, sourceHeight, gpuWidth, gpuHeight, mips);
+        image = new BcImage(meta.Format, meta.SourceWidth, meta.SourceHeight, gpuWidth, gpuHeight, meta.SRgb,
+            meta.IsNormal, mips);
         return true;
     }
 
@@ -71,7 +68,7 @@ internal static class BcDds
             using var ms = new MemoryStream();
             ddsFile.Write(ms);
             var bytes = ms.ToArray();
-            BcDdsMetadata.Patch(bytes, image.Format, image.SourceWidth, image.SourceHeight);
+            BcDdsMetadata.Patch(bytes, image);
 
             var tempPath = path + ".tmp";
             File.WriteAllBytes(tempPath, bytes);
@@ -93,7 +90,11 @@ internal static class BcDds
 
     private static bool ValidateMipSize(BcGpuFormat format, int width, int height, int dataLength)
     {
-        var blockBytes = format is BcGpuFormat.Dxt1Srgb ? 8 : 16;
+        var blockBytes = format switch
+        {
+            BcGpuFormat.Dxt1Srgb or BcGpuFormat.Bc4 => 8,
+            _ => 16
+        };
         return dataLength == (width + 3) / 4 * ((height + 3) / 4) * blockBytes;
     }
 
