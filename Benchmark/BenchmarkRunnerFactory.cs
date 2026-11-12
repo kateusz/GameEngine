@@ -1,3 +1,5 @@
+using DryIoc;
+using ECS.Systems;
 using Engine.Core.Window;
 using Engine.Project;
 using Engine.Renderer.Buffers;
@@ -7,6 +9,8 @@ using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
 using Engine.Scene;
 using Engine.Scene.Serializer;
+using Engine.Scripting;
+using Scripting;
 
 namespace Benchmark;
 
@@ -23,7 +27,12 @@ public sealed class BenchmarkRunnerFactory(
     IProjectContext projectContext,
     IGameWindow window,
     FxaaPass hdrTarget,
-    TonemapPass tonemap)
+    TonemapPass tonemap,
+    ISceneContext sceneContext,
+    IScriptEngine scriptEngine,
+    IComponentSerializerRegistry serializers,
+    Func<IEnumerable<IGameSystem>> resolveGameSystems,
+    Container container)
 {
     private Benchmark2DRunner? _twoD;
 
@@ -31,7 +40,8 @@ public sealed class BenchmarkRunnerFactory(
     {
         "2D" => TwoD(),
         "3D" => new Benchmark3DRunner(sceneFactory, graphics2D, graphics3D, textures, models,
-            vertexArrays, vertexBuffers, indexBuffers, scenes, projectContext, window, hdrTarget, tonemap),
+            vertexArrays, vertexBuffers, indexBuffers, scenes, projectContext, window, hdrTarget, tonemap,
+            sceneContext, scriptEngine, serializers, resolveGameSystems, container),
         "Lighting" => new BenchmarkGridRunner("Lighting", sceneFactory, graphics2D, graphics3D, textures, models,
             vertexArrays, vertexBuffers, indexBuffers),
         "Shadows" => new BenchmarkGridRunner("Shadows", sceneFactory, graphics2D, graphics3D, textures, models,

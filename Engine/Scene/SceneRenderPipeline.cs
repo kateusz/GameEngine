@@ -407,6 +407,9 @@ internal static partial class SceneRenderPipeline
         dest.PointShadowCacheHits = perf.PointShadowLightsCacheHit;
         dest.DirectionalShadow = perf.DirectionalShadow;
         dest.ColorCpuMs = color.CpuMs;
+        dest.ColorCollectCpuMs = color.CollectCpuMs;
+        dest.ColorMeshFlushCpuMs = color.MeshFlushCpuMs;
+        dest.ColorMergeFlushCpuMs = color.MergeFlushCpuMs;
         dest.ShadowCpuMs = perf.DirectionalShadowPass.CpuMs + perf.PointShadowPass.CpuMs;
     }
 
@@ -429,6 +432,9 @@ internal static partial class SceneRenderPipeline
         public long Vertices;
         public long Indices;
         public double CpuMs;
+        public double CollectCpuMs;
+        public double MeshFlushCpuMs;
+        public double MergeFlushCpuMs;
     }
 
     private struct Render3DPerfFrame
@@ -467,6 +473,9 @@ internal static partial class SceneRenderPipeline
         total.Vertices += pass.Vertices;
         total.Indices += pass.Indices;
         total.CpuMs += pass.CpuMs;
+        total.CollectCpuMs += pass.CollectCpuMs;
+        total.MeshFlushCpuMs += pass.MeshFlushCpuMs;
+        total.MergeFlushCpuMs += pass.MergeFlushCpuMs;
         return total;
     }
 
@@ -499,7 +508,7 @@ internal static partial class SceneRenderPipeline
             "merged groups={MergedGroups} vertices={MergedVertices} rebuilds={MergedRebuilds} " +
             "pointShadow lights={PointShadowLights} casters={Casters} cacheHit={CacheHit} tooFar={TooFar} redrawn={Redrawn} " +
             "fullSceneFaces={Faces} faceRes={PointRes}x{PointRes} pointMeshDraws={PointMeshDraws} estShadowFillPx={ShadowFillPx} " +
-            "cpuMs dir={DirCpu:F2} color={ColorCpu:F2} point={PointCpu:F2}",
+            "cpuMs dir={DirCpu:F2} color={ColorCpu:F2} collect={CollectCpu:F2} meshFlush={MeshFlushCpu:F2} mergeFlush={MergeFlushCpu:F2} point={PointCpu:F2}",
             perf.GpuDrawCalls,
             opaque3DPasses,
             perf.DirectionalShadow,
@@ -532,6 +541,9 @@ internal static partial class SceneRenderPipeline
             shadowFillPixels,
             dir.CpuMs,
             color.CpuMs,
+            color.CollectCpuMs,
+            color.MeshFlushCpuMs,
+            color.MergeFlushCpuMs,
             point.CpuMs);
     }
 
@@ -632,6 +644,7 @@ internal static partial class SceneRenderPipeline
         var start = Stopwatch.GetTimestamp();
         var hasFrustum = Frustum.TryFromClip(cullMatrix, out var frustum);
         var canMerge = vertexArrayFactory is not null && vertexBufferFactory is not null && indexBufferFactory is not null;
+        var collectStart = Stopwatch.GetTimestamp();
         try
         {
             foreach (var (entity, modelRenderer, transformComponent) in
@@ -745,10 +758,16 @@ internal static partial class SceneRenderPipeline
         }
         finally
         {
+            // ponytail: three Stopwatches in the hot pass — enough to decide thread targets; drop when threading lands
+            stats.CollectCpuMs = Stopwatch.GetElapsedTime(collectStart).TotalMilliseconds;
+            var meshFlushStart = Stopwatch.GetTimestamp();
             FlushMeshBatches(graphics3D, ref stats);
+            stats.MeshFlushCpuMs = Stopwatch.GetElapsedTime(meshFlushStart).TotalMilliseconds;
+            var mergeFlushStart = Stopwatch.GetTimestamp();
             FlushMergeGroups(graphics3D, hasFrustum, in frustum, shadowCasterMaxDistanceSq,
                 shadowCasterViewPosition, skipCastersContainingLight, ref stats,
                 vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
+            stats.MergeFlushCpuMs = Stopwatch.GetElapsedTime(mergeFlushStart).TotalMilliseconds;
         }
 
         stats.CpuMs = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
