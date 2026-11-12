@@ -220,7 +220,7 @@ if (submesh.HasCoarserLevel)
 - `Orthographic: true` ignores camera distance and uses distance 1.
 - Viewport height 0, an empty extra-level list, and a non-finite scale return 0.
 
-`RuntimeMeshLodSimplifierTests` builds a manifold grid, runs `Simplify`, and expects a shorter in-range index list, a multiple of three, a positive error, and a following error at least 1.5× the first. A second case feeds a step that cannot cut 25% and expects no extra list. The test project references the same Evergine package.
+`RuntimeMeshLodSimplifierTests` builds a manifold grid, runs `TrySimplify`, and expects a shorter in-range index list, a multiple of three, a positive error, and strictly growing errors. A second case feeds a step that cannot cut 25% and expects no extra list. The test project references the same Evergine package.
 
 `RuntimeMeshReader` tests: a version-1 byte buffer loads with `LodCount == 1`. A version-2 buffer with a truncated level block loads the base indices and no extra level.
 
