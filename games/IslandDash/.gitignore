@@ -3,4 +3,5 @@ assets/scripts/.engine/
 /Builds/
 .build/
 
-assets/models/
+# Cooked runtime meshes (MeshCook); source .glb stay tracked.
+assets/models/**/*.mesh

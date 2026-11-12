@@ -343,6 +343,7 @@ public sealed class Benchmark3DRunner(
             // Level kits (IslandDash) spawn meshes from GameAssembly systems, not the .scene file.
             sceneContext.SetScene(scene);
             RuntimeSceneStarter.Start(scene, sceneContext, resolveGameSystems());
+            // One tick: Level rebuild (101) then CameraSystem snap (110).
             scene.OnUpdateRuntime(TimeSpan.FromSeconds(1.0 / 60.0));
         }
 
@@ -360,7 +361,8 @@ public sealed class Benchmark3DRunner(
             onDispose: startedPlay ? scene.OnRuntimeStop : null,
             display: _editorDisplay,
             matchEditorLight: true);
-        if (TryPrimaryLook(scene, out var eye, out var focal))
+        // Scripted games: pose as-is. Art scenes: orbit pullback for framing.
+        if (TryPrimaryLook(scene, out var eye, out var focal, pullback: startedPlay ? 0f : 64f))
             pipeline.Frame(eye, focal);
         return true;
     }
@@ -434,7 +436,7 @@ public sealed class Benchmark3DRunner(
         _preview = next;
     }
 
-    static bool TryPrimaryLook(IScene scene, out Vector3 eye, out Vector3 focal)
+    static bool TryPrimaryLook(IScene scene, out Vector3 eye, out Vector3 focal, float pullback = 64f)
     {
         eye = default;
         focal = default;
@@ -448,11 +450,16 @@ public sealed class Benchmark3DRunner(
             var world = transform.GetWorldTransform();
             eye = new Vector3(world.M41, world.M42, world.M43);
             var forward = Vector3.Normalize(Vector3.TransformNormal(-Vector3.UnitZ, world));
-            // Pull back from in-room cameras for stable benchmark framing.
+            if (pullback <= 0f)
+            {
+                focal = eye + forward;
+                return true;
+            }
+
+            // Pull back from in-room cameras for stable art-scene framing.
             const float lookAhead = 12f;
-            const float orbitDistance = 64f;
             focal = eye + forward * lookAhead;
-            eye = focal - forward * orbitDistance;
+            eye = focal - forward * pullback;
             return true;
         }
 
