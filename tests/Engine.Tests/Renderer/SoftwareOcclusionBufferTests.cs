@@ -177,6 +177,26 @@ public class SoftwareOcclusionBufferTests
         var propWorld = Matrix4x4.CreateTranslation(0f, 0f, -2f);
         var propLocal = new Aabb(new Vector3(-0.1f, -0.1f, 0f), new Vector3(0.1f, 0.1f, 0f));
         grid.IsOccluded(propWorld, propLocal).ShouldBeTrue(
-            $"submitted={grid.SubmittedTriangles} nearestOk={grid.TryNearestDepth(propWorld, propLocal, out var n)} n={n}");
+            $"submitted={grid.SubmittedTriangles} projected={grid.TryProjectMetrics(propWorld, propLocal, out var n, out _)} n={n}");
     }
+
+    [Fact]
+    public void BackFacingTriangle_WithFrontFacesOnly_WritesNothing()
+    {
+        var grid = Begun();
+        var sx = Aspect16x9;
+        // CW order in NDC → back face when frontFacesOnly.
+        grid.RasterizeLocalTriangle(
+            Matrix4x4.Identity,
+            new Vector3(2f * sx, -2f, 0.3f),
+            new Vector3(-2f * sx, -2f, 0.3f),
+            new Vector3(0f, 3f, 0.3f),
+            frontFacesOnly: true);
+
+        grid.SubmittedTriangles.ShouldBe(0);
+        grid.IsOccluded(
+            Matrix4x4.CreateTranslation(0f, 0f, 0.55f),
+            new Aabb(new Vector3(-0.05f), new Vector3(0.05f))).ShouldBeFalse();
+    }
+
 }

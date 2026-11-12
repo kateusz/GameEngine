@@ -642,7 +642,6 @@ internal static partial class SceneRenderPipeline
         public Aabb Local;
         public bool HasLocal;
         public bool IsCube;
-        public bool HasCubeTexture;
         public Mesh? Submesh;
         public int LodLevel;
         public ModelRendererComponent Renderer;
@@ -659,6 +658,7 @@ internal static partial class SceneRenderPipeline
         public float ScreenArea;
         public Mesh? Source;
         public int LodLevel;
+        public bool FrontFacesOnly;
         public List<MergeMember>? GroupMembers;
     }
 
@@ -757,7 +757,6 @@ internal static partial class SceneRenderPipeline
                             Local = Aabb.UnitCube,
                             HasLocal = true,
                             IsCube = true,
-                            HasCubeTexture = !string.IsNullOrWhiteSpace(modelRenderer.TexturePath),
                             Renderer = modelRenderer,
                             Tint = tint,
                             Factors = factors,
@@ -892,8 +891,7 @@ internal static partial class SceneRenderPipeline
             return;
         }
 
-        GatherOccluders(OccluderCandidates, OcclusionGrid);
-        // Near first; among equal depth prefer larger screen coverage before the triangle budget runs out.
+        GatherOccluders(OccluderCandidates);
         OccluderCandidates.Sort(static (a, b) =>
         {
             var depth = a.NearestDepth.CompareTo(b.NearestDepth);
@@ -921,35 +919,52 @@ internal static partial class SceneRenderPipeline
         }
     }
 
-    private static void GatherOccluders(List<OccluderCandidate> destination, SoftwareOcclusionBuffer grid)
+    private static void GatherOccluders(List<OccluderCandidate> destination)
     {
         destination.Clear();
         foreach (var draw in LooseDraws)
         {
-            if (!draw.HasLocal || !grid.ScreenFractionAtLeastMinimum(draw.World, draw.Local))
+            // Translucent tint still draws, but must not write the CPU depth grid.
+            if (!draw.HasLocal || draw.Tint.W < 1f
+                || !TryAcceptOccluder(draw.World, draw.Local, out var nearest, out var area))
                 continue;
             if (draw.IsCube)
             {
-                destination.Add(MakeOccluder(draw.World, draw.Local, grid, source: null, lodLevel: 0, groupMembers: null));
+                destination.Add(new OccluderCandidate
+                {
+                    World = draw.World,
+                    Local = draw.Local,
+                    NearestDepth = nearest,
+                    ScreenArea = area,
+                    LodLevel = 0
+                });
                 continue;
             }
 
             if (draw.Submesh is not { AlphaCutout: false, BakeVertices: not null })
                 continue;
-            // Only occlude with the LOD that is actually drawn (BakeIndicesAt).
             if (draw.Submesh.BakeIndicesAt(draw.LodLevel) is null)
                 continue;
 
-            destination.Add(MakeOccluder(draw.World, draw.Local, grid, draw.Submesh, draw.LodLevel, null));
+            destination.Add(new OccluderCandidate
+            {
+                World = draw.World,
+                Local = draw.Local,
+                NearestDepth = nearest,
+                ScreenArea = area,
+                Source = draw.Submesh,
+                LodLevel = draw.LodLevel,
+                FrontFacesOnly = !draw.Submesh.DoubleSided
+            });
         }
 
         foreach (var (key, members) in MergeGroups)
         {
-            if (key.AlphaCutout || members.Count == 0)
+            if (key.AlphaCutout || key.Tint.W < 1f || members.Count == 0)
                 continue;
             if (!TryGetGroupBox(members, out var groupBox))
                 continue;
-            if (!grid.ScreenFractionAtLeastMinimum(Matrix4x4.Identity, groupBox))
+            if (!TryAcceptOccluder(Matrix4x4.Identity, groupBox, out var nearest, out var area))
                 continue;
 
             var hasTriangles = false;
@@ -966,28 +981,26 @@ internal static partial class SceneRenderPipeline
             if (!hasTriangles)
                 continue;
 
-            // Merged draws are LOD0-only (LodCount <= 1 gate on the merge path).
-            destination.Add(MakeOccluder(Matrix4x4.Identity, groupBox, grid, null, 0, members));
+            destination.Add(new OccluderCandidate
+            {
+                World = Matrix4x4.Identity,
+                Local = groupBox,
+                NearestDepth = nearest,
+                ScreenArea = area,
+                LodLevel = 0,
+                FrontFacesOnly = !key.DoubleSided,
+                GroupMembers = members
+            });
         }
     }
 
-    private static OccluderCandidate MakeOccluder(
-        Matrix4x4 world,
-        Aabb local,
-        SoftwareOcclusionBuffer grid,
-        Mesh? source,
-        int lodLevel,
-        List<MergeMember>? groupMembers) =>
-        new()
-        {
-            World = world,
-            Local = local,
-            NearestDepth = grid.TryNearestDepth(world, local, out var depth) ? depth : 0f,
-            ScreenArea = grid.ScreenFraction(world, local),
-            Source = source,
-            LodLevel = lodLevel,
-            GroupMembers = groupMembers
-        };
+    private static bool TryAcceptOccluder(
+        Matrix4x4 world, Aabb local, out float nearest, out float screenArea)
+    {
+        var projected = OcclusionGrid.TryProjectMetrics(world, local, out nearest, out screenArea);
+        // Fail-open: unprojectable boxes stay eligible (nearest/area already 0).
+        return !projected || screenArea >= SoftwareOcclusionBuffer.MinScreenFraction;
+    }
 
     private static void RasterizeOccluder(SoftwareOcclusionBuffer grid, in OccluderCandidate occluder)
     {
@@ -998,9 +1011,10 @@ internal static partial class SceneRenderPipeline
                 if (grid.SubmittedTriangles >= SoftwareOcclusionBuffer.TriangleBudget)
                     return;
                 if (member.Source is { AlphaCutout: false, BakeVertices: { } verts, BakeIndices: { } indices })
-                    RasterizeIndexed(grid, member.World, verts, indices);
+                    RasterizeIndexed(grid, member.World, verts, indices, occluder.FrontFacesOnly);
                 else if (member.Source is null)
-                    RasterizeIndexed(grid, member.World, MeshFactory.CubeTemplate.Vertices, MeshFactory.CubeTemplate.Indices);
+                    RasterizeIndexed(grid, member.World, MeshFactory.CubeTemplate.Vertices, MeshFactory.CubeTemplate.Indices,
+                        frontFacesOnly: false);
             }
 
             return;
@@ -1011,28 +1025,32 @@ internal static partial class SceneRenderPipeline
             var indices = occluder.Source.BakeIndicesAt(occluder.LodLevel);
             if (indices is null)
                 return;
-            RasterizeIndexed(grid, occluder.World, bakedVerts, indices);
+            RasterizeIndexed(grid, occluder.World, bakedVerts, indices, occluder.FrontFacesOnly);
             return;
         }
 
-        RasterizeIndexed(grid, occluder.World, MeshFactory.CubeTemplate.Vertices, MeshFactory.CubeTemplate.Indices);
+        RasterizeIndexed(grid, occluder.World, MeshFactory.CubeTemplate.Vertices, MeshFactory.CubeTemplate.Indices,
+            frontFacesOnly: false);
     }
 
     private static void RasterizeIndexed(
         SoftwareOcclusionBuffer grid,
         Matrix4x4 world,
         Mesh.Vertex[] vertices,
-        uint[] indices)
+        uint[] indices,
+        bool frontFacesOnly)
     {
         for (var i = 0; i + 2 < indices.Length; i += 3)
         {
             if (grid.SubmittedTriangles >= SoftwareOcclusionBuffer.TriangleBudget)
                 return;
 
-            grid.RasterizeTriangle(
-                Vector3.Transform(vertices[indices[i]].Position, world),
-                Vector3.Transform(vertices[indices[i + 1]].Position, world),
-                Vector3.Transform(vertices[indices[i + 2]].Position, world));
+            grid.RasterizeLocalTriangle(
+                world,
+                vertices[indices[i]].Position,
+                vertices[indices[i + 1]].Position,
+                vertices[indices[i + 2]].Position,
+                frontFacesOnly);
         }
     }
 
@@ -1044,7 +1062,7 @@ internal static partial class SceneRenderPipeline
     {
         if (draw.IsCube)
         {
-            if (draw.HasCubeTexture)
+            if (!string.IsNullOrWhiteSpace(draw.Renderer.TexturePath))
             {
                 DrawCubeWithTexture(
                     graphics3D, textureFactory, draw.Renderer, draw.World,

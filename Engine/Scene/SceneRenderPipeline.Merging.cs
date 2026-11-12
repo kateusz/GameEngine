@@ -233,9 +233,7 @@ internal static partial class SceneRenderPipeline
                     continue;
                 }
 
-                if (OcclusionGrid.IsActive
-                    && hasGroupBox
-                    && OcclusionGrid.IsOccluded(Matrix4x4.Identity, groupBox))
+                if (hasGroupBox && OcclusionGrid.IsOccluded(Matrix4x4.Identity, groupBox))
                 {
                     stats.OcclusionCulled++;
                     continue;
@@ -256,8 +254,7 @@ internal static partial class SceneRenderPipeline
                             continue;
                         }
 
-                        if (OcclusionGrid.IsActive
-                            && TryGetLocalBounds(member, out var memberBounds)
+                        if (TryGetLocalBounds(member, out var memberBounds)
                             && OcclusionGrid.IsOccluded(member.World, memberBounds))
                         {
                             stats.OcclusionCulled++;

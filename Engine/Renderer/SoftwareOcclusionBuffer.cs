@@ -17,7 +17,8 @@ internal sealed class SoftwareOcclusionBuffer
     private float[] _cells = [];
     private Matrix4x4 _viewProjection;
     private int _columns;
-    private int _rows;
+    private float _invColumns;
+    private float _invRows;
     private int _submittedTriangles;
     private bool _active;
 
@@ -32,8 +33,9 @@ internal sealed class SoftwareOcclusionBuffer
             return false;
 
         _columns = System.Math.Clamp((int)MathF.Round(Rows * aspect), 1, MaxColumns);
-        _rows = Rows;
-        var count = _columns * _rows;
+        _invColumns = 1f / _columns;
+        _invRows = 1f / Rows;
+        var count = _columns * Rows;
         if (_cells.Length < count)
             _cells = new float[count];
         Array.Fill(_cells, float.PositiveInfinity, 0, count);
@@ -44,11 +46,19 @@ internal sealed class SoftwareOcclusionBuffer
 
     public void End() => _active = false;
 
-    public bool ScreenFractionAtLeastMinimum(Matrix4x4 world, Aabb local)
+    /// <summary>
+    /// Projects the AABB. On success: nearest depth and NDC footprint/4.
+    /// On failure: nearest=0, fraction=0 (fail-open occluder gate: treat as eligible).
+    /// </summary>
+    public bool TryProjectMetrics(Matrix4x4 world, Aabb local, out float nearest, out float screenFraction)
     {
         Span<Vector3> ndc = stackalloc Vector3[8];
-        if (!TryProjectBox(world, local, ndc, out _))
-            return true;
+        if (!TryProjectBox(world, local, ndc, out nearest))
+        {
+            nearest = 0f;
+            screenFraction = 0f;
+            return false;
+        }
 
         var min = new Vector2(float.PositiveInfinity);
         var max = new Vector2(float.NegativeInfinity);
@@ -60,34 +70,8 @@ internal sealed class SoftwareOcclusionBuffer
 
         var width = MathF.Max(0f, max.X - min.X);
         var height = MathF.Max(0f, max.Y - min.Y);
-        return width * height / 4f >= MinScreenFraction;
-    }
-
-    /// <summary>Nearest projected corner depth, or false when the box does not fully project.</summary>
-    public bool TryNearestDepth(Matrix4x4 world, Aabb local, out float nearest)
-    {
-        Span<Vector3> ndc = stackalloc Vector3[8];
-        return TryProjectBox(world, local, ndc, out nearest);
-    }
-
-    /// <summary>Projected NDC xy footprint area / 4, or 0 when the box does not fully project.</summary>
-    public float ScreenFraction(Matrix4x4 world, Aabb local)
-    {
-        Span<Vector3> ndc = stackalloc Vector3[8];
-        if (!TryProjectBox(world, local, ndc, out _))
-            return 0f;
-
-        var min = new Vector2(float.PositiveInfinity);
-        var max = new Vector2(float.NegativeInfinity);
-        foreach (var point in ndc)
-        {
-            min = Vector2.Min(min, new Vector2(point.X, point.Y));
-            max = Vector2.Max(max, new Vector2(point.X, point.Y));
-        }
-
-        var width = MathF.Max(0f, max.X - min.X);
-        var height = MathF.Max(0f, max.Y - min.Y);
-        return width * height / 4f;
+        screenFraction = width * height / 4f;
+        return true;
     }
 
     public bool IsOccluded(Matrix4x4 world, Aabb local)
@@ -111,28 +95,32 @@ internal sealed class SoftwareOcclusionBuffer
         return true;
     }
 
-    public void RasterizeTriangle(Vector3 world0, Vector3 world1, Vector3 world2)
+    /// <summary>Rasterize a triangle in local space using world * viewProjection once.</summary>
+    public void RasterizeLocalTriangle(
+        Matrix4x4 world, Vector3 local0, Vector3 local1, Vector3 local2, bool frontFacesOnly = false)
     {
         if (!_active || _submittedTriangles >= TriangleBudget)
             return;
-        if (!TryProject(_viewProjection, world0, out var a)
-            || !TryProject(_viewProjection, world1, out var b)
-            || !TryProject(_viewProjection, world2, out var c)
+
+        var mvp = world * _viewProjection;
+        if (!TryProject(mvp, local0, out var a)
+            || !TryProject(mvp, local1, out var b)
+            || !TryProject(mvp, local2, out var c)
             || a.Z < 0f || b.Z < 0f || c.Z < 0f)
             return;
 
-        // Budget counts only triangles that survive projection (review: don't burn budget on rejects).
-        _submittedTriangles++;
+        // CCW in NDC faces the camera (matches GL default front face). Skip CW when GPU culls backs.
+        if (frontFacesOnly && (b.X - a.X) * (c.Y - a.Y) - (b.Y - a.Y) * (c.X - a.X) <= 0f)
+            return;
 
         var far = MathF.Max(a.Z, MathF.Max(b.Z, c.Z));
-        // Edge equations once per triangle: E(x,y) = (y1-y0)*x + (x0-x1)*y + (x1*y0 - x0*y1)
-        // Positive for all three edges ⇒ inside (winding CCW or CW; reject zero-area).
         if (!TryEdge(a, b, out var abX, out var abY, out var abC)
             || !TryEdge(b, c, out var bcX, out var bcY, out var bcC)
             || !TryEdge(c, a, out var caX, out var caY, out var caC))
             return;
 
-        // Orient so a point inside (centroid) is on the positive side of every edge.
+        _submittedTriangles++;
+
         var midX = (a.X + b.X + c.X) / 3f;
         var midY = (a.Y + b.Y + c.Y) / 3f;
         if (abX * midX + abY * midY + abC < 0f)
@@ -154,6 +142,10 @@ internal sealed class SoftwareOcclusionBuffer
                 _cells[index] = far;
         }
     }
+
+    // World-space entry for unit tests that already have projected-ish coordinates.
+    public void RasterizeTriangle(Vector3 world0, Vector3 world1, Vector3 world2) =>
+        RasterizeLocalTriangle(Matrix4x4.Identity, world0, world1, world2);
 
     private bool TryProjectBox(Matrix4x4 world, Aabb local, Span<Vector3> ndc, out float nearest)
     {
@@ -183,7 +175,7 @@ internal sealed class SoftwareOcclusionBuffer
         foreach (var point in ndc)
         {
             var px = (point.X * 0.5f + 0.5f) * _columns;
-            var py = (point.Y * 0.5f + 0.5f) * _rows;
+            var py = (point.Y * 0.5f + 0.5f) * Rows;
             minX = MathF.Min(minX, px);
             minY = MathF.Min(minY, py);
             maxX = MathF.Max(maxX, px);
@@ -191,9 +183,9 @@ internal sealed class SoftwareOcclusionBuffer
         }
 
         x0 = System.Math.Clamp((int)MathF.Floor(minX), 0, _columns);
-        y0 = System.Math.Clamp((int)MathF.Floor(minY), 0, _rows);
+        y0 = System.Math.Clamp((int)MathF.Floor(minY), 0, Rows);
         x1 = System.Math.Clamp((int)MathF.Ceiling(maxX), 0, _columns);
-        y1 = System.Math.Clamp((int)MathF.Ceiling(maxY), 0, _rows);
+        y1 = System.Math.Clamp((int)MathF.Ceiling(maxY), 0, Rows);
     }
 
     private bool CellFullyInside(
@@ -202,10 +194,10 @@ internal sealed class SoftwareOcclusionBuffer
         float bcX, float bcY, float bcC,
         float caX, float caY, float caC)
     {
-        var x0 = x / (float)_columns * 2f - 1f;
-        var x1 = (x + 1) / (float)_columns * 2f - 1f;
-        var y0 = y / (float)_rows * 2f - 1f;
-        var y1 = (y + 1) / (float)_rows * 2f - 1f;
+        var x0 = x * _invColumns * 2f - 1f;
+        var x1 = (x + 1) * _invColumns * 2f - 1f;
+        var y0 = y * _invRows * 2f - 1f;
+        var y1 = (y + 1) * _invRows * 2f - 1f;
         return EdgeInside(x0, y0, abX, abY, abC, bcX, bcY, bcC, caX, caY, caC)
                && EdgeInside(x1, y0, abX, abY, abC, bcX, bcY, bcC, caX, caY, caC)
                && EdgeInside(x0, y1, abX, abY, abC, bcX, bcY, bcC, caX, caY, caC)
@@ -226,13 +218,12 @@ internal sealed class SoftwareOcclusionBuffer
         ex = p1.Y - p0.Y;
         ey = p0.X - p1.X;
         ec = p1.X * p0.Y - p0.X * p1.Y;
-        // Degenerate edge (zero length in xy) → zero-area triangle.
         return MathF.Abs(ex) + MathF.Abs(ey) > 1e-12f;
     }
 
-    private static bool TryProject(Matrix4x4 viewProjection, Vector3 world, out Vector3 ndc)
+    private static bool TryProject(Matrix4x4 matrix, Vector3 position, out Vector3 ndc)
     {
-        var clip = Vector4.Transform(new Vector4(world, 1f), viewProjection);
+        var clip = Vector4.Transform(new Vector4(position, 1f), matrix);
         ndc = default;
         if (!float.IsFinite(clip.W) || clip.W <= MinClipW)
             return false;

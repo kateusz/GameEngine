@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using System.Numerics;
+﻿using System.Numerics;
 using System.Runtime.InteropServices;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
@@ -148,9 +147,16 @@ public class Mesh : IDisposable
         {
             BakeVertices = [.. Vertices];
             BakeIndices = uploadedIndices;
-            BakeLodIndices = LodIndices.Count == 0
-                ? null
-                : LodIndices.Select(lod => lod.ToArray()).ToArray();
+            if (LodIndices.Count == 0)
+            {
+                BakeLodIndices = null;
+            }
+            else
+            {
+                BakeLodIndices = new uint[LodIndices.Count][];
+                for (var i = 0; i < LodIndices.Count; i++)
+                    BakeLodIndices[i] = LodIndices[i].ToArray();
+            }
         }
 
         Vertices.Clear();

@@ -89,6 +89,8 @@ public class OcclusionCullingPipelineTests : IDisposable
     public void RenderScene_CameraYawed180_StillOcclusionCulls()
     {
         var (wall, prop, models) = WallAndProp();
+        // Single-sided wall faces +Z; from the -Z side it is back-facing. Double-sided keeps it an occluder.
+        wall.DoubleSided = true;
         // Place scene along -Z from an eye that looks back toward +Z after 180° yaw.
         var context = SceneWithSun(wallAtZ: 0f, propAtZ: 2f);
         var graphics = new MeshDrawRecordingGraphics3D();
@@ -107,7 +109,7 @@ public class OcclusionCullingPipelineTests : IDisposable
     [Fact]
     public void RenderScene_OccluderAtLod1_DoesNotFalseCullWithLod0Silhouette()
     {
-        var factories = Factories();
+        var factories = MergeFactories();
         // LOD0 covers the view; LOD1 is a tiny triangle that does not. Far camera selects LOD1.
         var wall = new Mesh("wall");
         wall.Vertices.Add(new Mesh.Vertex(new Vector3(-40f, -40f, 0f), Vector3.UnitZ, Vector2.Zero, Vector3.UnitX, Vector3.UnitY));
@@ -150,7 +152,7 @@ public class OcclusionCullingPipelineTests : IDisposable
     [Fact]
     public void RenderScene_CubeWithBrokenTexture_StillDrawsFallbackAndCanOcclude()
     {
-        var factories = Factories();
+        var factories = MergeFactories();
         var prop = CreateSmallProp(factories);
         var models = Substitute.For<IModelFactory>();
         models.Create(Arg.Any<string>()).Returns(new Model("/prop.glb", [prop]));
@@ -174,9 +176,31 @@ public class OcclusionCullingPipelineTests : IDisposable
         var graphics = new MeshDrawRecordingGraphics3D();
         RenderCore(context, graphics, models, factories: null, DirectionalShadows: false, textures: textures);
 
-        // Finding #3: failed texture must still submit a solid cube (CPU/GPU agreement).
+        // Conservative cell coverage means a scaled unit-cube silhouette often leaves gaps; this test
+        // covers the texture-fallback draw path. Mesh walls assert occlusion elsewhere.
         graphics.CubeDraws.ShouldBeGreaterThan(0);
 
+        prop.Dispose();
+    }
+
+    [Fact]
+    public void RenderScene_TranslucentTint_DoesNotOccludeMeshBehind()
+    {
+        var (wall, prop, models) = WallAndProp();
+        var context = SceneWithSun(wallAtZ: 0f, propAtZ: -2f);
+        foreach (var (_, modelRenderer, _) in context.View<ModelRendererComponent, TransformComponent>())
+        {
+            if (modelRenderer.ModelPath?.Contains("wall", StringComparison.OrdinalIgnoreCase) == true)
+                modelRenderer.Color = new Vector4(1f, 1f, 1f, 0.5f);
+        }
+
+        var graphics = new MeshDrawRecordingGraphics3D();
+        Render(context, graphics, models, DirectionalShadows: false);
+
+        graphics.GetStats().OcclusionCulled.ShouldBe(0);
+        graphics.InstanceMeshes.Count(m => ReferenceEquals(m, prop)).ShouldBe(1);
+
+        wall.Dispose();
         prop.Dispose();
     }
 
@@ -357,7 +381,7 @@ public class OcclusionCullingPipelineTests : IDisposable
 
     private static (Mesh Wall, Mesh Prop, IModelFactory Models) WallAndProp(bool alphaCutout = false)
     {
-        var factories = Factories();
+        var factories = MergeFactories();
         var wall = CreateCoveringWall(factories, alphaCutout);
         var prop = CreateSmallProp(factories);
 
@@ -373,7 +397,7 @@ public class OcclusionCullingPipelineTests : IDisposable
 
     private static (Mesh Wall, Mesh PartA, Mesh PartB, IModelFactory Models) WallAndTwoParts()
     {
-        var factories = Factories();
+        var factories = MergeFactories();
         var wall = CreateCoveringWall(factories, alphaCutout: false);
         var partA = CreateSmallProp(factories, "a");
         var partB = CreateSmallProp(factories, "b");
@@ -414,9 +438,6 @@ public class OcclusionCullingPipelineTests : IDisposable
         prop.Initialize(factories.VertexArray, factories.VertexBuffer, factories.IndexBuffer);
         return prop;
     }
-
-    private static (IVertexArrayFactory VertexArray, IVertexBufferFactory VertexBuffer, IIndexBufferFactory IndexBuffer)
-        Factories() => MergeFactories();
 
     private static (IVertexArrayFactory VertexArray, IVertexBufferFactory VertexBuffer, IIndexBufferFactory IndexBuffer)
         MergeFactories()
