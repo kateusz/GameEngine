@@ -39,6 +39,53 @@ public class Graphics3DStatsTests
     }
 
     [Fact]
+    public void ColorPass_KeepsProgramAndCullingUntilTheyChange()
+    {
+        var renderer = FakeUniformBuffer.Renderer();
+        var modelShader = Substitute.For<IShader>();
+        var emissiveShader = Substitute.For<IShader>();
+        var shaderFactory = Substitute.For<IShaderFactory>();
+        shaderFactory.Create(Arg.Any<ShaderId>()).Returns(_ => Substitute.For<IShader>());
+        shaderFactory.Create(ShaderId.Model).Returns(modelShader);
+        shaderFactory.Create(ShaderId.Emissive).Returns(emissiveShader);
+        using var graphics = CreateGraphics3D(out var mesh, shaderFactory: shaderFactory, renderer: renderer);
+        using var doubleSided = InitializedMesh();
+        using var emissiveTexture = Substitute.For<Texture2D>();
+        doubleSided.DoubleSided = true;
+        doubleSided.EmissiveTexture = emissiveTexture;
+        doubleSided.EmissiveFactor = Vector3.One;
+        graphics.Init();
+        modelShader.ClearReceivedCalls();
+        emissiveShader.ClearReceivedCalls();
+        renderer.ClearReceivedCalls();
+
+        graphics.BeginScene(new SceneView(Matrix4x4.Identity));
+        graphics.DrawMesh(Matrix4x4.Identity, mesh, Vector4.One);
+        graphics.DrawMesh(Matrix4x4.Identity, mesh, Vector4.One);
+        graphics.DrawMesh(Matrix4x4.Identity, doubleSided, Vector4.One);
+        graphics.DrawMesh(Matrix4x4.Identity, mesh, Vector4.One);
+        graphics.EndScene();
+
+        Received.InOrder(() =>
+        {
+            renderer.SetDepthTest(true);
+            modelShader.Bind();
+            renderer.SetFaceCulling(true);
+            renderer.SetFaceCulling(false);
+            emissiveShader.Bind();
+            modelShader.Bind();
+            renderer.SetFaceCulling(true);
+            modelShader.Unbind();
+        });
+        renderer.Received(1).SetDepthTest(true);
+        renderer.Received(2).SetFaceCulling(true);
+        renderer.Received(1).SetFaceCulling(false);
+        modelShader.Received(2).Bind();
+        modelShader.Received(1).Unbind();
+        emissiveShader.DidNotReceive().Unbind();
+    }
+
+    [Fact]
     public void DrawMesh_EmissiveMap_AddsTheMapAndLeavesOnlyTheExtraInTheLitPass()
     {
         var modelShader = Substitute.For<IShader>();
@@ -123,7 +170,7 @@ public class Graphics3DStatsTests
     }
 
     private static Graphics3D CreateGraphics3D(
-        out Mesh cube, bool withShadowMap = false, IShaderFactory? shaderFactory = null)
+        out Mesh cube, bool withShadowMap = false, IShaderFactory? shaderFactory = null, IRendererAPI? renderer = null)
     {
         if (shaderFactory is null)
         {
@@ -140,7 +187,7 @@ public class Graphics3DStatsTests
             frameBuffers.Create(Arg.Any<FrameBufferSpecification>()).Returns(Substitute.For<IFrameBuffer>());
 
         return new Graphics3D(
-            FakeUniformBuffer.Renderer(),
+            renderer ?? FakeUniformBuffer.Renderer(),
             shaderFactory,
             meshFactory,
             frameBuffers);

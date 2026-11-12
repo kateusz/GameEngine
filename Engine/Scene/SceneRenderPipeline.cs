@@ -224,17 +224,30 @@ internal static class SceneRenderPipeline
                               view.ViewProjection, lightDirection, out nearProjection, nearSplit, sunResolution);
             var near = hasNear ? nearProjection : lightViewProjection;
             graphics3D.BeginShadowCascade(near, 0);
-            perf.DirectionalShadowPass = DrawOpaque3D(
-                context, graphics3D, textureFactory, modelFactory, near,
-                shadowCasterMaxSq, shadowCasterView);
-            graphics3D.EndShadowPass();
+            try
+            {
+                perf.DirectionalShadowPass = DrawOpaque3D(
+                    context, graphics3D, textureFactory, modelFactory, near,
+                    shadowCasterMaxSq, shadowCasterView);
+            }
+            finally
+            {
+                graphics3D.EndShadowPass();
+            }
+
             if (hasNear)
             {
                 graphics3D.BeginShadowCascade(lightViewProjection, 1);
-                perf.DirectionalShadowPass = Accumulate(perf.DirectionalShadowPass, DrawOpaque3D(
-                    context, graphics3D, textureFactory, modelFactory, lightViewProjection,
-                    shadowCasterMaxSq, shadowCasterView));
-                graphics3D.EndShadowPass();
+                try
+                {
+                    perf.DirectionalShadowPass = Accumulate(perf.DirectionalShadowPass, DrawOpaque3D(
+                        context, graphics3D, textureFactory, modelFactory, lightViewProjection,
+                        shadowCasterMaxSq, shadowCasterView));
+                }
+                finally
+                {
+                    graphics3D.EndShadowPass();
+                }
             }
 
             graphics3D.SetDirectionalShadow(near, true);
@@ -335,8 +348,14 @@ internal static class SceneRenderPipeline
         }
 
         graphics3D.BeginScene(view);
-        perf.ColorPass = DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, view.ViewProjection);
-        graphics3D.EndScene();
+        try
+        {
+            perf.ColorPass = DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, view.ViewProjection);
+        }
+        finally
+        {
+            graphics3D.EndScene();
+        }
 
         perf.GpuDrawCalls = graphics3D.GetStats().DrawCalls;
         ApplyPipelineStats(graphics3D.GetStats(), in perf);
