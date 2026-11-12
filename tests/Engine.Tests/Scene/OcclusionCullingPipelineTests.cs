@@ -32,7 +32,7 @@ public class OcclusionCullingPipelineTests : IDisposable
     public void Dispose()
     {
         SceneRenderPipeline.ResetMergeState();
-        PathBuilder.UseProjectContext(Substitute.For<IProjectContext>());
+        PathBuilder.UseProjectContext(null!);
     }
 
     [Fact]
