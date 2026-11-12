@@ -1,10 +1,12 @@
 using System.Numerics;
 using Engine.Renderer;
+using Serilog;
 
 namespace Engine.Renderer.Models.RuntimeMesh;
 
 internal static class RuntimeMeshReader
 {
+    private static readonly ILogger Logger = Log.ForContext(typeof(RuntimeMeshReader));
     public static bool TryReadStamp(ReadOnlySpan<byte> file, out RuntimeMeshStamp stamp)
     {
         stamp = default;
@@ -65,7 +67,8 @@ internal static class RuntimeMeshReader
         byte[] SourceSha256,
         ulong MeshTableOffset,
         ulong NodeTableOffset,
-        ulong LightTableOffset);
+        ulong LightTableOffset,
+        uint Version);
 
     private static bool TryReadHeader(ReadOnlySpan<byte> file, out Header header)
     {
@@ -79,7 +82,7 @@ internal static class RuntimeMeshReader
 
         var reader = new RuntimeMeshBinaryReader(file);
         reader.Seek(RuntimeMeshFormat.Magic.Length);
-        if (!reader.TryReadUInt32(out var version) || version != RuntimeMeshFormat.Version)
+        if (!reader.TryReadUInt32(out var version) || version is not (1 or 2))
             return false;
         if (!reader.TryReadUInt64(out var fileSize))
             return false;
@@ -124,7 +127,8 @@ internal static class RuntimeMeshReader
             sha256.ToArray(),
             meshOffset,
             nodeOffset,
-            lightOffset);
+            lightOffset,
+            version);
         return true;
     }
 
@@ -217,7 +221,7 @@ internal static class RuntimeMeshReader
                     return;
                 }
 
-                if (!TryParseMeshRecord(file, recordStarts[i], recordLengths[i], out var mesh))
+                if (!TryParseMeshRecord(file, recordStarts[i], recordLengths[i], header.Version, out var mesh))
                 {
                     Interlocked.Exchange(ref failed, 1);
                     state.Stop();
@@ -234,7 +238,7 @@ internal static class RuntimeMeshReader
         {
             for (var i = 0; i < meshCount; i++)
             {
-                if (!TryParseMeshRecord(span, recordStarts[i], recordLengths[i], out var mesh))
+                if (!TryParseMeshRecord(span, recordStarts[i], recordLengths[i], header.Version, out var mesh))
                     return false;
 
                 decoded[i] = mesh;
@@ -251,6 +255,7 @@ internal static class RuntimeMeshReader
         ReadOnlySpan<byte> file,
         int recordStart,
         uint byteLength,
+        uint version,
         out SourceSubmesh? mesh)
     {
         mesh = null;
@@ -347,8 +352,57 @@ internal static class RuntimeMeshReader
             parsed.Indices.Add(index);
         }
 
+        if (version == 2 && !TryAppendLodLevels(reader, recordStart + (int)byteLength, (int)vertexCount, parsed))
+        {
+            parsed.LodIndices.Clear();
+            parsed.LodErrors.Clear();
+            Logger.Warning("Dropped unreadable mesh LOD for submesh {Name}", name);
+        }
+
         mesh = parsed;
         return true;
+    }
+
+    private static bool TryAppendLodLevels(
+        RuntimeMeshBinaryReader reader,
+        int recordEnd,
+        int vertexCount,
+        SourceSubmesh parsed)
+    {
+        if (!reader.TryReadUInt32(out var lodCount))
+            return false;
+
+        for (var level = 0; level < lodCount; level++)
+        {
+            if (!reader.TryReadSingle(out var error) || !float.IsFinite(error) || error <= 0f)
+                return false;
+            if (!reader.TryReadUInt32(out var indexCount)
+                || indexCount == 0
+                || indexCount % 3 != 0
+                || indexCount > RuntimeMeshFormat.MaxIndexCount)
+                return false;
+
+            var indexBytes = (int)indexCount * 4;
+            if (reader.Position > recordEnd - indexBytes)
+                return false;
+            if (!reader.TryReadBytes(indexBytes, out var indexData))
+                return false;
+
+            var indices = new uint[indexCount];
+            for (var idx = 0; idx < indexCount; idx++)
+            {
+                var index = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(indexData.Slice(idx * 4, 4));
+                if (index >= (uint)vertexCount)
+                    return false;
+
+                indices[idx] = index;
+            }
+
+            parsed.LodErrors.Add(error);
+            parsed.LodIndices.Add(indices);
+        }
+
+        return reader.Position <= recordEnd;
     }
 
     private static bool TryReadNodeTable(

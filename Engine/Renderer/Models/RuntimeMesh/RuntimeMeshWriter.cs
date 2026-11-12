@@ -145,6 +145,17 @@ internal static class RuntimeMeshWriter
         foreach (var index in mesh.Indices)
             AppendUInt32(body, index);
 
+        var lodCount = System.Math.Min(mesh.LodIndices.Count, mesh.LodErrors.Count);
+        AppendUInt32(body, (uint)lodCount);
+        for (var level = 0; level < lodCount; level++)
+        {
+            AppendSingle(body, mesh.LodErrors[level]);
+            var lod = mesh.LodIndices[level];
+            AppendUInt32(body, (uint)lod.Length);
+            foreach (var index in lod)
+                AppendUInt32(body, index);
+        }
+
         Align8(body);
         var length = body.Count - start;
         BinaryPrimitives.WriteUInt32LittleEndian(CollectionsMarshal.AsSpan(body).Slice(start, 4), (uint)length);

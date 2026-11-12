@@ -8,4 +8,7 @@ public readonly record struct SceneView(
     bool PointShadows = true,
     float DirectionalShadowCasterMaxDistance = LightingMath.ShadowDistance,
     bool DirectionalShadows = true,
-    Matrix4x4 SkyViewProjection = default);
+    Matrix4x4 SkyViewProjection = default,
+    float ViewportHeight = 0f,
+    float FrustumHeightAtUnit = 0f,
+    bool Orthographic = false);

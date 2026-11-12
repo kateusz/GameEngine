@@ -462,7 +462,7 @@ internal sealed class Graphics3D(
     {
         if (_shadowPass)
         {
-            DrawShadow(_cubeMesh, transform);
+            DrawShadow(_cubeMesh, transform, 0);
             return;
         }
 
@@ -511,7 +511,7 @@ internal sealed class Graphics3D(
         DrawMeshInstances(mesh, one);
     }
 
-    public void DrawMeshInstances(Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances)
+    public void DrawMeshInstances(Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances, int level = 0)
     {
         if (instances.IsEmpty)
             return;
@@ -522,12 +522,12 @@ internal sealed class Graphics3D(
             if (_pointShadowPass)
             {
                 for (var i = 0; i < instances.Length; i++)
-                    DrawShadow(mesh, instances[i].Transform);
+                    DrawShadow(mesh, instances[i].Transform, level);
                 return;
             }
 
             ApplyShadowSurface(_depthShader, mesh);
-            UploadAndDraw(mesh, instances, _depthShader);
+            UploadAndDraw(mesh, instances, _depthShader, level);
             return;
         }
 
@@ -539,14 +539,14 @@ internal sealed class Graphics3D(
         BindModelTexture(mesh.NormalTexture, 2, "u_NormalUvScale");
         BindModelTexture(mesh.OcclusionTexture, OcclusionMapSlot, "u_OcclusionUvScale");
 
-        UploadAndDraw(mesh, instances, _modelShader);
+        UploadAndDraw(mesh, instances, _modelShader, level);
         if (!_colorPass)
         {
             _modelShader.Unbind();
             RestoreDrawCulling();
         }
 
-        DrawEmissive(mesh, instances);
+        DrawEmissive(mesh, instances, level);
     }
 
     private void BeginColorDraw(IShader shader)
@@ -619,7 +619,7 @@ internal sealed class Graphics3D(
         texture.Bind(slot);
     }
 
-    private void DrawEmissive(Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances)
+    private void DrawEmissive(Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances, int level)
     {
         var factor = mesh.EmissiveFactor;
         if (mesh.EmissiveTexture == null || (factor.X <= 0f && factor.Y <= 0f && factor.Z <= 0f))
@@ -638,7 +638,7 @@ internal sealed class Graphics3D(
             _emissiveShader.SetFloat3("u_Emissive", factor);
             SetMapUvScale(_emissiveShader, "u_EmissiveUvScale", mesh.EmissiveTexture);
             mesh.EmissiveTexture.Bind(0);
-            UploadAndDraw(mesh, instances, _emissiveShader);
+            UploadAndDraw(mesh, instances, _emissiveShader, level);
         }
         finally
         {
@@ -664,9 +664,10 @@ internal sealed class Graphics3D(
             MathF.Max(0f, combined.Z - mesh.EmissiveFactor.Z));
     }
 
-    private void UploadAndDraw(Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances, IShader shader)
+    private void UploadAndDraw(Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances, IShader shader, int level)
     {
-        mesh.Bind();
+        mesh.BindLevel(level);
+        var indexCount = (uint)mesh.IndexCountAt(level);
         if (instances.Length == 1)
         {
             var instance = instances[0];
@@ -678,8 +679,8 @@ internal sealed class Graphics3D(
                 shader.SetInt("u_EntityID", instance.EntityId);
             }
 
-            rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
-            RecordDraw(mesh, instanceCount: 1, isCube: false);
+            rendererApi.DrawIndexed(mesh.GetVertexArray(), indexCount);
+            RecordDraw(mesh, instanceCount: 1, isCube: false, level);
             return;
         }
 
@@ -689,8 +690,8 @@ internal sealed class Graphics3D(
             _instanceUpload.Add(PackInstance(instance));
 
         rendererApi.DrawIndexedInstanced(
-            mesh.GetVertexArray(), (uint)mesh.GetIndexCount(), CollectionsMarshal.AsSpan(_instanceUpload));
-        RecordDraw(mesh, instances.Length, isCube: false);
+            mesh.GetVertexArray(), indexCount, CollectionsMarshal.AsSpan(_instanceUpload));
+        RecordDraw(mesh, instances.Length, isCube: false, level);
     }
 
     public void SetAmbientLight(Vector3 color, float strength)
@@ -784,19 +785,19 @@ internal sealed class Graphics3D(
             shader.SetFloat2(uniform, texture.UvScale);
     }
 
-    private void DrawShadow(Mesh mesh, Matrix4x4 transform)
+    private void DrawShadow(Mesh mesh, Matrix4x4 transform, int level)
     {
         var shader = _pointShadowPass ? _pointDepthShader : _depthShader;
         ApplyShadowSurface(shader, mesh);
         if (!_pointShadowPass)
             shader.SetInt("u_Instanced", 0);
         shader.SetMat4("u_Model", transform);
-        mesh.Bind();
-        rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
-        RecordDraw(mesh, instanceCount: 1, isCube: mesh == _cubeMesh);
+        mesh.BindLevel(level);
+        rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.IndexCountAt(level));
+        RecordDraw(mesh, instanceCount: 1, isCube: mesh == _cubeMesh, level);
     }
 
-    private void RecordDraw(Mesh mesh, int instanceCount, bool isCube)
+    private void RecordDraw(Mesh mesh, int instanceCount, bool isCube, int level = 0)
     {
         _stats.DrawCalls++;
         if (_pointShadowPass)
@@ -816,7 +817,8 @@ internal sealed class Graphics3D(
 
         _stats.Instances += (uint)instanceCount;
         _stats.Vertices += (long)mesh.VertexCount * instanceCount;
-        _stats.Indices += (long)mesh.GetIndexCount() * instanceCount;
+        var indexCount = isCube ? mesh.GetIndexCount() : mesh.IndexCountAt(level);
+        _stats.Indices += (long)indexCount * instanceCount;
     }
 
     private IFrameBuffer PointShadowMap(int entityId)

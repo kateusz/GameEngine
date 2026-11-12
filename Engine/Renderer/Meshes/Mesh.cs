@@ -37,6 +37,12 @@ public class Mesh : IDisposable
     public List<Vertex> Vertices { get; set; }
     public List<uint> Indices { get; set; }
 
+    internal List<uint[]> LodIndices { get; } = [];
+    internal List<float> LodErrors { get; } = [];
+
+    private IIndexBuffer[] _lodBuffers = [];
+    private int _level0IndexCount;
+
     /// <summary>Vertex count captured at <see cref="Initialize"/>, kept after CPU buffers are released.</summary>
     public int VertexCount { get; private set; }
 
@@ -108,7 +114,27 @@ public class Mesh : IDisposable
 
         uint[] uploadedIndices = [.. Indices];
         var indexBuffer = indexBufferFactory.Create(uploadedIndices, uploadedIndices.Length);
-        _vertexArray.SetIndexBuffer(indexBuffer);
+        var buffers = new List<IIndexBuffer>(1 + LodIndices.Count) { indexBuffer };
+        foreach (var lod in LodIndices)
+        {
+            try
+            {
+                var copy = lod.ToArray();
+                buffers.Add(indexBufferFactory.Create(copy, copy.Length));
+            }
+            catch (Exception)
+            {
+                break;
+            }
+        }
+
+        var extra = buffers.Count - 1;
+        if (LodErrors.Count > extra)
+            LodErrors.RemoveRange(extra, LodErrors.Count - extra);
+
+        _lodBuffers = buffers.ToArray();
+        _level0IndexCount = uploadedIndices.Length;
+        _vertexArray.SetIndexBuffer(_lodBuffers[0]);
 
         _initialized = true;
         VertexCount = Vertices.Count;
@@ -124,7 +150,26 @@ public class Mesh : IDisposable
         Vertices.TrimExcess();
         Indices.Clear();
         Indices.TrimExcess();
+        LodIndices.Clear();
+        LodIndices.TrimExcess();
     }
+
+    internal int LodCount => _initialized ? _lodBuffers.Length : 1 + LodIndices.Count;
+
+    internal void BindLevel(int level)
+    {
+        Bind();
+        var index = System.Math.Clamp(level, 0, _lodBuffers.Length - 1);
+        _vertexArray.SetIndexBuffer(_lodBuffers[index]);
+    }
+
+    internal int IndexCountAt(int level) =>
+        _initialized
+            ? _lodBuffers[System.Math.Clamp(level, 0, _lodBuffers.Length - 1)].Count
+            : Indices.Count;
+
+    internal float LodError(int level) =>
+        level <= 0 || level > LodErrors.Count ? 0f : LodErrors[level - 1];
 
     public void Bind()
     {
@@ -139,7 +184,7 @@ public class Mesh : IDisposable
         _vertexArray.Unbind();
     }
 
-    public int GetIndexCount() => _initialized ? _vertexArray.IndexBuffer.Count : Indices.Count;
+    public int GetIndexCount() => _initialized ? _level0IndexCount : Indices.Count;
 
     public void Dispose()
     {
@@ -153,7 +198,12 @@ public class Mesh : IDisposable
             return;
 
         if (disposing)
+        {
+            foreach (var buffer in _lodBuffers)
+                buffer.Dispose();
+            _lodBuffers = [];
             _vertexArray?.Dispose();
+        }
 
         _disposed = true;
     }

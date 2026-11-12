@@ -12,6 +12,9 @@ public interface IGameWindow : IContentScaleProvider
     /// <summary>Logical client size (matches mouse coordinates, not framebuffer pixels).</summary>
     Vector2 ClientSize { get; }
 
+    /// <summary>Framebuffer size in pixels. LOD uses the height, not the logical window size.</summary>
+    Vector2 FramebufferSize { get; }
+
     event Action<WindowEvent> OnWindowEvent;  // Resize, close, focus, etc.
     event Action<InputEvent> OnInputEvent;    // Keys, mouse, gamepad, etc.
     event Action<double> OnUpdate;            // Receives platform-provided delta time in seconds

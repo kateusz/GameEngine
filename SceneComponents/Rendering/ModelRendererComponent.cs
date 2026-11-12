@@ -23,6 +23,13 @@ public class ModelRendererComponent : IComponent
     /// <summary>Submesh metallic/roughness were copied onto this renderer. Stops a later draw from overwriting an edit.</summary>
     public bool FactorsSeeded { get; set; }
 
+    /// <summary>Scales how soon a coarser index list is chosen. 1 matches a one-pixel error.</summary>
+    public float LodBias
+    {
+        get;
+        set => field = float.IsFinite(value) && value > 0f ? value : 1f;
+    } = 1f;
+
     public float Metallic
     {
         get;
@@ -78,6 +85,7 @@ public class ModelRendererComponent : IComponent
         Pivot = Pivot,
         SuppressDraw = SuppressDraw,
         FactorsSeeded = FactorsSeeded,
+        LodBias = LodBias,
         Metallic = Metallic,
         Roughness = Roughness,
         Ao = Ao,

@@ -3,6 +3,7 @@ using Audio;
 using ECS;
 using ECS.Systems;
 using Engine.Audio;
+using Engine.Core.Window;
 using Engine.Core;
 using Engine.Physics;
 using Engine.Renderer.Buffers;
@@ -26,7 +27,8 @@ internal sealed class SceneSystemsFactory(
     IModelFactory modelFactory,
     IVertexArrayFactory vertexArrayFactory,
     IVertexBufferFactory vertexBufferFactory,
-    IIndexBufferFactory indexBufferFactory) : ISceneSystemsFactory
+    IIndexBufferFactory indexBufferFactory,
+    IGameWindow gameWindow) : ISceneSystemsFactory
 {
     private static readonly Vector2 DefaultGravity2D = new(0, -9.8f);
 
@@ -48,7 +50,7 @@ internal sealed class SceneSystemsFactory(
             new PhysicsDebugRenderSystem(graphics2D, context, debugSettings, bodyStore),
             audioSystem,
             new SceneRenderSystem(graphics2D, graphics3D, textureFactory, context, modelFactory,
-                vertexArrayFactory, vertexBufferFactory, indexBufferFactory)
+                vertexArrayFactory, vertexBufferFactory, indexBufferFactory, gameWindow)
         ];
 
         foreach (var system in systems)

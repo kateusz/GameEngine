@@ -33,6 +33,9 @@ internal static class RuntimeMeshBuilder
         if (imported == null || imported.Submeshes.Count == 0)
             return false;
 
+        foreach (var submesh in imported.Submeshes)
+            RuntimeMeshLodSimplifier.Simplify(submesh);
+
         return RuntimeMeshWriter.TryWrite(siblingPath, imported, stamp);
     }
 }

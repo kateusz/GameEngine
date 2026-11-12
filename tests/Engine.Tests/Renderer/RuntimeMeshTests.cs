@@ -129,6 +129,65 @@ public class RuntimeMeshTests
         RuntimeMeshReader.TryRead(bytes, out _).ShouldBeTrue();
     }
 
+    [Fact]
+    public void TryRead_Version1_LoadsBaseIndicesAndNoExtraLevel()
+    {
+        var bytes = RuntimeMeshWriter.Serialize(SampleModel(), new RuntimeMeshStamp(1, new byte[32],
+            RuntimeMeshFormat.ImporterVersion, RuntimeMeshFormat.AssimpPostProcessFlags));
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(
+            bytes.AsSpan(RuntimeMeshFormat.Magic.Length), 1);
+
+        RuntimeMeshReader.TryRead(bytes, out var read).ShouldBeTrue();
+        var mesh = ToMesh(read!.Submeshes[0]);
+        mesh.Indices.ShouldBe([0u, 1u, 2u]);
+        mesh.LodCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public void TryRead_Version2WithTruncatedLevelBlock_KeepsBaseIndices()
+    {
+        var model = SampleModel();
+        model.Submeshes[0].LodIndices.Add([0u, 1u, 2u]);
+        model.Submeshes[0].LodErrors.Add(0.137f);
+        var bytes = RuntimeMeshWriter.Serialize(model, new RuntimeMeshStamp(1, new byte[32],
+            RuntimeMeshFormat.ImporterVersion, RuntimeMeshFormat.AssimpPostProcessFlags));
+
+        RuntimeMeshReader.TryRead(bytes, out var roundTrip).ShouldBeTrue();
+        roundTrip!.Submeshes[0].LodIndices.Count.ShouldBe(1);
+        roundTrip.Submeshes[0].LodErrors[0].ShouldBe(0.137f, 0.0001f);
+
+        var error = new byte[4];
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(error, BitConverter.SingleToInt32Bits(0.137f));
+        var offset = bytes.AsSpan().IndexOf(error);
+        offset.ShouldBeGreaterThanOrEqualTo(0);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(offset + 4), 1_000_000);
+
+        RuntimeMeshReader.TryRead(bytes, out var read).ShouldBeTrue();
+        read!.Submeshes[0].Indices.ShouldBe([0u, 1u, 2u]);
+        ToMesh(read.Submeshes[0]).LodCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public void TryRead_OtherVersion_FailsTheFile()
+    {
+        var bytes = RuntimeMeshWriter.Serialize(SampleModel(), new RuntimeMeshStamp(1, new byte[32],
+            RuntimeMeshFormat.ImporterVersion, RuntimeMeshFormat.AssimpPostProcessFlags));
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(
+            bytes.AsSpan(RuntimeMeshFormat.Magic.Length), 3);
+
+        RuntimeMeshReader.TryRead(bytes, out _).ShouldBeFalse();
+    }
+
+    private static Mesh ToMesh(SourceSubmesh submesh)
+    {
+        var mesh = new Mesh(submesh.Name);
+        mesh.Indices.AddRange(submesh.Indices);
+        foreach (var level in submesh.LodIndices)
+            mesh.LodIndices.Add(level);
+        mesh.LodErrors.AddRange(submesh.LodErrors);
+        return mesh;
+    }
+
     private static SourceModel SampleModel()
     {
         var submesh = new SourceSubmesh

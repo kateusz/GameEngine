@@ -1,12 +1,12 @@
 # Mesh LOD — Developer Guide
 
-How to add cooked index levels and select one in the opaque walk. Assumes the `.mesh` cook, `SceneRenderPipeline`, and instanced mesh draws.
+How to add simplified index levels and select one in the opaque walk. Assumes the `.mesh` sibling write, `SceneRenderPipeline`, and instanced mesh draws.
 
 ## Implementation Overview
 
 ```mermaid
 flowchart TD
-    A[Editor cook of model.mesh] --> B[Assimp submesh]
+    A[Editor write of model.mesh] --> B[Assimp submesh]
     B --> C{Simplify one step}
     C -->|Cut at least a quarter, error within the mesh| D[Store index list and error]
     D --> C
@@ -64,7 +64,7 @@ After Assimp fills a submesh, and before `RuntimeMeshWriter` finishes, run the s
 
 Each step targets half the current triangle count, with the border-lock and sparse flags. Keep the list only when the new index count is a positive multiple of three, every index is in range, and the count is at most 75% of the previous count. Accumulate error as the max of 1.5× the previous error and this step’s relative error, then multiply by `meshopt_simplifyScale` when storing. Stop at four triangles or fewer remaining, when a step fails the 75% cut, or when the accumulated relative error exceeds 1 (the mesh’s own size). Run the vertex-cache optimizer on each kept list. A thrown native call, or a missing library, logs once and writes the submesh with no extra lists.
 
-### 2. Bump the file so old cooks still read
+### 2. Bump the file so old siblings still read
 
 Write version 2. Accept version 1 in the reader as a mesh with no extra lists. A version-2 submesh whose level block cannot be parsed logs, drops that submesh’s extra lists, and keeps the base indices. Any other version fails the whole file, as the reader does today. Bump the importer stamp so the editor rewrites existing siblings. The player does not rewrite them.
 

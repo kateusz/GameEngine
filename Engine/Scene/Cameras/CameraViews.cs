@@ -11,7 +11,10 @@ public static class CameraViews
     public static SceneView From(Camera camera, Matrix4x4 transform) =>
         TryFrom(camera, transform, out var view) ? view : default;
 
-    public static bool TryFrom(Camera camera, Matrix4x4 transform, out SceneView view)
+    public static bool TryFrom(Camera camera, Matrix4x4 transform, out SceneView view) =>
+        TryFrom(camera, transform, 0f, out view);
+
+    public static bool TryFrom(Camera camera, Matrix4x4 transform, float viewportHeight, out SceneView view)
     {
         if (!Matrix4x4.Invert(transform, out var viewMatrix))
         {
@@ -27,10 +30,14 @@ public static class CameraViews
         skyView.M41 = 0f;
         skyView.M42 = 0f;
         skyView.M43 = 0f;
+        var frustumHeight = MathF.Abs(projection.M22) > float.Epsilon ? 2f / MathF.Abs(projection.M22) : 0f;
         view = new SceneView(
             viewMatrix * projection,
             new Vector3(transform.M41, transform.M42, transform.M43),
-            SkyViewProjection: skyView * projection);
+            SkyViewProjection: skyView * projection,
+            ViewportHeight: viewportHeight,
+            FrustumHeightAtUnit: frustumHeight,
+            Orthographic: projection.M44 != 0f);
         return true;
     }
 }

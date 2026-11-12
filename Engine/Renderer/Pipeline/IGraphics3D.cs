@@ -17,7 +17,7 @@ public interface IGraphics3D : IGraphics
     /// <summary>
     /// One draw for every entry. Callers group by mesh and by tint / metallic / roughness / AO / emissive.
     /// </summary>
-    void DrawMeshInstances(Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances);
+    void DrawMeshInstances(Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances, int level = 0);
     void SetAmbientLight(Vector3 color, float strength);
     void SetDirectionalLight(Vector3 direction, Vector3 color);
     void SetPointLights(ReadOnlySpan<PointLightData> lights);

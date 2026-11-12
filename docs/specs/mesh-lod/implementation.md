@@ -1,6 +1,6 @@
 # Mesh LOD — Implementation
 
-C# sketch for the cook, the `.mesh` version, the selector, and the opaque walk. Paste into the existing types. Do not add an `ISystem`. Do not register the simplifier in DryIoc: the cook calls the Evergine binding directly, and the selector is a static function.
+C# sketch for the simplifier, the `.mesh` version, the selector, and the opaque walk. Paste into the existing types. Do not add an `ISystem`. Do not register the simplifier in DryIoc: it calls the Evergine binding directly, and the selector is a static function.
 
 Package, on `Engine/Engine.csproj` only:
 
@@ -101,9 +101,9 @@ Level 0 is the original index buffer and is not stored in `LodErrors`. Entry `i`
 
 `Initialize` uploads `Indices` as buffer 0, then each `LodIndices` entry. `SetIndexBuffer` binds the vertex array and then the element buffer, which is the core-profile rule. A failed create drops that level and the levels after it. `GetIndexCount` stays the level-0 count so merge baking and stats that mean “source mesh” do not silently shrink.
 
-## 4. Cook
+## 4. Simplifier
 
-Called from `RuntimeMeshBuilder` after a successful Assimp import, per submesh, before `RuntimeMeshWriter.TryWrite`. Positions are a `float*` at the start of each 56-byte vertex. Attribute stream is normal (3) then UV (2), weights all 1. `resultError` is relative. `meshopt_simplifyScale` is the mesh size that turns it into mesh units.
+`RuntimeMeshLodSimplifier.Simplify`, called from `RuntimeMeshBuilder` after a successful Assimp import, per submesh, before `RuntimeMeshWriter.TryWrite`. Positions are a `float*` at the start of each 56-byte vertex. Attribute stream is normal (3) then UV (2), weights all 1. `resultError` is relative. `meshopt_simplifyScale` is the mesh size that turns it into mesh units.
 
 ```csharp
 const uint LockBorder = 1u << 0;
@@ -229,7 +229,7 @@ if (submesh.HasCoarserLevel)
 - `Orthographic: true` ignores camera distance and uses distance 1.
 - Viewport height 0, an empty extra-level list, and a non-finite scale return 0.
 
-`RuntimeMeshLodCookTests` builds a manifold grid, runs the cook helper, and expects a shorter in-range index list, a multiple of three, a positive error, and a following error at least 1.5× the first. A second case feeds a step that cannot cut 25% and expects no extra list. The test project references the same Evergine package.
+`RuntimeMeshLodSimplifierTests` builds a manifold grid, runs `Simplify`, and expects a shorter in-range index list, a multiple of three, a positive error, and a following error at least 1.5× the first. A second case feeds a step that cannot cut 25% and expects no extra list. The test project references the same Evergine package.
 
 `RuntimeMeshReader` tests: a version-1 byte buffer loads with `LodCount == 1`. A version-2 buffer with a truncated level block loads the base indices and no extra level.
 

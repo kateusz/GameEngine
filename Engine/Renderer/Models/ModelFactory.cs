@@ -186,6 +186,9 @@ internal class ModelFactory : IModelFactory
             var mesh = new Mesh(submesh.Name);
             mesh.Vertices.AddRange(submesh.Vertices);
             mesh.Indices.AddRange(submesh.Indices);
+            foreach (var level in submesh.LodIndices)
+                mesh.LodIndices.Add(level);
+            mesh.LodErrors.AddRange(submesh.LodErrors);
             mesh.MetallicFactor = submesh.Metallic;
             mesh.RoughnessFactor = submesh.Roughness;
             mesh.BaseColorFactor = submesh.BaseColorFactor;

@@ -105,6 +105,11 @@ public class ModelRendererComponentEditor(
             (e, v) => e.GetComponent<ModelRendererComponent>().Metallic = v,
             MultiField.SameFloat);
 
+        propertyRenderer.DrawPropertyField("LOD Bias", entity,
+            e => e.GetComponent<ModelRendererComponent>().LodBias,
+            (e, v) => e.GetComponent<ModelRendererComponent>().LodBias = v,
+            MultiField.SameFloat);
+
         propertyRenderer.DrawPropertyField("Roughness", entity,
             e => e.GetComponent<ModelRendererComponent>().Roughness,
             (e, v) => e.GetComponent<ModelRendererComponent>().Roughness = v,

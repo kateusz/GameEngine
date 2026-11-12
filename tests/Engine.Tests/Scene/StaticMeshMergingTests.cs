@@ -386,6 +386,65 @@ public class StaticMeshMergingTests : IDisposable
         graphics.DrawnMeshes[0].VertexCount.ShouldBe(48);
     }
 
+    [Fact]
+    public void DifferentDistances_RecordTwoLodBatches()
+    {
+        var (context, model, models) = LodScene(
+            Matrix4x4.Identity,
+            Matrix4x4.CreateTranslation(0f, 0f, -40f));
+        var graphics = new MeshDrawRecordingGraphics3D();
+
+        Render(context, graphics, models, Factories(), LodView());
+
+        graphics.BatchIndexCounts.Count.ShouldBe(2);
+        graphics.BatchIndexCounts.Distinct().Count().ShouldBe(2);
+        graphics.CubeDraws.ShouldBe(0);
+        model.Dispose();
+    }
+
+    [Fact]
+    public void SameDistance_RecordsOneLodBatch()
+    {
+        var far = Matrix4x4.CreateTranslation(0f, 0f, -40f);
+        var (context, model, models) = LodScene(far, far);
+        var graphics = new MeshDrawRecordingGraphics3D();
+
+        Render(context, graphics, models, Factories(), LodView());
+
+        graphics.BatchInstanceCounts.ShouldBe([2]);
+        graphics.BatchIndexCounts.Count.ShouldBe(1);
+        model.Dispose();
+    }
+
+    [Fact]
+    public void CoarserLevel_IsAbsentFromMergeGroup()
+    {
+        var far = Matrix4x4.CreateTranslation(0f, 0f, -40f);
+        var (context, model, models) = LodScene(far, far);
+        var factories = Factories();
+
+        Render(context, new MeshDrawRecordingGraphics3D(), models, factories, LodView());
+        var graphics = new MeshDrawRecordingGraphics3D();
+        Render(context, graphics, models, factories, LodView());
+
+        graphics.MergedDraws.ShouldBe(0);
+        graphics.InstanceDrawCalls.ShouldBeGreaterThan(0);
+        model.Dispose();
+    }
+
+    [Fact]
+    public void CubeDraw_IsUnchangedWhenLodViewIsSet()
+    {
+        var context = new Context();
+        AddCube(context, 1, 0f);
+        var graphics = new MeshDrawRecordingGraphics3D();
+
+        Render(context, graphics, Substitute.For<IModelFactory>(), Factories(), LodView());
+
+        graphics.CubeDraws.ShouldBe(1);
+        graphics.InstanceDrawCalls.ShouldBe(0);
+    }
+
     private static void Render(
         Context context,
         IGraphics3D graphics,
@@ -540,6 +599,59 @@ public class StaticMeshMergingTests : IDisposable
         });
 
         return (vertexArrays, vertexBuffers, indexBuffers);
+    }
+
+    private static (Context Context, Model Model, IModelFactory Factory) LodScene(Matrix4x4 first, Matrix4x4 second)
+    {
+        var mesh = CreateLodQuad();
+        var model = new Model("/lod.glb", [mesh]);
+        var factory = Substitute.For<IModelFactory>();
+        factory.Create(Arg.Any<string>()).Returns(model);
+        var context = new Context();
+        AddLodEntity(context, 1, first);
+        AddLodEntity(context, 2, second);
+        return (context, model, factory);
+    }
+
+    private static void AddLodEntity(Context context, int id, Matrix4x4 world)
+    {
+        var entity = new Entity(id, $"lod{id}");
+        var transform = new TransformComponent();
+        transform.SetWorldTransform(world);
+        entity.AddComponent(transform);
+        entity.AddComponent(new ModelRendererComponent { ModelPath = "/lod.glb", MeshIndex = 0 });
+        context.Register(entity);
+    }
+
+    private static Mesh CreateLodQuad()
+    {
+        var (vertexArray, vertexBuffer, indexBuffer) = Factories();
+        var mesh = new Mesh("lod");
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-1f, -1f, -1f), Vector3.UnitY, Vector2.Zero, Vector3.UnitX, Vector3.UnitZ));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(1f, -1f, -1f), Vector3.UnitY, Vector2.Zero, Vector3.UnitX, Vector3.UnitZ));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(1f, 1f, 1f), Vector3.UnitY, Vector2.Zero, Vector3.UnitX, Vector3.UnitZ));
+        mesh.Vertices.Add(new Mesh.Vertex(new Vector3(-1f, 1f, 1f), Vector3.UnitY, Vector2.Zero, Vector3.UnitX, Vector3.UnitZ));
+        mesh.Indices.AddRange([0u, 1u, 2u, 0u, 2u, 3u]);
+        mesh.LodIndices.Add([0u, 1u, 2u]);
+        mesh.LodErrors.Add(1e-4f);
+        mesh.Initialize(vertexArray, vertexBuffer, indexBuffer);
+        return mesh;
+    }
+
+    private static SceneView LodView()
+    {
+        var eye = Vector3.Zero;
+        var look = Matrix4x4.CreateLookAt(eye, new Vector3(0f, 0f, -1f), Vector3.UnitY);
+        var projection = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 2f, 1f, 0.1f, 200f);
+        var frustum = MathF.Abs(projection.M22) > float.Epsilon ? 2f / MathF.Abs(projection.M22) : 0f;
+        return new SceneView(
+            look * projection,
+            eye,
+            PointShadows: false,
+            DirectionalShadows: false,
+            ViewportHeight: 100f,
+            FrustumHeightAtUnit: frustum,
+            Orthographic: false);
     }
 
     private static SceneView View(float x = 0f)

@@ -18,6 +18,8 @@ internal sealed class SourceSubmesh
     public required string Name { get; init; }
     public List<Mesh.Vertex> Vertices { get; } = [];
     public List<uint> Indices { get; } = [];
+    public List<uint[]> LodIndices { get; } = [];
+    public List<float> LodErrors { get; } = [];
     public Vector3 BoundsMin { get; set; }
     public Vector3 BoundsMax { get; set; }
     public float Metallic { get; set; }
