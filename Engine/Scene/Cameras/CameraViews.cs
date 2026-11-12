@@ -31,13 +31,17 @@ public static class CameraViews
         skyView.M42 = 0f;
         skyView.M43 = 0f;
         var frustumHeight = MathF.Abs(projection.M22) > float.Epsilon ? 2f / MathF.Abs(projection.M22) : 0f;
+        var aspect = MathF.Abs(projection.M11) > float.Epsilon
+            ? MathF.Abs(projection.M22 / projection.M11)
+            : 0f;
         view = new SceneView(
             viewMatrix * projection,
             new Vector3(transform.M41, transform.M42, transform.M43),
             SkyViewProjection: skyView * projection,
             ViewportHeight: viewportHeight,
             FrustumHeightAtUnit: frustumHeight,
-            Orthographic: projection.M44 != 0f);
+            Orthographic: projection.M44 != 0f,
+            Aspect: aspect);
         return true;
     }
 }

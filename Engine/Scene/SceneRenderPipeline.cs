@@ -644,7 +644,9 @@ internal static partial class SceneRenderPipeline
         public Matrix4x4 World;
         public Aabb Local;
         public float NearestDepth;
+        public float ScreenArea;
         public Mesh? Source;
+        public int LodLevel;
         public List<MergeMember>? GroupMembers;
     }
 
@@ -811,7 +813,7 @@ internal static partial class SceneRenderPipeline
             }
 
             if (useSoftwareOcclusion)
-                ApplySoftwareOcclusion(graphics3D, textureFactory, cullMatrix, ref stats);
+                ApplySoftwareOcclusion(graphics3D, textureFactory, cullMatrix, lodView, ref stats);
         }
         finally
         {
@@ -861,9 +863,10 @@ internal static partial class SceneRenderPipeline
         IGraphics3D graphics3D,
         ITextureFactory textureFactory,
         Matrix4x4 cullMatrix,
+        in SceneView lodView,
         ref PassStats stats)
     {
-        if (!OcclusionGrid.TryBegin(cullMatrix))
+        if (!OcclusionGrid.TryBegin(cullMatrix, lodView.Aspect))
         {
             foreach (var draw in LooseDraws)
                 SubmitLoose(graphics3D, textureFactory, draw, ref stats);
@@ -871,7 +874,12 @@ internal static partial class SceneRenderPipeline
         }
 
         GatherOccluders(OccluderCandidates, OcclusionGrid);
-        OccluderCandidates.Sort(static (a, b) => a.NearestDepth.CompareTo(b.NearestDepth));
+        // Near first; among equal depth prefer larger screen coverage before the triangle budget runs out.
+        OccluderCandidates.Sort(static (a, b) =>
+        {
+            var depth = a.NearestDepth.CompareTo(b.NearestDepth);
+            return depth != 0 ? depth : b.ScreenArea.CompareTo(a.ScreenArea);
+        });
         foreach (var occluder in OccluderCandidates)
         {
             if (OcclusionGrid.SubmittedTriangles >= SoftwareOcclusionBuffer.TriangleBudget)
@@ -903,14 +911,17 @@ internal static partial class SceneRenderPipeline
                 continue;
             if (draw.IsCube)
             {
-                destination.Add(MakeOccluder(draw.World, draw.Local, grid, source: null, groupMembers: null));
+                destination.Add(MakeOccluder(draw.World, draw.Local, grid, source: null, lodLevel: 0, groupMembers: null));
                 continue;
             }
 
-            if (draw.Submesh is not { AlphaCutout: false, BakeVertices: not null, BakeIndices: not null })
+            if (draw.Submesh is not { AlphaCutout: false, BakeVertices: not null })
+                continue;
+            // Only occlude with the LOD that is actually drawn (BakeIndicesAt).
+            if (draw.Submesh.BakeIndicesAt(draw.LodLevel) is null)
                 continue;
 
-            destination.Add(MakeOccluder(draw.World, draw.Local, grid, draw.Submesh, null));
+            destination.Add(MakeOccluder(draw.World, draw.Local, grid, draw.Submesh, draw.LodLevel, null));
         }
 
         foreach (var (key, members) in MergeGroups)
@@ -936,7 +947,8 @@ internal static partial class SceneRenderPipeline
             if (!hasTriangles)
                 continue;
 
-            destination.Add(MakeOccluder(Matrix4x4.Identity, groupBox, grid, null, members));
+            // Merged draws are LOD0-only (LodCount <= 1 gate on the merge path).
+            destination.Add(MakeOccluder(Matrix4x4.Identity, groupBox, grid, null, 0, members));
         }
     }
 
@@ -945,13 +957,16 @@ internal static partial class SceneRenderPipeline
         Aabb local,
         SoftwareOcclusionBuffer grid,
         Mesh? source,
+        int lodLevel,
         List<MergeMember>? groupMembers) =>
         new()
         {
             World = world,
             Local = local,
             NearestDepth = grid.TryNearestDepth(world, local, out var depth) ? depth : 0f,
+            ScreenArea = grid.ScreenFraction(world, local),
             Source = source,
+            LodLevel = lodLevel,
             GroupMembers = groupMembers
         };
 
@@ -972,10 +987,16 @@ internal static partial class SceneRenderPipeline
             return;
         }
 
-        if (occluder.Source is { BakeVertices: { } bakedVerts, BakeIndices: { } bakedIndices })
-            RasterizeIndexed(grid, occluder.World, bakedVerts, bakedIndices);
-        else
-            RasterizeIndexed(grid, occluder.World, MeshFactory.CubeTemplate.Vertices, MeshFactory.CubeTemplate.Indices);
+        if (occluder.Source is { BakeVertices: { } bakedVerts })
+        {
+            var indices = occluder.Source.BakeIndicesAt(occluder.LodLevel);
+            if (indices is null)
+                return;
+            RasterizeIndexed(grid, occluder.World, bakedVerts, indices);
+            return;
+        }
+
+        RasterizeIndexed(grid, occluder.World, MeshFactory.CubeTemplate.Vertices, MeshFactory.CubeTemplate.Indices);
     }
 
     private static void RasterizeIndexed(
@@ -1191,6 +1212,14 @@ internal static partial class SceneRenderPipeline
                 ex,
                 "Failed to load cube texture '{TexturePath}' — drawing solid color instead",
                 modelRenderer.TexturePath);
+            graphics3D.DrawCube(
+                transform,
+                modelRenderer.Color,
+                entity.Id,
+                metallic: factors.Metallic,
+                roughness: factors.Roughness,
+                ao: factors.Ao,
+                emissive: emissive);
         }
     }
 

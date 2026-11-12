@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Linq;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
@@ -52,8 +53,11 @@ public class Mesh : IDisposable
     /// <summary>CPU vertex snapshot retained by source meshes for world-space concatenation.</summary>
     internal Vertex[]? BakeVertices { get; private set; }
 
-    /// <summary>CPU index snapshot retained by source meshes for world-space concatenation.</summary>
+    /// <summary>CPU index snapshot retained by source meshes for world-space concatenation (LOD 0).</summary>
     internal uint[]? BakeIndices { get; private set; }
+
+    /// <summary>CPU index snapshots for LOD levels 1..N (same order as <see cref="LodIndices"/> at Initialize).</summary>
+    internal uint[][]? BakeLodIndices { get; private set; }
     public Texture2D? DiffuseTexture { get; set; }
     public Texture2D? NormalTexture { get; set; }
     public Texture2D? MetallicRoughnessTexture { get; set; }
@@ -144,6 +148,9 @@ public class Mesh : IDisposable
         {
             BakeVertices = [.. Vertices];
             BakeIndices = uploadedIndices;
+            BakeLodIndices = LodIndices.Count == 0
+                ? null
+                : LodIndices.Select(lod => lod.ToArray()).ToArray();
         }
 
         Vertices.Clear();
@@ -152,6 +159,16 @@ public class Mesh : IDisposable
         Indices.TrimExcess();
         LodIndices.Clear();
         LodIndices.TrimExcess();
+    }
+
+    /// <summary>CPU indices for the drawn LOD level, or null when that level was not retained.</summary>
+    internal uint[]? BakeIndicesAt(int level)
+    {
+        if (level <= 0)
+            return BakeIndices;
+        if (BakeLodIndices is null || level > BakeLodIndices.Length)
+            return null;
+        return BakeLodIndices[level - 1];
     }
 
     internal int LodCount => _initialized ? _lodBuffers.Length : 1 + LodIndices.Count;

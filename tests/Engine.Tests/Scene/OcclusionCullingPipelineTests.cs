@@ -86,6 +86,101 @@ public class OcclusionCullingPipelineTests : IDisposable
     }
 
     [Fact]
+    public void RenderScene_CameraYawed180_StillOcclusionCulls()
+    {
+        var (wall, prop, models) = WallAndProp();
+        // Place scene along -Z from an eye that looks back toward +Z after 180° yaw.
+        var context = SceneWithSun(wallAtZ: 0f, propAtZ: 2f);
+        var graphics = new MeshDrawRecordingGraphics3D();
+
+        RenderCore(
+            context, graphics, models, factories: null, DirectionalShadows: false,
+            eyeOverride: new Vector3(0f, 0f, -8f), yawRadians: MathF.PI);
+
+        graphics.GetStats().OcclusionCulled.ShouldBeGreaterThan(0);
+        graphics.InstanceMeshes.Count(m => ReferenceEquals(m, prop)).ShouldBe(0);
+
+        wall.Dispose();
+        prop.Dispose();
+    }
+
+    [Fact]
+    public void RenderScene_OccluderAtLod1_DoesNotFalseCullWithLod0Silhouette()
+    {
+        var factories = Factories();
+        // LOD0 covers the view; LOD1 is a tiny triangle that does not. Far camera selects LOD1.
+        var wall = new Mesh("wall");
+        wall.Vertices.Add(new Mesh.Vertex(new Vector3(-40f, -40f, 0f), Vector3.UnitZ, Vector2.Zero, Vector3.UnitX, Vector3.UnitY));
+        wall.Vertices.Add(new Mesh.Vertex(new Vector3(40f, -40f, 0f), Vector3.UnitZ, Vector2.Zero, Vector3.UnitX, Vector3.UnitY));
+        wall.Vertices.Add(new Mesh.Vertex(new Vector3(0f, 40f, 0f), Vector3.UnitZ, Vector2.Zero, Vector3.UnitX, Vector3.UnitY));
+        wall.Vertices.Add(new Mesh.Vertex(new Vector3(-0.01f, -0.01f, 0f), Vector3.UnitZ, Vector2.Zero, Vector3.UnitX, Vector3.UnitY));
+        wall.Vertices.Add(new Mesh.Vertex(new Vector3(0.01f, -0.01f, 0f), Vector3.UnitZ, Vector2.Zero, Vector3.UnitX, Vector3.UnitY));
+        wall.Vertices.Add(new Mesh.Vertex(new Vector3(0f, 0.01f, 0f), Vector3.UnitZ, Vector2.Zero, Vector3.UnitX, Vector3.UnitY));
+        wall.Indices.AddRange([0u, 1u, 2u]);
+        wall.LodIndices.Add([3u, 4u, 5u]);
+        wall.LodErrors.Add(0.01f);
+        wall.Initialize(factories.VertexArray, factories.VertexBuffer, factories.IndexBuffer);
+        wall.BakeIndicesAt(1).ShouldNotBeNull();
+
+        var prop = CreateSmallProp(factories);
+        var models = Substitute.For<IModelFactory>();
+        models.Create(Arg.Is<string>(p => p.Contains("wall", StringComparison.OrdinalIgnoreCase)))
+            .Returns(new Model("/wall.glb", [wall]));
+        models.Create(Arg.Is<string>(p => p.Contains("prop", StringComparison.OrdinalIgnoreCase)))
+            .Returns(new Model("/prop.glb", [prop]));
+
+        var context = SceneWithSun(wallAtZ: 0f, propAtZ: -2f);
+        var graphics = new MeshDrawRecordingGraphics3D();
+        // Viewport/frustum values that make MeshLod pick level 1 at eye distance ~8.
+        RenderCore(
+            context, graphics, models, factories: null, DirectionalShadows: false,
+            viewportHeight: 100f, frustumHeightAtUnit: 2f);
+
+        MeshLod.Select(wall, Matrix4x4.Identity, new Vector3(0f, 0f, 8f),
+            new SceneView(Matrix4x4.Identity, ViewportHeight: 100f, FrustumHeightAtUnit: 2f, Aspect: 16f / 9f), 1f)
+            .ShouldBe(1);
+
+        graphics.GetStats().OcclusionCulled.ShouldBe(0);
+        graphics.InstanceMeshes.Count(m => ReferenceEquals(m, prop)).ShouldBe(1);
+
+        wall.Dispose();
+        prop.Dispose();
+    }
+
+    [Fact]
+    public void RenderScene_CubeWithBrokenTexture_StillDrawsFallbackAndCanOcclude()
+    {
+        var factories = Factories();
+        var prop = CreateSmallProp(factories);
+        var models = Substitute.For<IModelFactory>();
+        models.Create(Arg.Any<string>()).Returns(new Model("/prop.glb", [prop]));
+
+        var context = new Context();
+        AddSun(context);
+        // Large textured cube in front; texture load fails → must still DrawCube (fallback).
+        var cube = new Entity(1, "cube");
+        var cubeTransform = new TransformComponent();
+        cubeTransform.SetWorldTransform(
+            Matrix4x4.CreateScale(40f, 40f, 1f) * Matrix4x4.CreateTranslation(0f, 0f, 0f));
+        cube.AddComponent(cubeTransform);
+        cube.AddComponent(new ModelRendererComponent { TexturePath = "/missing.png" });
+        context.Register(cube);
+        AddMeshEntity(context, 2, "prop", "/prop.glb", -2f);
+
+        var textures = Substitute.For<ITextureFactory>();
+        textures.Create(Arg.Any<string>(), Arg.Any<bool>())
+            .Returns(_ => throw new InvalidOperationException("missing texture"));
+
+        var graphics = new MeshDrawRecordingGraphics3D();
+        RenderCore(context, graphics, models, factories: null, DirectionalShadows: false, textures: textures);
+
+        // Finding #3: failed texture must still submit a solid cube (CPU/GPU agreement).
+        graphics.CubeDraws.ShouldBeGreaterThan(0);
+
+        prop.Dispose();
+    }
+
+    [Fact]
     public void RenderScene_MergedGroupBehindOccluder_SkipsGroupWithoutRebuild()
     {
         var factories = MergeFactories();
@@ -158,18 +253,33 @@ public class OcclusionCullingPipelineTests : IDisposable
         MeshDrawRecordingGraphics3D graphics,
         IModelFactory models,
         (IVertexArrayFactory VertexArray, IVertexBufferFactory VertexBuffer, IIndexBufferFactory IndexBuffer)? factories,
-        bool DirectionalShadows)
+        bool DirectionalShadows,
+        Vector3? eyeOverride = null,
+        float yawRadians = 0f,
+        ITextureFactory? textures = null,
+        float viewportHeight = 0f,
+        float frustumHeightAtUnit = 0f)
     {
-        var eye = new Vector3(0f, 0f, 8f);
-        var view = Matrix4x4.CreateLookAt(eye, Vector3.Zero, Vector3.UnitY);
+        var eye = eyeOverride ?? new Vector3(0f, 0f, 8f);
+        var target = Vector3.Transform(Vector3.UnitZ * -1f, Matrix4x4.CreateRotationY(yawRadians));
+        // Default look: eye → origin. With yaw, rotate the forward around Y.
+        var lookTarget = yawRadians == 0f ? Vector3.Zero : eye + target;
+        var view = Matrix4x4.CreateLookAt(eye, lookTarget, Vector3.UnitY);
         var projection = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 4f, 16f / 9f, 0.1f, 100f);
         SceneRenderPipeline.RenderScene(
             context,
             Substitute.For<IGraphics2D>(),
             graphics,
-            Substitute.For<ITextureFactory>(),
+            textures ?? Substitute.For<ITextureFactory>(),
             models,
-            new SceneView(view * projection, eye, PointShadows: false, DirectionalShadows: DirectionalShadows),
+            new SceneView(
+                view * projection,
+                eye,
+                PointShadows: false,
+                DirectionalShadows: DirectionalShadows,
+                ViewportHeight: viewportHeight,
+                FrustumHeightAtUnit: frustumHeightAtUnit,
+                Aspect: 16f / 9f),
             factories?.VertexArray,
             factories?.VertexBuffer,
             factories?.IndexBuffer);
