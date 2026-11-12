@@ -30,7 +30,7 @@ Instancing folds copies of one mesh into one draw. Static merging folds differen
 
 **Level** — One index list for a submesh, plus the geometric error of that list in mesh units. Level 0 is the imported index list and its error is zero.
 
-**Error** — How far, in mesh units, the simplified surface may deviate from the original. Stored already scaled from the simplifier’s relative result. Each coarser level’s error is at least one and a half times the previous level’s error.
+**Error** — How far, in mesh units, the simplified surface may deviate from the original. Stored already scaled from the simplifier’s relative result against the original indices. Each coarser level’s error is strictly larger than the previous level’s error.
 
 **Bias** — A positive finite multiplier on a `ModelRendererComponent`. One is the default. Two keeps the detailed list until the error would cover about half a pixel. A non-finite value, or a value at or below zero, is stored and used as one.
 
@@ -50,10 +50,10 @@ Instancing folds copies of one mesh into one draw. Static merging folds differen
 
 **Merging stays still.** A combined mesh is baked from full-detail vertices and must not rebuild when the camera moves. Any submesh that owns a coarser list never joins a merge group.
 
-**Fail open.** A missing native library, a simplify step that cannot cut triangles, a version-1 file, or a broken level block still draws the full mesh. The rest of the model still loads.
+**Fail open.** A simplify step that cannot cut triangles, a version-1 file, or a broken level block still draws the full mesh. A missing native library does not stamp the sibling as up to date, so a later successful load can generate levels. The rest of the model still loads when a readable sibling already exists.
 
 ## Design Approach
 
-The simplifier calls `meshopt_simplifyWithAttributes` on each submesh, halving the triangle count each step, with the submesh border locked. It stops at four triangles, when a step cannot remove at least a quarter of the indices, or when the accumulated error exceeds the mesh size. Each kept list is optimized for the vertex cache and stored in `.mesh` version 2 beside the original indices. At draw time a pure function picks the level, the instance batch key includes that level, and the draw binds that index buffer after the vertex array. Pass order and the 2D/3D depth policy stay as they are. There is no new shader and no new system.
+The simplifier calls `meshopt_simplifyWithAttributes` on each submesh from the original indices, halving the triangle count each level, with the submesh border locked. It stops at four triangles, when a step cannot remove at least a quarter of the indices, or when the relative error exceeds the mesh size. Each kept list is optimized for the vertex cache and stored in `.mesh` version 2 beside the original indices. At draw time a pure function picks the level, the instance batch key includes that level, and the draw binds that index buffer after the vertex array. Pass order and the 2D/3D depth policy stay as they are. There is no new shader and no new system.
 
-The editor host needs the native library shipped by Evergine.Bindings.MeshOptimizer 2026.10.1.20: Windows x64 and ARM64, Linux x64 and ARM64, macOS ARM64. An Intel Mac hits the missing-library path and writes a mesh with no coarser levels.
+The editor host needs the native library shipped by Evergine.Bindings.MeshOptimizer 2026.10.1.20: Windows x64 and ARM64, Linux x64 and ARM64, macOS ARM64. An Intel Mac hits the missing-library path and leaves the sibling unstamped until the library is available.

@@ -9,11 +9,11 @@ namespace Engine.Tests.Renderer;
 public class RuntimeMeshLodSimplifierTests
 {
     [Fact]
-    public void Simplify_Grid_StoresShorterInRangeLevelsWithGrowingError()
+    public void TrySimplify_Grid_StoresShorterInRangeLevelsWithGrowingError()
     {
         var submesh = Grid(8);
 
-        RuntimeMeshLodSimplifier.Simplify(submesh);
+        RuntimeMeshLodSimplifier.TrySimplify(submesh).ShouldBeTrue();
 
         submesh.LodIndices.Count.ShouldBeGreaterThan(1);
         submesh.LodErrors.Count.ShouldBe(submesh.LodIndices.Count);
@@ -26,14 +26,14 @@ public class RuntimeMeshLodSimplifierTests
             indices.ShouldAllBe(index => index < (uint)submesh.Vertices.Count);
             previous = indices.Length;
             if (level > 0)
-                submesh.LodErrors[level].ShouldBeGreaterThanOrEqualTo(submesh.LodErrors[level - 1] * 1.5f);
+                submesh.LodErrors[level].ShouldBeGreaterThan(submesh.LodErrors[level - 1]);
         }
 
         submesh.LodErrors[0].ShouldBeGreaterThan(0f);
     }
 
     [Fact]
-    public void Simplify_StepThatCannotCutAQuarter_StoresNoLevel()
+    public void TrySimplify_StepThatCannotCutAQuarter_StoresNoLevel()
     {
         var submesh = new SourceSubmesh
         {
@@ -51,7 +51,7 @@ public class RuntimeMeshLodSimplifierTests
             submesh.Indices.AddRange([start, start + 1, start + 2]);
         }
 
-        RuntimeMeshLodSimplifier.Simplify(submesh);
+        RuntimeMeshLodSimplifier.TrySimplify(submesh).ShouldBeTrue();
 
         submesh.LodIndices.ShouldBeEmpty();
     }

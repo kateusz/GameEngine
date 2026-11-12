@@ -66,6 +66,18 @@ public class MeshLodTests
         MeshLod.Select(mesh, broken, new Vector3(0f, 0f, 2f), View(), 1f).ShouldBe(0);
     }
 
+    [Fact]
+    public void Select_NonUniformScaleWithRotation_UsesRowAxisLength()
+    {
+        var mesh = MeshWithErrors();
+        // Scale then rotate: row length of X stays ~10; column length drops to ~7.1.
+        var world = Matrix4x4.CreateScale(10f, 1f, 1f) * Matrix4x4.CreateRotationY(MathF.PI / 4f);
+        // Ortho fixes distanceSq=1. Height 25 → limitSq=0.0064; only row-scale (~0.01) exceeds it.
+        var view = View(height: 25f, ortho: true);
+
+        MeshLod.Select(mesh, world, Vector3.Zero, view, 1f).ShouldBe(0);
+    }
+
     private static SceneView View(float height = 100f, bool ortho = false) =>
         new(Matrix4x4.Identity, ViewportHeight: height, FrustumHeightAtUnit: 2f, Orthographic: ortho);
 

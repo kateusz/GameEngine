@@ -34,7 +34,13 @@ internal static class RuntimeMeshBuilder
             return false;
 
         foreach (var submesh in imported.Submeshes)
-            RuntimeMeshLodSimplifier.Simplify(submesh);
+        {
+            if (!RuntimeMeshLodSimplifier.TrySimplify(submesh))
+            {
+                Logger.Warning("Skipping .mesh stamp for {Path}; LOD simplifier failed", normalizedPath);
+                return false;
+            }
+        }
 
         return RuntimeMeshWriter.TryWrite(siblingPath, imported, stamp);
     }

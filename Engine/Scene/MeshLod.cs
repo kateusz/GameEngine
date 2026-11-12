@@ -42,11 +42,12 @@ internal static class MeshLod
         return chosen;
     }
 
+    // System.Numerics uses row vectors (v * M); local-axis scales are row lengths.
     private static float MaxAxisScale(Matrix4x4 world)
     {
-        var x = MathF.Sqrt(world.M11 * world.M11 + world.M21 * world.M21 + world.M31 * world.M31);
-        var y = MathF.Sqrt(world.M12 * world.M12 + world.M22 * world.M22 + world.M32 * world.M32);
-        var z = MathF.Sqrt(world.M13 * world.M13 + world.M23 * world.M23 + world.M33 * world.M33);
+        var x = MathF.Sqrt(world.M11 * world.M11 + world.M12 * world.M12 + world.M13 * world.M13);
+        var y = MathF.Sqrt(world.M21 * world.M21 + world.M22 * world.M22 + world.M23 * world.M23);
+        var z = MathF.Sqrt(world.M31 * world.M31 + world.M32 * world.M32 + world.M33 * world.M33);
         return MathF.Max(x, MathF.Max(y, z));
     }
 }
