@@ -24,8 +24,9 @@ public class AssetPathField(AssetBrowserDialog assetBrowser)
         UIPropertyRenderer.DrawPropertyRow(label, () =>
         {
             var hasPath = !string.IsNullOrEmpty(currentPath);
-            // ponytail: clear only for textures; model/audio clear needs different assign paths
-            var showClear = hasPath && ReferenceEquals(kind, AssetKind.Texture);
+            // ponytail: audio clear is path-only; model clear runs ClearImportedModelCommand in the editor.
+            var showClear = hasPath
+                            && (ReferenceEquals(kind, AssetKind.Texture) || ReferenceEquals(kind, AssetKind.Model));
 
             var buttonLabel = hasPath ? Path.GetFileName(currentPath) : "Open...";
             var width = showClear
@@ -48,7 +49,8 @@ public class AssetPathField(AssetBrowserDialog assetBrowser)
 
             ImGui.SameLine();
             ImGui.PushStyleColor(ImGuiCol.Text, EditorUIConstants.ErrorColor);
-            if (ButtonDrawer.DrawSmallButton($"×##clear_{label}", tooltip: "Clear texture"))
+            var clearTooltip = ReferenceEquals(kind, AssetKind.Model) ? "Clear model" : "Clear texture";
+            if (ButtonDrawer.DrawSmallButton($"×##clear_{label}", tooltip: clearTooltip))
                 onRelativePathChanged(null);
             ImGui.PopStyleColor();
         });

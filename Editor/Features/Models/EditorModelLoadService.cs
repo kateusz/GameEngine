@@ -65,10 +65,16 @@ public sealed class EditorModelLoadService(IModelFactory modelFactory, ITextureF
             Logger.Error(ex, "Failed to load model {Path}", active.Path);
         }
 
-        active.OnReady(model);
-        _active = null;
-        if (!IsBusy)
-            BusyName = null;
+        try
+        {
+            active.OnReady(model);
+        }
+        finally
+        {
+            _active = null;
+            if (!IsBusy)
+                BusyName = null;
+        }
     }
 
     private Prepared PrepareOnWorker(string normalizedPath, Action<Model?> onReady)

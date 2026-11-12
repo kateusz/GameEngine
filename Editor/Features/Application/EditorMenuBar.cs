@@ -79,7 +79,7 @@ public class EditorMenuBar(
         if (!ImGui.BeginMenu("Scene")) return;
 
         CommandItem("New...", EditorCommandIds.NewScene, "Ctrl+N");
-        CommandItem("Open...", EditorCommandIds.OpenScene);
+        CommandItem("Open...", EditorCommandIds.OpenScene, "CTRL+O");
         CommandItem("Save", EditorCommandIds.SaveScene, "Ctrl+S");
         CommandItem("Close", EditorCommandIds.CloseScene);
 

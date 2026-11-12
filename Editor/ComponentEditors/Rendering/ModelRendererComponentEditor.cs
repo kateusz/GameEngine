@@ -25,6 +25,32 @@ public class ModelRendererComponentEditor(
     {
         modelDropTarget.Draw("Model", (relativePath, model) =>
             {
+                var scene = sceneContext.ActiveScene;
+
+                if (relativePath is null)
+                {
+                    if (scene is null)
+                    {
+                        MultiField.WriteEach(entity, static (Entity e, string? _) =>
+                        {
+                            var c = e.GetComponent<ModelRendererComponent>();
+                            c.ModelPath = null;
+                            c.MeshIndex = null;
+                            c.SuppressDraw = false;
+                        }, null);
+                        return;
+                    }
+
+                    foreach (var target in MultiField.For(entity))
+                    {
+                        if (!target.TryGetComponent<ModelRendererComponent>(out var renderer))
+                            continue;
+                        history.Execute(new ClearImportedModelCommand(scene, target, renderer));
+                    }
+
+                    return;
+                }
+
                 if (MultiField.Targets is not null)
                 {
                     MultiField.WriteEach(entity, (Entity e, string path) =>
@@ -37,7 +63,6 @@ public class ModelRendererComponentEditor(
                     return;
                 }
 
-                var scene = sceneContext.ActiveScene;
                 if (scene == null)
                 {
                     component.ModelPath = relativePath;
@@ -45,6 +70,9 @@ public class ModelRendererComponentEditor(
                     component.SuppressDraw = false;
                     return;
                 }
+
+                if (model is null)
+                    return;
 
                 history.Execute(new ImportModelHierarchyCommand(scene, entity, component, model, relativePath));
             }, modelLoadService,

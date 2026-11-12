@@ -32,7 +32,7 @@ public class EditorPreferences : IEditorPreferences
     public int ShadowCascades { get; set; } = 1;
 
     // Autosave: 0 = off
-    public int AutosaveIntervalSeconds { get; set; } = 60;
+    public int AutosaveIntervalSeconds { get; set; } = 0;
 
     public bool FollowViewportSelectionInHierarchy { get; set; } = true;
 

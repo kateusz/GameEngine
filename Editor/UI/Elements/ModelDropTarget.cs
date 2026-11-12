@@ -20,7 +20,7 @@ public class ModelDropTarget(AssetPathField assetPathField)
 
     public void Draw(
         string label,
-        Action<string, Model> onModelDropped,
+        Action<string?, Model?> onModelChanged,
         EditorModelLoadService modelLoadService,
         string? currentModelPath = null) =>
         assetPathField.Draw(
@@ -30,14 +30,18 @@ public class ModelDropTarget(AssetPathField assetPathField)
             relative =>
             {
                 if (relative is null)
+                {
+                    onModelChanged(null, null);
                     return;
-                LoadModel(PathBuilder.Resolve(relative), modelLoadService, onModelDropped, relative);
+                }
+
+                LoadModel(PathBuilder.Resolve(relative), modelLoadService, onModelChanged, relative);
             });
 
     private static void LoadModel(
         string absolutePath,
         EditorModelLoadService modelLoadService,
-        Action<string, Model> onModelDropped,
+        Action<string?, Model?> onModelChanged,
         string? relativePath = null)
     {
         var relative = relativePath ?? PathBuilder.ToAssetRelativePath(absolutePath);
@@ -49,7 +53,7 @@ public class ModelDropTarget(AssetPathField assetPathField)
                 return;
             }
 
-            onModelDropped(relative, model);
+            onModelChanged(relative, model);
         });
     }
 }

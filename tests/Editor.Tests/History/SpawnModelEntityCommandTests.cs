@@ -129,6 +129,36 @@ public class SpawnModelEntityCommandTests
     }
 
     [Fact]
+    public void ClearImportedModel_RemovesChildrenAndPath_ThenReimportWorks()
+    {
+        using var scene = CreateScene();
+        var graph = new ModelSceneNode("Room", [],
+        [
+            new ModelSceneNode("Chair", [0], []),
+            new ModelSceneNode("Table", [1], [])
+        ]);
+        var model = ModelWithGraph(graph);
+
+        var root = scene.CreateEntity("Room");
+        root.AddComponent(new TransformComponent());
+        var renderer = new ModelRendererComponent();
+        root.AddComponent(renderer);
+
+        new ImportModelHierarchyCommand(scene, root, renderer, model, "models/room.glb").Execute();
+        scene.GetChildren(root).Count().ShouldBe(2);
+        renderer.ModelPath.ShouldBe("models/room.glb");
+
+        new ClearImportedModelCommand(scene, root, renderer).Execute();
+        scene.GetChildren(root).ShouldBeEmpty();
+        renderer.ModelPath.ShouldBeNull();
+        renderer.SuppressDraw.ShouldBeFalse();
+
+        new ImportModelHierarchyCommand(scene, root, renderer, model, "models/room.glb").Execute();
+        scene.GetChildren(root).Count().ShouldBe(2);
+        renderer.ModelPath.ShouldBe("models/room.glb");
+    }
+
+    [Fact]
     public void Reimport_RestoresVisibilityZoneOnUnpackedMeshChildren()
     {
         using var scene = CreateScene();
