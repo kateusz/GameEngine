@@ -40,6 +40,9 @@ internal static partial class SceneRenderPipeline
     private static readonly List<(int Id, PointShadowCache.LampPose Pose)> PointShadowLampBuffer = new();
     private static readonly List<int> ActiveVisibilityZoneEntityIds = new();
     private static readonly HashSet<int> WarnedMissingVisibilityZoneEntityIds = new();
+    private static readonly SoftwareOcclusionBuffer OcclusionGrid = new();
+    private static readonly List<LooseDraw> LooseDraws = new(256);
+    private static readonly List<OccluderCandidate> OccluderCandidates = new(64);
     private static bool _visibilityZonesEnabled;
     private static bool _shadowFitWarned;
     private static bool _pointShadowWarned;
@@ -353,7 +356,9 @@ internal static partial class SceneRenderPipeline
                         perf.PointShadowPass = Accumulate(perf.PointShadowPass,
                             DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, pointFaces[face], view,
                                 shadowCasterMaxSq, shadowCasterView, light.Position,
-                                vertexArrayFactory, vertexBufferFactory, indexBufferFactory));
+                                vertexArrayFactory: vertexArrayFactory,
+                                vertexBufferFactory: vertexBufferFactory,
+                                indexBufferFactory: indexBufferFactory));
                     }
                     finally
                     {
@@ -372,6 +377,7 @@ internal static partial class SceneRenderPipeline
         try
         {
             perf.ColorPass = DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, view.ViewProjection, view,
+                useSoftwareOcclusion: true,
                 vertexArrayFactory: vertexArrayFactory,
                 vertexBufferFactory: vertexBufferFactory,
                 indexBufferFactory: indexBufferFactory);
@@ -391,6 +397,7 @@ internal static partial class SceneRenderPipeline
         var color = perf.ColorPass;
         dest.Renderers = color.Renderers;
         dest.FrustumCulled = color.Culled;
+        dest.OcclusionCulled = color.OcclusionCulled;
         dest.ZoneCulled = color.ZoneCulled;
         dest.ShadowCasterCulled =
             perf.DirectionalShadowPass.ShadowCasterCulled + perf.PointShadowPass.ShadowCasterCulled;
@@ -417,6 +424,7 @@ internal static partial class SceneRenderPipeline
         public int Instances;
         public int CubeDraws;
         public int Culled;
+        public int OcclusionCulled;
         public int MissingMeshIndex;
         public int ShadowCasterCulled;
         public int ZoneCulled;
@@ -455,6 +463,7 @@ internal static partial class SceneRenderPipeline
         total.Instances += pass.Instances;
         total.CubeDraws += pass.CubeDraws;
         total.Culled += pass.Culled;
+        total.OcclusionCulled += pass.OcclusionCulled;
         total.MissingMeshIndex += pass.MissingMeshIndex;
         total.ShadowCasterCulled += pass.ShadowCasterCulled;
         total.ZoneCulled += pass.ZoneCulled;
@@ -614,6 +623,31 @@ internal static partial class SceneRenderPipeline
         return true;
     }
 
+    private struct LooseDraw
+    {
+        public int EntityId;
+        public Matrix4x4 World;
+        public Aabb Local;
+        public bool HasLocal;
+        public bool IsCube;
+        public bool HasCubeTexture;
+        public Mesh? Submesh;
+        public int LodLevel;
+        public ModelRendererComponent Renderer;
+        public Vector4 Tint;
+        public PbrFactors Factors;
+        public Vector3 Emissive;
+    }
+
+    private struct OccluderCandidate
+    {
+        public Matrix4x4 World;
+        public Aabb Local;
+        public float NearestDepth;
+        public Mesh? Source;
+        public List<MergeMember>? GroupMembers;
+    }
+
     private static PassStats DrawOpaque3D(
         Context context,
         IGraphics3D graphics3D,
@@ -624,6 +658,7 @@ internal static partial class SceneRenderPipeline
         float shadowCasterMaxDistanceSq = 0f,
         Vector3 shadowCasterViewPosition = default,
         Vector3? skipCastersContainingLight = null,
+        bool useSoftwareOcclusion = false,
         IVertexArrayFactory? vertexArrayFactory = null,
         IVertexBufferFactory? vertexBufferFactory = null,
         IIndexBufferFactory? indexBufferFactory = null)
@@ -632,6 +667,8 @@ internal static partial class SceneRenderPipeline
         var start = Stopwatch.GetTimestamp();
         var hasFrustum = Frustum.TryFromClip(cullMatrix, out var frustum);
         var canMerge = vertexArrayFactory is not null && vertexBufferFactory is not null && indexBufferFactory is not null;
+        if (useSoftwareOcclusion)
+            LooseDraws.Clear();
         try
         {
             foreach (var (entity, modelRenderer, transformComponent) in
@@ -696,6 +733,24 @@ internal static partial class SceneRenderPipeline
                             shadowCasterViewPosition, skipCastersContainingLight, ref stats))
                         continue;
 
+                    if (useSoftwareOcclusion)
+                    {
+                        LooseDraws.Add(new LooseDraw
+                        {
+                            EntityId = entity.Id,
+                            World = transform,
+                            Local = Aabb.UnitCube,
+                            HasLocal = true,
+                            IsCube = true,
+                            HasCubeTexture = !string.IsNullOrWhiteSpace(modelRenderer.TexturePath),
+                            Renderer = modelRenderer,
+                            Tint = tint,
+                            Factors = factors,
+                            Emissive = emissive
+                        });
+                        continue;
+                    }
+
                     if (!string.IsNullOrWhiteSpace(modelRenderer.TexturePath))
                         DrawCubeWithTexture(graphics3D, textureFactory, modelRenderer, transform, entity, factors, emissive);
                     else
@@ -721,6 +776,12 @@ internal static partial class SceneRenderPipeline
                             shadowCasterViewPosition, skipCastersContainingLight, ref stats))
                         continue;
 
+                    if (useSoftwareOcclusion)
+                    {
+                        PushLooseSubmesh(entity.Id, transform, tint, modelRenderer, submesh, level);
+                        continue;
+                    }
+
                     QueueSubmesh(modelRenderer, transform, tint, entity.Id, submesh, level, ref stats);
                     continue;
                 }
@@ -739,9 +800,18 @@ internal static partial class SceneRenderPipeline
                             shadowCasterViewPosition, skipCastersContainingLight, ref stats))
                         continue;
 
+                    if (useSoftwareOcclusion)
+                    {
+                        PushLooseSubmesh(entity.Id, transform, tint, modelRenderer, submesh, level);
+                        continue;
+                    }
+
                     QueueSubmesh(modelRenderer, transform, tint, entity.Id, submesh, level, ref stats);
                 }
             }
+
+            if (useSoftwareOcclusion)
+                ApplySoftwareOcclusion(graphics3D, textureFactory, cullMatrix, ref stats);
         }
         finally
         {
@@ -749,10 +819,209 @@ internal static partial class SceneRenderPipeline
             FlushMergeGroups(graphics3D, hasFrustum, in frustum, shadowCasterMaxDistanceSq,
                 shadowCasterViewPosition, skipCastersContainingLight, ref stats,
                 vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
+            if (useSoftwareOcclusion)
+            {
+                OcclusionGrid.End();
+                LooseDraws.Clear();
+            }
         }
 
         stats.CpuMs = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
         return stats;
+    }
+
+    private static void PushLooseSubmesh(
+        int entityId,
+        Matrix4x4 transform,
+        Vector4 tint,
+        ModelRendererComponent modelRenderer,
+        Mesh submesh,
+        int lodLevel)
+    {
+        AdoptSubmeshFactors(modelRenderer, submesh);
+        var pbr = ResolvePbr(modelRenderer);
+        var emissive = CombineEmissive(submesh.EmissiveFactor, modelRenderer);
+        LooseDraws.Add(new LooseDraw
+        {
+            EntityId = entityId,
+            World = transform,
+            Local = submesh.Bounds ?? default,
+            HasLocal = submesh.Bounds is not null,
+            IsCube = false,
+            Submesh = submesh,
+            LodLevel = lodLevel,
+            Renderer = modelRenderer,
+            Tint = tint,
+            Factors = pbr,
+            Emissive = emissive
+        });
+    }
+
+    private static void ApplySoftwareOcclusion(
+        IGraphics3D graphics3D,
+        ITextureFactory textureFactory,
+        Matrix4x4 cullMatrix,
+        ref PassStats stats)
+    {
+        if (!OcclusionGrid.TryBegin(cullMatrix))
+        {
+            foreach (var draw in LooseDraws)
+                SubmitLoose(graphics3D, textureFactory, draw, ref stats);
+            return;
+        }
+
+        GatherOccluders(OccluderCandidates, OcclusionGrid);
+        OccluderCandidates.Sort(static (a, b) => a.NearestDepth.CompareTo(b.NearestDepth));
+        foreach (var occluder in OccluderCandidates)
+        {
+            if (OcclusionGrid.SubmittedTriangles >= SoftwareOcclusionBuffer.TriangleBudget)
+                break;
+            if (OcclusionGrid.IsOccluded(occluder.World, occluder.Local))
+                continue;
+
+            RasterizeOccluder(OcclusionGrid, occluder);
+        }
+
+        foreach (var draw in LooseDraws)
+        {
+            if (draw.HasLocal && OcclusionGrid.IsOccluded(draw.World, draw.Local))
+            {
+                stats.OcclusionCulled++;
+                continue;
+            }
+
+            SubmitLoose(graphics3D, textureFactory, draw, ref stats);
+        }
+    }
+
+    private static void GatherOccluders(List<OccluderCandidate> destination, SoftwareOcclusionBuffer grid)
+    {
+        destination.Clear();
+        foreach (var draw in LooseDraws)
+        {
+            if (!draw.HasLocal || !grid.ScreenFractionAtLeastMinimum(draw.World, draw.Local))
+                continue;
+            if (draw.IsCube)
+            {
+                destination.Add(MakeOccluder(draw.World, draw.Local, grid, source: null, groupMembers: null));
+                continue;
+            }
+
+            if (draw.Submesh is not { AlphaCutout: false, BakeVertices: not null, BakeIndices: not null })
+                continue;
+
+            destination.Add(MakeOccluder(draw.World, draw.Local, grid, draw.Submesh, null));
+        }
+
+        foreach (var (key, members) in MergeGroups)
+        {
+            if (key.AlphaCutout || members.Count == 0)
+                continue;
+            if (!TryGetGroupBox(members, out var groupBox))
+                continue;
+            if (!grid.ScreenFractionAtLeastMinimum(Matrix4x4.Identity, groupBox))
+                continue;
+
+            var hasTriangles = false;
+            foreach (var member in members)
+            {
+                if (member.Source is null
+                    || (member.Source is { AlphaCutout: false, BakeVertices: not null, BakeIndices: not null }))
+                {
+                    hasTriangles = true;
+                    break;
+                }
+            }
+
+            if (!hasTriangles)
+                continue;
+
+            destination.Add(MakeOccluder(Matrix4x4.Identity, groupBox, grid, null, members));
+        }
+    }
+
+    private static OccluderCandidate MakeOccluder(
+        Matrix4x4 world,
+        Aabb local,
+        SoftwareOcclusionBuffer grid,
+        Mesh? source,
+        List<MergeMember>? groupMembers) =>
+        new()
+        {
+            World = world,
+            Local = local,
+            NearestDepth = grid.TryNearestDepth(world, local, out var depth) ? depth : 0f,
+            Source = source,
+            GroupMembers = groupMembers
+        };
+
+    private static void RasterizeOccluder(SoftwareOcclusionBuffer grid, in OccluderCandidate occluder)
+    {
+        if (occluder.GroupMembers is { } members)
+        {
+            foreach (var member in members)
+            {
+                if (grid.SubmittedTriangles >= SoftwareOcclusionBuffer.TriangleBudget)
+                    return;
+                if (member.Source is { AlphaCutout: false, BakeVertices: { } verts, BakeIndices: { } indices })
+                    RasterizeIndexed(grid, member.World, verts, indices);
+                else if (member.Source is null)
+                    RasterizeIndexed(grid, member.World, MeshFactory.CubeTemplate.Vertices, MeshFactory.CubeTemplate.Indices);
+            }
+
+            return;
+        }
+
+        if (occluder.Source is { BakeVertices: { } bakedVerts, BakeIndices: { } bakedIndices })
+            RasterizeIndexed(grid, occluder.World, bakedVerts, bakedIndices);
+        else
+            RasterizeIndexed(grid, occluder.World, MeshFactory.CubeTemplate.Vertices, MeshFactory.CubeTemplate.Indices);
+    }
+
+    private static void RasterizeIndexed(
+        SoftwareOcclusionBuffer grid,
+        Matrix4x4 world,
+        Mesh.Vertex[] vertices,
+        uint[] indices)
+    {
+        for (var i = 0; i + 2 < indices.Length; i += 3)
+        {
+            if (grid.SubmittedTriangles >= SoftwareOcclusionBuffer.TriangleBudget)
+                return;
+
+            grid.RasterizeTriangle(
+                Vector3.Transform(vertices[indices[i]].Position, world),
+                Vector3.Transform(vertices[indices[i + 1]].Position, world),
+                Vector3.Transform(vertices[indices[i + 2]].Position, world));
+        }
+    }
+
+    private static void SubmitLoose(
+        IGraphics3D graphics3D,
+        ITextureFactory textureFactory,
+        in LooseDraw draw,
+        ref PassStats stats)
+    {
+        if (draw.IsCube)
+        {
+            if (draw.HasCubeTexture)
+            {
+                DrawCubeWithTexture(
+                    graphics3D, textureFactory, draw.Renderer, draw.World,
+                    new Entity(draw.EntityId, ""), draw.Factors, draw.Emissive);
+            }
+            else
+            {
+                graphics3D.DrawCube(draw.World, draw.Tint, draw.EntityId,
+                    metallic: draw.Factors.Metallic, roughness: draw.Factors.Roughness, ao: draw.Factors.Ao,
+                    emissive: draw.Emissive);
+            }
+
+            stats.CubeDraws++;
+            return;
+        }
+
+        QueueSubmesh(draw.Renderer, draw.World, draw.Tint, draw.EntityId, draw.Submesh!, draw.LodLevel, ref stats);
     }
 
     private static bool ShouldSkipOpaqueDraw(

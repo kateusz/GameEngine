@@ -26,6 +26,7 @@ public sealed class PipelineStatsAggregator
         result.CustomMetrics["Avg Instances"] = Avg(s => s.Instances).ToString("F0");
         result.CustomMetrics["Avg Triangles"] = Avg(s => s.Triangles).ToString("F0");
         result.CustomMetrics["Avg Frustum Culled"] = Avg(s => s.FrustumCulled).ToString("F1");
+        result.CustomMetrics["Avg Occlusion Culled"] = Avg(s => s.OcclusionCulled).ToString("F1");
         result.CustomMetrics["Avg Zone Culled"] = Avg(s => s.ZoneCulled).ToString("F1");
         result.CustomMetrics["Avg Color CPU Ms"] = Avg(s => s.ColorCpuMs).ToString("F3");
         result.CustomMetrics["Avg Shadow CPU Ms"] = Avg(s => s.ShadowCpuMs).ToString("F3");
@@ -47,6 +48,7 @@ public sealed class PipelineStatsAggregator
             Indices = s.Indices,
             Renderers = s.Renderers,
             FrustumCulled = s.FrustumCulled,
+            OcclusionCulled = s.OcclusionCulled,
             ZoneCulled = s.ZoneCulled,
             ShadowCasterCulled = s.ShadowCasterCulled,
             ColorCpuMs = s.ColorCpuMs,
