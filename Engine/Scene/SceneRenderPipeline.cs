@@ -4,18 +4,21 @@ using System.Runtime.InteropServices;
 using ECS;
 using Engine.Project;
 using Engine.Renderer;
+using Engine.Renderer.Buffers;
+using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Meshes;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
 using SceneComponents;
 using SceneComponents.Lighting;
+using SceneComponents.Physics;
 using SceneComponents.Rendering;
 using Serilog;
 
 namespace Engine.Scene;
 
-internal static class SceneRenderPipeline
+internal static partial class SceneRenderPipeline
 {
     private static readonly ILogger Logger = Log.ForContext(typeof(SceneRenderPipeline));
 
@@ -49,11 +52,19 @@ internal static class SceneRenderPipeline
         IGraphics3D graphics3D,
         ITextureFactory textureFactory,
         IModelFactory  modelFactory,
-        in SceneView view)
+        in SceneView view,
+        IVertexArrayFactory? vertexArrayFactory = null,
+        IVertexBufferFactory? vertexBufferFactory = null,
+        IIndexBufferFactory? indexBufferFactory = null)
     {
+        EnsureMergeState(context);
+        MergeFrameWorld.Clear();
         graphics3D.DrawSkybox(view.SkyViewProjection);
         RenderSpritesAndSubTextures(context, graphics2D, textureFactory, view);
-        Render3D(context, graphics3D, textureFactory, modelFactory, view);
+        Render3D(context, graphics3D, textureFactory, modelFactory, view,
+            vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
+        CommitMergeWorldHistory();
+        EvictStaleCombinedMeshes();
     }
     
     private struct OrderedSprite
@@ -181,7 +192,10 @@ internal static class SceneRenderPipeline
         IGraphics3D graphics3D,
         ITextureFactory textureFactory,
         IModelFactory? modelFactory,
-        in SceneView view)
+        in SceneView view,
+        IVertexArrayFactory? vertexArrayFactory,
+        IVertexBufferFactory? vertexBufferFactory,
+        IIndexBufferFactory? indexBufferFactory)
     {
         var perf = new Render3DPerfFrame();
         PrepareActiveVisibilityZones(context, view.ViewPosition);
@@ -228,7 +242,10 @@ internal static class SceneRenderPipeline
             {
                 perf.DirectionalShadowPass = DrawOpaque3D(
                     context, graphics3D, textureFactory, modelFactory, near,
-                    shadowCasterMaxSq, shadowCasterView);
+                    shadowCasterMaxSq, shadowCasterView,
+                    vertexArrayFactory: vertexArrayFactory,
+                    vertexBufferFactory: vertexBufferFactory,
+                    indexBufferFactory: indexBufferFactory);
             }
             finally
             {
@@ -242,7 +259,10 @@ internal static class SceneRenderPipeline
                 {
                     perf.DirectionalShadowPass = Accumulate(perf.DirectionalShadowPass, DrawOpaque3D(
                         context, graphics3D, textureFactory, modelFactory, lightViewProjection,
-                        shadowCasterMaxSq, shadowCasterView));
+                        shadowCasterMaxSq, shadowCasterView,
+                        vertexArrayFactory: vertexArrayFactory,
+                        vertexBufferFactory: vertexBufferFactory,
+                        indexBufferFactory: indexBufferFactory));
                 }
                 finally
                 {
@@ -332,7 +352,8 @@ internal static class SceneRenderPipeline
                         perf.PointShadowOpaque3D++;
                         perf.PointShadowPass = Accumulate(perf.PointShadowPass,
                             DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, pointFaces[face],
-                                shadowCasterMaxSq, shadowCasterView, light.Position));
+                                shadowCasterMaxSq, shadowCasterView, light.Position,
+                                vertexArrayFactory, vertexBufferFactory, indexBufferFactory));
                     }
                     finally
                     {
@@ -350,7 +371,10 @@ internal static class SceneRenderPipeline
         graphics3D.BeginScene(view);
         try
         {
-            perf.ColorPass = DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, view.ViewProjection);
+            perf.ColorPass = DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, view.ViewProjection,
+                vertexArrayFactory: vertexArrayFactory,
+                vertexBufferFactory: vertexBufferFactory,
+                indexBufferFactory: indexBufferFactory);
         }
         finally
         {
@@ -373,6 +397,11 @@ internal static class SceneRenderPipeline
         dest.SingleMaterialDraws = color.SingleMaterialDraws;
         dest.MultiMaterialDraws = color.MultiMaterialDraws;
         dest.MaxBatchInstances = color.MaxBatchInstances;
+        dest.MergedGroups = color.MergedGroups;
+        dest.MergedVertices = color.MergedVertices;
+        dest.MergedRebuilds = color.MergedRebuilds
+                                + perf.DirectionalShadowPass.MergedRebuilds
+                                + perf.PointShadowPass.MergedRebuilds;
         dest.PointLights = perf.PointLights;
         dest.PointShadowLights = perf.PointShadowLights;
         dest.PointShadowCacheHits = perf.PointShadowLightsCacheHit;
@@ -394,6 +423,9 @@ internal static class SceneRenderPipeline
         public int SingleMaterialDraws;
         public int MultiMaterialDraws;
         public int MaxBatchInstances;
+        public int MergedGroups;
+        public long MergedVertices;
+        public int MergedRebuilds;
         public long Vertices;
         public long Indices;
         public double CpuMs;
@@ -429,6 +461,9 @@ internal static class SceneRenderPipeline
         total.SingleMaterialDraws += pass.SingleMaterialDraws;
         total.MultiMaterialDraws += pass.MultiMaterialDraws;
         total.MaxBatchInstances = System.Math.Max(total.MaxBatchInstances, pass.MaxBatchInstances);
+        total.MergedGroups += pass.MergedGroups;
+        total.MergedVertices += pass.MergedVertices;
+        total.MergedRebuilds += pass.MergedRebuilds;
         total.Vertices += pass.Vertices;
         total.Indices += pass.Indices;
         total.CpuMs += pass.CpuMs;
@@ -461,6 +496,7 @@ internal static class SceneRenderPipeline
             "dirShadow={DirShadow} dirRes={DirRes}x{DirRes} dirMeshDraws={DirMeshDraws} dirCubes={DirCubes} dirCulled={DirCulled} dirShadowCasterCulled={DirShadowCasterCulled} " +
             "colorMeshDraws={ColorMeshDraws} colorCubes={ColorCubes} colorCulled={ColorCulled} colorZoneCulled={ColorZoneCulled} " +
             "materialBatches single={SingleBatch} multi={MultiBatch} maxInstBatch={MaxBatch} meshInstances={Instances} " +
+            "merged groups={MergedGroups} vertices={MergedVertices} rebuilds={MergedRebuilds} " +
             "pointShadow lights={PointShadowLights} casters={Casters} cacheHit={CacheHit} tooFar={TooFar} redrawn={Redrawn} " +
             "fullSceneFaces={Faces} faceRes={PointRes}x{PointRes} pointMeshDraws={PointMeshDraws} estShadowFillPx={ShadowFillPx} " +
             "cpuMs dir={DirCpu:F2} color={ColorCpu:F2} point={PointCpu:F2}",
@@ -481,6 +517,9 @@ internal static class SceneRenderPipeline
             color.MultiMaterialDraws,
             color.MaxBatchInstances,
             color.Instances,
+            color.MergedGroups,
+            color.MergedVertices,
+            color.MergedRebuilds,
             perf.PointShadowLights,
             perf.PointShadowCasters,
             perf.PointShadowLightsCacheHit,
@@ -583,11 +622,15 @@ internal static class SceneRenderPipeline
         Matrix4x4 cullMatrix,
         float shadowCasterMaxDistanceSq = 0f,
         Vector3 shadowCasterViewPosition = default,
-        Vector3? skipCastersContainingLight = null)
+        Vector3? skipCastersContainingLight = null,
+        IVertexArrayFactory? vertexArrayFactory = null,
+        IVertexBufferFactory? vertexBufferFactory = null,
+        IIndexBufferFactory? indexBufferFactory = null)
     {
         var stats = new PassStats();
         var start = Stopwatch.GetTimestamp();
         var hasFrustum = Frustum.TryFromClip(cullMatrix, out var frustum);
+        var canMerge = vertexArrayFactory is not null && vertexBufferFactory is not null && indexBufferFactory is not null;
         try
         {
             foreach (var (entity, modelRenderer, transformComponent) in
@@ -619,6 +662,7 @@ internal static class SceneRenderPipeline
                     continue;
                 }
 
+                var mergeCandidate = canMerge && TrackAndClassifyForMerge(entity, transform);
                 var tint = modelRenderer.Color;
                 if (kind == OpaqueSurfaceKind.UnitCube)
                 {
@@ -631,12 +675,26 @@ internal static class SceneRenderPipeline
                                 modelRenderer.ModelPath, resolvedPath);
                     }
 
+                    var factors = ResolvePbr(modelRenderer);
+                    var emissive = CombineEmissive(Vector3.Zero, modelRenderer);
+                    if (mergeCandidate)
+                    {
+                        if (!TryResolveCubeTexture(textureFactory, modelRenderer, out var cubeTexture))
+                            continue;
+
+                        AppendMergeMember(
+                            MakeMergeKey(tint, cubeTexture, null, factors, emissive),
+                            new MergeMember(
+                                entity.Id, null, transform, cubeTexture, modelRenderer.TilingFactor));
+                        stats.Vertices += UnitCubeVertexCount;
+                        stats.Indices += UnitCubeIndexCount;
+                        continue;
+                    }
+
                     if (ShouldSkipOpaqueDraw(hasFrustum, frustum, transform, Aabb.UnitCube, shadowCasterMaxDistanceSq,
                             shadowCasterViewPosition, skipCastersContainingLight, ref stats))
                         continue;
 
-                    var factors = ResolvePbr(modelRenderer);
-                    var emissive = CombineEmissive(Vector3.Zero, modelRenderer);
                     if (!string.IsNullOrWhiteSpace(modelRenderer.TexturePath))
                         DrawCubeWithTexture(graphics3D, textureFactory, modelRenderer, transform, entity, factors, emissive);
                     else
@@ -650,6 +708,12 @@ internal static class SceneRenderPipeline
                 if (kind == OpaqueSurfaceKind.SingleSubmesh)
                 {
                     var submesh = model!.Submeshes[submeshIndex];
+                    if (mergeCandidate && submesh.BakeVertices is not null)
+                    {
+                        AppendMergeSubmesh(modelRenderer, transform, tint, entity.Id, submesh, ref stats);
+                        continue;
+                    }
+
                     if (submesh.Bounds is { } bounds
                         && ShouldSkipOpaqueDraw(hasFrustum, frustum, transform, bounds, shadowCasterMaxDistanceSq,
                             shadowCasterViewPosition, skipCastersContainingLight, ref stats))
@@ -661,6 +725,12 @@ internal static class SceneRenderPipeline
 
                 foreach (var submesh in model!.Submeshes)
                 {
+                    if (mergeCandidate && submesh.BakeVertices is not null)
+                    {
+                        AppendMergeSubmesh(modelRenderer, transform, tint, entity.Id, submesh, ref stats);
+                        continue;
+                    }
+
                     if (submesh.Bounds is { } bounds
                         && ShouldSkipOpaqueDraw(hasFrustum, frustum, transform, bounds, shadowCasterMaxDistanceSq,
                             shadowCasterViewPosition, skipCastersContainingLight, ref stats))
@@ -673,6 +743,9 @@ internal static class SceneRenderPipeline
         finally
         {
             FlushMeshBatches(graphics3D, ref stats);
+            FlushMergeGroups(graphics3D, hasFrustum, in frustum, shadowCasterMaxDistanceSq,
+                shadowCasterViewPosition, skipCastersContainingLight, ref stats,
+                vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
         }
 
         stats.CpuMs = Stopwatch.GetElapsedTime(start).TotalMilliseconds;

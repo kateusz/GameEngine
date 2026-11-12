@@ -25,6 +25,9 @@ public class Statistics
     public int SingleMaterialDraws { get; set; }
     public int MultiMaterialDraws { get; set; }
     public int MaxBatchInstances { get; set; }
+    public int MergedGroups { get; set; }
+    public long MergedVertices { get; set; }
+    public int MergedRebuilds { get; set; }
     public int PointLights { get; set; }
     public int PointShadowLights { get; set; }
     public int PointShadowCacheHits { get; set; }

@@ -5,6 +5,8 @@ using Engine.Core.Window;
 using Engine.Project;
 using Engine.Events.Input;
 using Engine.Renderer;
+using Engine.Renderer.Buffers;
+using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
@@ -20,6 +22,9 @@ public class BenchmarkLayer(
     SceneFactory sceneFactory,
     ITextureFactory textureFactory,
     IModelFactory modelFactory,
+    IVertexArrayFactory vertexArrayFactory,
+    IVertexBufferFactory vertexBufferFactory,
+    IIndexBufferFactory indexBufferFactory,
     ISceneSerializer scenes,
     IProjectContext projectContext,
     IGameWindow window,
@@ -29,10 +34,13 @@ public class BenchmarkLayer(
 {
     private readonly Benchmark2DRunner _twoD = new(graphics2D, sceneFactory, textureFactory);
     private readonly Benchmark3DRunner _threeD = new(
-        sceneFactory, graphics2D, graphics3D, textureFactory, modelFactory, scenes, projectContext,
-        window, hdrTarget, tonemap);
-    private readonly BenchmarkGridRunner _lighting = new("Lighting", sceneFactory, graphics2D, graphics3D, textureFactory, modelFactory);
-    private readonly BenchmarkGridRunner _shadows = new("Shadows", sceneFactory, graphics2D, graphics3D, textureFactory, modelFactory);
+        sceneFactory, graphics2D, graphics3D, textureFactory, modelFactory,
+        vertexArrayFactory, vertexBufferFactory, indexBufferFactory,
+        scenes, projectContext, window, hdrTarget, tonemap);
+    private readonly BenchmarkGridRunner _lighting = new("Lighting", sceneFactory, graphics2D, graphics3D, textureFactory,
+        modelFactory, vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
+    private readonly BenchmarkGridRunner _shadows = new("Shadows", sceneFactory, graphics2D, graphics3D, textureFactory,
+        modelFactory, vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
     private readonly ActiveRun _active = new();
     private readonly List<BenchmarkResult> _results = [];
     private readonly Stopwatch _frameTimer = new();

@@ -1,6 +1,8 @@
 using System.Numerics;
 using Engine.Events.Input;
 using Engine.Renderer;
+using Engine.Renderer.Buffers;
+using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
@@ -25,6 +27,9 @@ public sealed class PipelineBenchmarkRun : BenchmarkRun
     private readonly IGraphics3D _graphics3D;
     private readonly ITextureFactory _textures;
     private readonly IModelFactory _models;
+    private readonly IVertexArrayFactory? _vertexArrays;
+    private readonly IVertexBufferFactory? _vertexBuffers;
+    private readonly IIndexBufferFactory? _indexBuffers;
     private readonly bool _clearModelCache;
     private readonly Action? _onDispose;
     private readonly ExpectedShadow _expected;
@@ -43,6 +48,9 @@ public sealed class PipelineBenchmarkRun : BenchmarkRun
         IGraphics3D graphics3D,
         ITextureFactory textures,
         IModelFactory models,
+        IVertexArrayFactory? vertexArrays,
+        IVertexBufferFactory? vertexBuffers,
+        IIndexBufferFactory? indexBuffers,
         bool clearModelCache,
         ExpectedShadow expected,
         Action? onDispose = null,
@@ -58,6 +66,9 @@ public sealed class PipelineBenchmarkRun : BenchmarkRun
         _graphics3D = graphics3D;
         _textures = textures;
         _models = models;
+        _vertexArrays = vertexArrays;
+        _vertexBuffers = vertexBuffers;
+        _indexBuffers = indexBuffers;
         _clearModelCache = clearModelCache;
         _onDispose = onDispose;
         _expected = expected;
@@ -82,7 +93,8 @@ public sealed class PipelineBenchmarkRun : BenchmarkRun
         _scene.UpdateWorldTransforms();
         SceneRenderPipeline.RenderScene(
             _scene.Context, _graphics2D, _graphics3D, _textures, _models,
-            _camera.CreateView(_directionalShadows, _pointShadows));
+            _camera.CreateView(_directionalShadows, _pointShadows),
+            _vertexArrays, _vertexBuffers, _indexBuffers);
         _last = _graphics3D.GetStats();
     }
 

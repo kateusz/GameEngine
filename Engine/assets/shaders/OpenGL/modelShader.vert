@@ -5,6 +5,7 @@ layout(location = 1) in vec3 a_Normal;
 layout(location = 2) in vec2 a_TexCoord;
 layout(location = 3) in vec3 a_Tangent;
 layout(location = 4) in vec3 a_Bitangent;
+layout(location = 5) in int  a_EntityID;
 layout(location = 6) in mat4 a_InstanceModel;
 layout(location = 10) in mat4 a_InstanceNormal;
 layout(location = 14) in int a_InstanceEntityId;
@@ -29,7 +30,7 @@ void main()
     v_FragPos  = worldPos.xyz;
     v_Normal   = normalize(a_Normal * mat3(normalMat));
     v_TexCoord = a_TexCoord;
-    v_EntityID = u_Instanced != 0 ? a_InstanceEntityId : u_EntityID;
+    v_EntityID = u_Instanced != 0 ? a_InstanceEntityId : (u_EntityID >= 0 ? u_EntityID : a_EntityID);
 
     vec3 T = normalize(a_Tangent * mat3(normalMat));
     vec3 N = v_Normal;

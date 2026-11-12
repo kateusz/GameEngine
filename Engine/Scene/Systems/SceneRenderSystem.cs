@@ -1,5 +1,7 @@
 using ECS;
 using ECS.Systems;
+using Engine.Renderer.Buffers;
+using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
@@ -11,7 +13,10 @@ internal sealed class SceneRenderSystem(
     IGraphics3D graphics3D,
     ITextureFactory textureFactory,
     Context context,
-    IModelFactory modelFactory) : ISystem
+    IModelFactory modelFactory,
+    IVertexArrayFactory vertexArrayFactory,
+    IVertexBufferFactory vertexBufferFactory,
+    IIndexBufferFactory indexBufferFactory) : ISystem
 {
     public int Priority => 150;
 
@@ -22,6 +27,6 @@ internal sealed class SceneRenderSystem(
 
         SceneRenderPipeline.RenderScene(
             context, graphics2D, graphics3D, textureFactory, modelFactory,
-            view);
+            view, vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
     }
 }

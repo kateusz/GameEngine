@@ -24,6 +24,7 @@ public sealed class CliBenchmarkLayer(
     private readonly List<float> _allFrameTimes = new();
 
     private BenchmarkRun? _run;
+    private bool _runCreatePending = true;
     private float _phaseSeconds;
     private float _totalMeasuredSeconds;
     private bool _warmingUp;
@@ -51,20 +52,13 @@ public sealed class CliBenchmarkLayer(
         if (runner is Benchmark3DRunner threeD)
             threeD.SetCliScenePath(options.SceneFile);
 
-        var totalMeasure = options.MeasureSeconds * options.MeasureIterations;
-        var settings = new BenchmarkSettings(options.Count, options.WarmupSeconds + totalMeasure);
-        if (!runner.TryCreate(options.TestId, settings, out var run, out var createError) || run == null)
-        {
-            Fail(2, createError ?? "Failed to create benchmark run");
-            return;
-        }
-
-        _run = run;
-        _warmingUp = options.WarmupSeconds > 0f;
-        _measuring = options.WarmupSeconds <= 0f;
+        _runCreatePending = true;
+        _warmingUp = false;
+        _measuring = false;
         _phaseSeconds = 0f;
         _measureIteration = 0;
-        Logger.Information("Perf run {Category}:{Test} warmup={Warmup}s measure={Measure}s x{Iterations}",
+        Logger.Information(
+            "Perf run {Category}:{Test} warmup={Warmup}s measure={Measure}s x{Iterations} (scene load deferred to first frame)",
             options.Category, options.TestId, options.WarmupSeconds, options.MeasureSeconds, options.MeasureIterations);
     }
 
@@ -72,7 +66,16 @@ public sealed class CliBenchmarkLayer(
 
     public void OnUpdate(TimeSpan delta)
     {
-        if (_done || _run == null)
+        if (_done)
+            return;
+
+        if (_runCreatePending)
+        {
+            if (!TryCreateBenchmarkRun())
+                return;
+        }
+
+        if (_run == null)
             return;
 
         if (_wall.Elapsed.TotalSeconds > options.StartupTimeoutSeconds)
@@ -214,6 +217,33 @@ public sealed class CliBenchmarkLayer(
             iterationFps, iterationFrameMs);
         _exitCode = ok ? 0 : 2;
         RequestClose();
+    }
+
+    private bool TryCreateBenchmarkRun()
+    {
+        _runCreatePending = false;
+        var runner = runners.Create(options.Category);
+        if (runner == null)
+        {
+            Fail(2, $"Unknown category: {options.Category}");
+            return false;
+        }
+
+        if (runner is Benchmark3DRunner threeD)
+            threeD.SetCliScenePath(options.SceneFile);
+
+        var totalMeasure = options.MeasureSeconds * options.MeasureIterations;
+        var settings = new BenchmarkSettings(options.Count, options.WarmupSeconds + totalMeasure);
+        if (!runner.TryCreate(options.TestId, settings, out var run, out var createError) || run == null)
+        {
+            Fail(2, createError ?? "Failed to create benchmark run");
+            return false;
+        }
+
+        _run = run;
+        _warmingUp = options.WarmupSeconds > 0f;
+        _measuring = options.WarmupSeconds <= 0f;
+        return true;
     }
 
     private void Fail(int code, string message)

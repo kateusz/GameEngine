@@ -3,6 +3,8 @@ using Benchmark.Platform;
 using Engine.Core.Window;
 using Engine.Events.Input;
 using Engine.Project;
+using Engine.Renderer.Buffers;
+using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
@@ -19,6 +21,9 @@ public sealed class Benchmark3DRunner(
     IGraphics3D graphics3D,
     ITextureFactory textures,
     IModelFactory models,
+    IVertexArrayFactory vertexArrays,
+    IVertexBufferFactory vertexBuffers,
+    IIndexBufferFactory indexBuffers,
     ISceneSerializer scenes,
     IProjectContext projectContext,
     IGameWindow window,
@@ -42,6 +47,7 @@ public sealed class Benchmark3DRunner(
     [
         new("Cubes", "Cube count"),
         new("InstancedMesh", "Instanced mesh"),
+        new("MergedMesh", "Merged mesh"),
         new("UniqueMeshes", "Unique meshes"),
         new("GlbModels", "Project scene")
     ];
@@ -99,7 +105,7 @@ public sealed class Benchmark3DRunner(
         {
             BenchmarkScenes.AddDistrict(scene, count);
         }
-        else if (testId == "InstancedMesh")
+        else if (testId is "InstancedMesh" or "MergedMesh")
         {
             var path = PathBuilder.Resolve(BenchmarkScenes.TemplateAsset);
             if (models.Create(path, null) == null)
@@ -147,6 +153,9 @@ public sealed class Benchmark3DRunner(
             plan.ResultName, _duration, scene,
             plan.DirectionalShadows, plan.PointShadows,
             graphics2D, graphics3D, textures, models,
+            plan.StaticMeshMerging ? vertexArrays : null,
+            plan.StaticMeshMerging ? vertexBuffers : null,
+            plan.StaticMeshMerging ? indexBuffers : null,
             clearModelCache: testId == "UniqueMeshes",
             ExpectedShadow.None);
         error = null;
@@ -158,7 +167,11 @@ public sealed class Benchmark3DRunner(
         if (string.IsNullOrWhiteSpace(scenePath))
             return;
 
-        var full = Path.GetFullPath(scenePath);
+        var full = Path.IsPathRooted(scenePath)
+            ? scenePath
+            : projectContext.Root is { } root
+                ? Path.Combine(root, scenePath)
+                : Path.GetFullPath(scenePath);
         if (!File.Exists(full))
             return;
 
@@ -311,6 +324,7 @@ public sealed class Benchmark3DRunner(
             plan.ResultName, durationSeconds, scene,
             plan.DirectionalShadows, plan.PointShadows,
             graphics2D, graphics3D, textures, models,
+            vertexArrays, vertexBuffers, indexBuffers,
             clearModelCache: false,
             ExpectedShadow.None,
             display: _editorDisplay,

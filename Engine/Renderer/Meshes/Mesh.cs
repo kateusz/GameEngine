@@ -42,6 +42,12 @@ public class Mesh : IDisposable
 
     /// <summary>Local positions box captured at <see cref="Initialize"/>, kept after CPU vertices are released.</summary>
     internal Aabb? Bounds { get; private set; }
+
+    /// <summary>CPU vertex snapshot retained by source meshes for world-space concatenation.</summary>
+    internal Vertex[]? BakeVertices { get; private set; }
+
+    /// <summary>CPU index snapshot retained by source meshes for world-space concatenation.</summary>
+    internal uint[]? BakeIndices { get; private set; }
     public Texture2D? DiffuseTexture { get; set; }
     public Texture2D? NormalTexture { get; set; }
     public Texture2D? MetallicRoughnessTexture { get; set; }
@@ -81,7 +87,11 @@ public class Mesh : IDisposable
     }
 
     public void Initialize(IVertexArrayFactory vertexArrayFactory, IVertexBufferFactory vertexBufferFactory,
-        IIndexBufferFactory indexBufferFactory)
+        IIndexBufferFactory indexBufferFactory) =>
+        Initialize(vertexArrayFactory, vertexBufferFactory, indexBufferFactory, retainBakeGeometry: true);
+
+    internal void Initialize(IVertexArrayFactory vertexArrayFactory, IVertexBufferFactory vertexBufferFactory,
+        IIndexBufferFactory indexBufferFactory, bool retainBakeGeometry)
     {
         ArgumentNullException.ThrowIfNull(vertexArrayFactory);
         ArgumentNullException.ThrowIfNull(vertexBufferFactory);
@@ -96,12 +106,19 @@ public class Mesh : IDisposable
         vertexBuffer.SetLayout(Vertex.Layout);
         _vertexArray.AddVertexBuffer(vertexBuffer);
 
-        var indexBuffer = indexBufferFactory.Create([.. Indices], Indices.Count);
+        uint[] uploadedIndices = [.. Indices];
+        var indexBuffer = indexBufferFactory.Create(uploadedIndices, uploadedIndices.Length);
         _vertexArray.SetIndexBuffer(indexBuffer);
 
         _initialized = true;
         VertexCount = Vertices.Count;
         Bounds = Aabb.FromPositions(Vertices);
+
+        if (retainBakeGeometry)
+        {
+            BakeVertices = [.. Vertices];
+            BakeIndices = uploadedIndices;
+        }
 
         Vertices.Clear();
         Vertices.TrimExcess();

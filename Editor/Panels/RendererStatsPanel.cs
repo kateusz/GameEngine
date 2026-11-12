@@ -79,6 +79,7 @@ public class RendererStatsPanel(ISceneContext sceneContext, IGraphics2D graphics
         ImGui.Text($"Shadow Caster Culled: {stats.ShadowCasterCulled}");
         ImGui.Text($"Material Batches: single {stats.SingleMaterialDraws} / multi {stats.MultiMaterialDraws}");
         ImGui.Text($"Max Batch Instances: {stats.MaxBatchInstances}");
+        ImGui.Text($"Merged Groups: {stats.MergedGroups} (vertices {stats.MergedVertices}, rebuilds {stats.MergedRebuilds})");
 
         ImGui.Separator();
         ImGui.Text($"Directional Shadow: {(stats.DirectionalShadow ? "on" : "off")}");
@@ -132,6 +133,7 @@ public class RendererStatsPanel(ISceneContext sceneContext, IGraphics2D graphics
         sb.AppendLine($"Shadow Caster Culled: {stats.ShadowCasterCulled}");
         sb.AppendLine($"Material Batches: single {stats.SingleMaterialDraws} / multi {stats.MultiMaterialDraws}");
         sb.AppendLine($"Max Batch Instances: {stats.MaxBatchInstances}");
+        sb.AppendLine($"Merged Groups: {stats.MergedGroups} (vertices {stats.MergedVertices}, rebuilds {stats.MergedRebuilds})");
         sb.AppendLine();
         sb.AppendLine($"Directional Shadow: {(stats.DirectionalShadow ? "on" : "off")}");
         sb.AppendLine($"Point Lights: {stats.PointLights} (shadow: {stats.PointShadowLights}, cache hits: {stats.PointShadowCacheHits})");

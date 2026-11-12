@@ -14,7 +14,9 @@ using Engine.Core.Window;
 using Engine.Events.Input;
 using Engine.Physics;
 using Engine.Project;
+using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.FrameBuffer;
+using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
@@ -44,6 +46,9 @@ public sealed class EditorViewport(
     IPointerSurface pointerSurface,
     CameraGizmoDrawer cameraGizmoDrawer,
     IModelFactory modelFactory,
+    IVertexArrayFactory vertexArrayFactory,
+    IVertexBufferFactory vertexBufferFactory,
+    IIndexBufferFactory indexBufferFactory,
     EditorModelLoadService modelLoadService,
     IEditorHistory history,
     FxaaPass fxaaPass,
@@ -366,7 +371,8 @@ public sealed class EditorViewport(
                         _editorCamera.GetPosition(),
                         PointShadows: false,
                         SkyViewProjection: skyView * projection);
-                    SceneRenderPipeline.RenderScene(scene.Context, graphics2D, graphics3D, textureFactory, modelFactory, view);
+                    SceneRenderPipeline.RenderScene(scene.Context, graphics2D, graphics3D, textureFactory, modelFactory, view,
+                        vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
                     RenderEditor2DOverlays(scene.Context, view);
                 }
                 break;

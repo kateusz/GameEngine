@@ -5,6 +5,8 @@ using ECS.Systems;
 using Engine.Audio;
 using Engine.Core;
 using Engine.Physics;
+using Engine.Renderer.Buffers;
+using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
@@ -39,7 +41,10 @@ public class SceneSystemsFactoryTests
             Substitute.For<IAudio>(),
             new AudioPlaybackService(),
             worldFactory,
-            Substitute.For<IModelFactory>());
+            Substitute.For<IModelFactory>(),
+            Substitute.For<IVertexArrayFactory>(),
+            Substitute.For<IVertexBufferFactory>(),
+            Substitute.For<IIndexBufferFactory>());
 
         var systemManager = new SystemManager();
         factory.PopulateSystemManager(
