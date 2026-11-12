@@ -12,6 +12,7 @@ public static class BenchmarkHost
     public static Container CreateInteractive()
     {
         var container = new Container();
+        container.RegisterInstance(container); // ponytail: GameAssembly registration needs Container
         EngineIoCContainer.RegisterCore(container);
         container.Resolve<IProjectContext>().Apply(AppContext.BaseDirectory);
         EngineIoCContainer.RegisterWindowing(container, new EngineHostOptions("Benchmark", 1280, 720)
@@ -27,6 +28,7 @@ public static class BenchmarkHost
     public static Container CreateCli(PerfRunOptions cli)
     {
         var container = new Container();
+        container.RegisterInstance(container); // ponytail: GameAssembly registration needs Container
         EngineIoCContainer.RegisterCore(container);
         var projectContext = container.Resolve<IProjectContext>();
         if (!string.IsNullOrWhiteSpace(cli.ProjectRoot))

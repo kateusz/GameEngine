@@ -29,6 +29,9 @@ public sealed class PipelineStatsAggregator
         result.CustomMetrics["Avg Occlusion Culled"] = Avg(s => s.OcclusionCulled).ToString("F1");
         result.CustomMetrics["Avg Zone Culled"] = Avg(s => s.ZoneCulled).ToString("F1");
         result.CustomMetrics["Avg Color CPU Ms"] = Avg(s => s.ColorCpuMs).ToString("F3");
+        result.CustomMetrics["Avg Color Collect CPU Ms"] = Avg(s => s.ColorCollectCpuMs).ToString("F3");
+        result.CustomMetrics["Avg Color Mesh Flush CPU Ms"] = Avg(s => s.ColorMeshFlushCpuMs).ToString("F3");
+        result.CustomMetrics["Avg Color Merge Flush CPU Ms"] = Avg(s => s.ColorMergeFlushCpuMs).ToString("F3");
         result.CustomMetrics["Avg Shadow CPU Ms"] = Avg(s => s.ShadowCpuMs).ToString("F3");
         result.CustomMetrics["Max Color CPU Ms"] = _samples.Max(s => s.ColorCpuMs).ToString("F3");
     }
@@ -52,6 +55,9 @@ public sealed class PipelineStatsAggregator
             ZoneCulled = s.ZoneCulled,
             ShadowCasterCulled = s.ShadowCasterCulled,
             ColorCpuMs = s.ColorCpuMs,
+            ColorCollectCpuMs = s.ColorCollectCpuMs,
+            ColorMeshFlushCpuMs = s.ColorMeshFlushCpuMs,
+            ColorMergeFlushCpuMs = s.ColorMergeFlushCpuMs,
             ShadowCpuMs = s.ShadowCpuMs,
             PointLights = s.PointLights,
             PointShadowLights = s.PointShadowLights,

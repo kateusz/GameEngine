@@ -118,10 +118,10 @@ public sealed class PipelineBenchmarkRun : BenchmarkRun
         if (_disposed)
             return;
         _disposed = true;
+        _onDispose?.Invoke();
         _scene.Dispose();
         if (_clearModelCache)
             _models.Clear();
-        _onDispose?.Invoke();
     }
 
     public void Frame(Vector3 eye, Vector3 focal) => _camera.LookFrom(eye, focal);

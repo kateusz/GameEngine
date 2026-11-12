@@ -1,5 +1,7 @@
 using System.Numerics;
 using Benchmark.Platform;
+using DryIoc;
+using ECS.Systems;
 using Engine.Core.Window;
 using Engine.Events.Input;
 using Engine.Project;
@@ -10,8 +12,11 @@ using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
 using Engine.Scene;
 using Engine.Scene.Serializer;
+using Engine.Scripting;
 using ImGuiNET;
 using SceneComponents.Camera;
+using SceneComponents.Rendering;
+using Scripting;
 
 namespace Benchmark;
 
@@ -28,7 +33,12 @@ public sealed class Benchmark3DRunner(
     IProjectContext projectContext,
     IGameWindow window,
     FxaaPass hdrTarget,
-    TonemapPass tonemap) : IBenchmarkRunner
+    TonemapPass tonemap,
+    ISceneContext sceneContext,
+    IScriptEngine scriptEngine,
+    IComponentSerializerRegistry serializers,
+    Func<IEnumerable<IGameSystem>> resolveGameSystems,
+    Container container) : IBenchmarkRunner
 {
     private readonly EditorScenePresenter _editorDisplay = new(window, hdrTarget, tonemap);
     private int _count = 1000;
@@ -306,6 +316,15 @@ public sealed class Benchmark3DRunner(
             return false;
         }
 
+        var projectRoot = projectContext.Root
+                          ?? throw new InvalidOperationException("Project root missing after Apply.");
+        var startedPlay = TryLoadAndRegisterGameAssembly(projectRoot, out var gameAsmError);
+        if (gameAsmError is not null)
+        {
+            error = gameAsmError;
+            return false;
+        }
+
         var scene = sceneFactory.Create(Path.GetFileNameWithoutExtension(path), SceneDimension.ThreeD);
         try
         {
@@ -319,6 +338,17 @@ public sealed class Benchmark3DRunner(
         }
 
         scene.UpdateWorldTransforms();
+        if (startedPlay)
+        {
+            // Level kits (IslandDash) spawn meshes from GameAssembly systems, not the .scene file.
+            sceneContext.SetScene(scene);
+            RuntimeSceneStarter.Start(scene, sceneContext, resolveGameSystems());
+            scene.OnUpdateRuntime(TimeSpan.FromSeconds(1.0 / 60.0));
+        }
+
+        // ponytail: zones hide most of castle from the pulled-back camera — strip for draw-cost stress
+        foreach (var (_, model) in scene.Context.View<ModelRendererComponent>())
+            model.VisibilityZoneEntityId = -1;
         var plan = ScenePlans.Plan("3D", "GlbModels");
         pipeline = new PipelineBenchmarkRun(
             plan.ResultName, durationSeconds, scene,
@@ -327,11 +357,72 @@ public sealed class Benchmark3DRunner(
             vertexArrays, vertexBuffers, indexBuffers,
             clearModelCache: false,
             ExpectedShadow.None,
+            onDispose: startedPlay ? scene.OnRuntimeStop : null,
             display: _editorDisplay,
             matchEditorLight: true);
         if (TryPrimaryLook(scene, out var eye, out var focal))
             pipeline.Frame(eye, focal);
         return true;
+    }
+
+    /// <summary>
+    /// When <c>game.config.json</c> + GameAssembly.dll exist, load scripts so level builders can spawn geometry.
+    /// Returns false when this is a plain art project (no game assembly) — caller keeps scene-only path.
+    /// </summary>
+    bool TryLoadAndRegisterGameAssembly(string projectRoot, out string? error)
+    {
+        error = null;
+        var configPath = GameConfiguration.PathFor(projectRoot);
+        if (!File.Exists(configPath))
+            return false;
+        if (!GameConfiguration.TryLoad(configPath, out var config, out var loadError))
+        {
+            error = loadError;
+            return false;
+        }
+
+        if (!TryFindGameAssembly(projectRoot, config.GameAssemblyPath, out var dllPath))
+        {
+            error =
+                $"game.config.json found but GameAssembly.dll missing under {projectRoot}. " +
+                "Run the game's run.sh --no-run (or equivalent) first.";
+            return false;
+        }
+
+        scriptEngine.LoadGameAssemblyFromFile(dllPath);
+        var assembly = scriptEngine.GetLoadedGameAssembly();
+        if (assembly is null)
+        {
+            error = $"Failed to load game assembly from {dllPath}";
+            return false;
+        }
+
+        serializers.RegisterFromAssembly(assembly);
+        GameAssemblyContainerRegistration.TryRegisterContainer(container, assembly);
+        return true;
+    }
+
+    static bool TryFindGameAssembly(string projectRoot, string configuredPath, out string dllPath)
+    {
+        var name = string.IsNullOrWhiteSpace(configuredPath) ? "GameAssembly.dll" : Path.GetFileName(configuredPath);
+        string[] candidates =
+        [
+            Path.Combine(projectRoot, name),
+            Path.Combine(projectRoot, ".build", "Release", name),
+            Path.Combine(projectRoot, ".build", "Debug", name),
+            Path.Combine(projectRoot, ".build", "game-Release", name),
+            Path.Combine(projectRoot, ".build", "game-Debug", name),
+        ];
+        foreach (var c in candidates)
+        {
+            if (!File.Exists(c))
+                continue;
+            dllPath = Path.GetFullPath(c);
+            return true;
+        }
+
+        dllPath = "";
+        return false;
     }
 
     string? SelectedScenePath() =>

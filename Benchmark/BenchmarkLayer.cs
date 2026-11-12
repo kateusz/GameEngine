@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Numerics;
+using DryIoc;
+using ECS.Systems;
 using Engine.Core;
 using Engine.Core.Window;
 using Engine.Project;
@@ -12,7 +14,9 @@ using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
 using Engine.Scene;
 using Engine.Scene.Serializer;
+using Engine.Scripting;
 using ImGuiNET;
+using Scripting;
 
 namespace Benchmark;
 
@@ -29,14 +33,20 @@ public class BenchmarkLayer(
     IProjectContext projectContext,
     IGameWindow window,
     FxaaPass hdrTarget,
-    TonemapPass tonemap)
+    TonemapPass tonemap,
+    ISceneContext sceneContext,
+    IScriptEngine scriptEngine,
+    IComponentSerializerRegistry serializers,
+    Func<IEnumerable<IGameSystem>> resolveGameSystems,
+    Container container)
     : ILayer
 {
     private readonly Benchmark2DRunner _twoD = new(graphics2D, sceneFactory, textureFactory);
     private readonly Benchmark3DRunner _threeD = new(
         sceneFactory, graphics2D, graphics3D, textureFactory, modelFactory,
         vertexArrayFactory, vertexBufferFactory, indexBufferFactory,
-        scenes, projectContext, window, hdrTarget, tonemap);
+        scenes, projectContext, window, hdrTarget, tonemap,
+        sceneContext, scriptEngine, serializers, resolveGameSystems, container);
     private readonly BenchmarkGridRunner _lighting = new("Lighting", sceneFactory, graphics2D, graphics3D, textureFactory,
         modelFactory, vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
     private readonly BenchmarkGridRunner _shadows = new("Shadows", sceneFactory, graphics2D, graphics3D, textureFactory,

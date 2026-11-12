@@ -34,6 +34,12 @@ public class Statistics
     public int PointShadowCacheHits { get; set; }
     public bool DirectionalShadow { get; set; }
     public double ColorCpuMs { get; set; }
+    /// <summary>Color pass: entity walk + cull + queue (may include immediate cube draws).</summary>
+    public double ColorCollectCpuMs { get; set; }
+    /// <summary>Color pass: FlushMeshBatches (instanced / batched mesh submits).</summary>
+    public double ColorMeshFlushCpuMs { get; set; }
+    /// <summary>Color pass: FlushMergeGroups (CPU merge rebuild + submit).</summary>
+    public double ColorMergeFlushCpuMs { get; set; }
     public double ShadowCpuMs { get; set; }
 
     public long Triangles => Indices / 3;
