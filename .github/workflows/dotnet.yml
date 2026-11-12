@@ -32,11 +32,16 @@ jobs:
     - name: Test ECS.Tests
       id: ecs_tests
       run: dotnet test tests/ECS.Tests/ECS.Tests.csproj --no-build --verbosity normal
+    # Silk.NET Assimp/GLFW only probe system paths on Linux; point at NuGet natives under bin.
     - name: Test Engine.Tests
       id: engine_tests
+      env:
+        LD_LIBRARY_PATH: ${{ github.workspace }}/tests/Engine.Tests/bin/Debug/net10.0/runtimes/linux-x64/native
       run: dotnet test tests/Engine.Tests/Engine.Tests.csproj --no-build --verbosity normal --logger "trx;LogFileName=engine-tests.trx"
     - name: Test Editor.Tests
       id: editor_tests
+      env:
+        LD_LIBRARY_PATH: ${{ github.workspace }}/tests/Editor.Tests/bin/Debug/net10.0/runtimes/linux-x64/native
       run: dotnet test tests/Editor.Tests/Editor.Tests.csproj --no-build --verbosity normal --logger "trx;LogFileName=editor-tests.trx"
     - name: Test Engine.GraphicsTests
       id: graphics_tests

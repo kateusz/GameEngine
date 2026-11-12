@@ -20,6 +20,7 @@ public class Statistics
     // --- SceneRenderPipeline (color pass + lights) ---
     public int Renderers { get; set; }
     public int FrustumCulled { get; set; }
+    public int OcclusionCulled { get; set; }
     public int ZoneCulled { get; set; }
     public int ShadowCasterCulled { get; set; }
     public int SingleMaterialDraws { get; set; }

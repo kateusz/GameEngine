@@ -11,4 +11,6 @@ public readonly record struct SceneView(
     Matrix4x4 SkyViewProjection = default,
     float ViewportHeight = 0f,
     float FrustumHeightAtUnit = 0f,
-    bool Orthographic = false);
+    bool Orthographic = false,
+    /// <summary>Projection aspect (width/height). Used by software occlusion; must not be derived from ViewProjection.</summary>
+    float Aspect = 0f);

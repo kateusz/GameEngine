@@ -67,7 +67,7 @@ public class MeshCpuDataReleaseTests
     }
 
     [Fact]
-    public void Dispose_DisposesVertexArray_NotBuffersDirectly()
+    public void Dispose_DisposesVertexArrayAndOwnedIndexBuffers_NotVertexBuffer()
     {
         var vao = Substitute.For<IVertexArray>();
         var vbo = Substitute.For<IVertexBuffer>();
@@ -90,7 +90,8 @@ public class MeshCpuDataReleaseTests
 
         vao.Received(1).Dispose();
         vbo.DidNotReceive().Dispose();
-        ibo.DidNotReceive().Dispose();
+        // Mesh owns LOD index buffers (level 0 included) and must dispose them.
+        ibo.Received(1).Dispose();
     }
 
     private static IVertexArrayFactory VertexArrayFactory()

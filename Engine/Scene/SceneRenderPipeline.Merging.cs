@@ -233,6 +233,12 @@ internal static partial class SceneRenderPipeline
                     continue;
                 }
 
+                if (hasGroupBox && OcclusionGrid.IsOccluded(Matrix4x4.Identity, groupBox))
+                {
+                    stats.OcclusionCulled++;
+                    continue;
+                }
+
                 var checkCastersIndividually = skipCastersContainingLight is { } lamp
                     && (!hasGroupBox || Aabb.ContainsPoint(lamp, Matrix4x4.Identity, groupBox));
                 var entries = cached;
@@ -245,6 +251,13 @@ internal static partial class SceneRenderPipeline
                         if (ShouldSkipMergeMember(member, hasFrustum, in frustum, shadowCasterMaxDistanceSq,
                                 shadowCasterViewPosition, skipCastersContainingLight, ref stats))
                         {
+                            continue;
+                        }
+
+                        if (TryGetLocalBounds(member, out var memberBounds)
+                            && OcclusionGrid.IsOccluded(member.World, memberBounds))
+                        {
+                            stats.OcclusionCulled++;
                             continue;
                         }
 

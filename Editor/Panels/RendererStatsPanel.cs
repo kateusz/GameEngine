@@ -75,6 +75,7 @@ public class RendererStatsPanel(ISceneContext sceneContext, IGraphics2D graphics
         ImGui.Separator();
         ImGui.Text($"Renderers: {stats.Renderers}");
         ImGui.Text($"Frustum Culled: {stats.FrustumCulled}");
+        ImGui.Text($"Occlusion Culled: {stats.OcclusionCulled}");
         ImGui.Text($"Zone Culled: {stats.ZoneCulled}");
         ImGui.Text($"Shadow Caster Culled: {stats.ShadowCasterCulled}");
         ImGui.Text($"Material Batches: single {stats.SingleMaterialDraws} / multi {stats.MultiMaterialDraws}");
@@ -129,6 +130,7 @@ public class RendererStatsPanel(ISceneContext sceneContext, IGraphics2D graphics
         sb.AppendLine();
         sb.AppendLine($"Renderers: {stats.Renderers}");
         sb.AppendLine($"Frustum Culled: {stats.FrustumCulled}");
+        sb.AppendLine($"Occlusion Culled: {stats.OcclusionCulled}");
         sb.AppendLine($"Zone Culled: {stats.ZoneCulled}");
         sb.AppendLine($"Shadow Caster Culled: {stats.ShadowCasterCulled}");
         sb.AppendLine($"Material Batches: single {stats.SingleMaterialDraws} / multi {stats.MultiMaterialDraws}");

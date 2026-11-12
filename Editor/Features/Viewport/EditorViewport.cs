@@ -367,17 +367,15 @@ public sealed class EditorViewport(
                     skyView.M41 = 0f;
                     skyView.M42 = 0f;
                     skyView.M43 = 0f;
-                    var frustumHeight = MathF.Abs(projection.M22) > float.Epsilon
-                        ? 2f / MathF.Abs(projection.M22)
-                        : 0f;
                     var view = new SceneView(
                         viewMatrix * projection,
                         _editorCamera.GetPosition(),
                         PointShadows: false,
                         SkyViewProjection: skyView * projection,
                         ViewportHeight: _frameBuffer.GetSpecification().Height,
-                        FrustumHeightAtUnit: frustumHeight,
-                        Orthographic: projection.M44 != 0f);
+                        FrustumHeightAtUnit: CameraViews.FrustumHeightFromProjection(projection),
+                        Orthographic: projection.M44 != 0f,
+                        Aspect: CameraViews.AspectFromProjection(projection));
                     SceneRenderPipeline.RenderScene(scene.Context, graphics2D, graphics3D, textureFactory, modelFactory, view,
                         vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
                     RenderEditor2DOverlays(scene.Context, view);
