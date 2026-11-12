@@ -561,70 +561,10 @@ internal static partial class SceneRenderPipeline
         out PointShadowCache.CasterPose casterPose,
         out OpaqueSurfaceKind kind,
         out Model? model,
-        out int submeshIndex)
-    {
-        casterPose = default;
-        kind = default;
-        model = null;
-        submeshIndex = -1;
-
-        if (string.IsNullOrWhiteSpace(modelRenderer.ModelPath))
-        {
-            casterPose = new PointShadowCache.CasterPose(transform, Aabb.UnitCube, true);
-            kind = OpaqueSurfaceKind.UnitCube;
-            return true;
-        }
-
-        if (modelFactory == null)
-            return false;
-
-        var resolvedPath = PathBuilder.Resolve(modelRenderer.ModelPath);
-        model = modelFactory.Create(resolvedPath);
-        if (model == null)
-        {
-            casterPose = new PointShadowCache.CasterPose(transform, Aabb.UnitCube, true);
-            kind = OpaqueSurfaceKind.UnitCube;
-            return true;
-        }
-
-        if (modelRenderer.MeshIndex is int meshIndex)
-        {
-            if (meshIndex < 0 || meshIndex >= model.Submeshes.Count)
-                return false;
-
-            submeshIndex = meshIndex;
-            var submesh = model.Submeshes[meshIndex];
-            casterPose = submesh.Bounds is { } singleBounds
-                ? new PointShadowCache.CasterPose(transform, singleBounds, true)
-                : new PointShadowCache.CasterPose(transform, default, false);
-            kind = OpaqueSurfaceKind.SingleSubmesh;
-            return true;
-        }
-
-        if (modelRenderer.SuppressDraw)
-            return false;
-
-        var hasBounds = true;
-        var min = new Vector3(float.PositiveInfinity);
-        var max = new Vector3(float.NegativeInfinity);
-        foreach (var submesh in model.Submeshes)
-        {
-            if (submesh.Bounds is not { } bounds)
-            {
-                hasBounds = false;
-                break;
-            }
-
-            min = Vector3.Min(min, bounds.Min);
-            max = Vector3.Max(max, bounds.Max);
-        }
-
-        casterPose = hasBounds
-            ? new PointShadowCache.CasterPose(transform, new Aabb(min, max), true)
-            : new PointShadowCache.CasterPose(transform, default, false);
-        kind = OpaqueSurfaceKind.AllSubmeshes;
-        return true;
-    }
+        out int submeshIndex) =>
+        TryResolveOpaqueSurface(
+            modelRenderer, transform, modelFactory, cacheOnly: false,
+            out casterPose, out kind, out model, out submeshIndex, out _);
 
     private static PassStats DrawOpaque3D(
         Context context,
@@ -647,118 +587,21 @@ internal static partial class SceneRenderPipeline
         var collectStart = Stopwatch.GetTimestamp();
         try
         {
-            foreach (var (entity, modelRenderer, transformComponent) in
-                     context.View<ModelRendererComponent, TransformComponent>())
-            {
-                stats.Renderers++;
-                if (ShouldSkipForEntityVisibility(entity))
-                    continue;
+            MaterializeOpaqueCandidates(context, canMerge, ref stats);
+            var useParallel = !ForceSerialOpaqueCollect
+                              && OpaqueCandidates.Count >= ParallelOpaqueCollectThreshold;
+            var ctx = new OpaqueCollectContext(
+                hasFrustum, frustum, lodView, shadowCasterMaxDistanceSq,
+                shadowCasterViewPosition, skipCastersContainingLight,
+                modelFactory, textureFactory, useParallel);
 
-                if (ShouldSkipForVisibilityZone(modelRenderer.VisibilityZoneEntityId, context, ref stats))
-                    continue;
-
-                var transform = ModelMeshPivot.ToDrawTransform(
-                    transformComponent.GetWorldTransform(),
-                    modelRenderer.Pivot);
-                if (!TryResolveOpaqueSurface(
-                        modelRenderer, transform, modelFactory,
-                        out _, out var kind, out var model, out var submeshIndex))
-                {
-                    if (modelRenderer.MeshIndex is int meshIndex
-                        && !string.IsNullOrWhiteSpace(modelRenderer.ModelPath)
-                        && modelFactory != null)
-                    {
-                        var loaded = modelFactory.Create(PathBuilder.Resolve(modelRenderer.ModelPath));
-                        if (loaded != null && (meshIndex < 0 || meshIndex >= loaded.Submeshes.Count))
-                            stats.MissingMeshIndex++;
-                    }
-
-                    continue;
-                }
-
-                var mergeCandidate = canMerge && TrackAndClassifyForMerge(entity, transform);
-                var tint = modelRenderer.Color;
-                if (kind == OpaqueSurfaceKind.UnitCube)
-                {
-                    if (!string.IsNullOrWhiteSpace(modelRenderer.ModelPath))
-                    {
-                        var resolvedPath = PathBuilder.Resolve(modelRenderer.ModelPath);
-                        if (WarnedFailedModels.Add(resolvedPath))
-                            Logger.Warning(
-                                "Failed to load model assetPath={ModelPath} resolved={ResolvedPath} — drawing unit cube instead",
-                                modelRenderer.ModelPath, resolvedPath);
-                    }
-
-                    var factors = ResolvePbr(modelRenderer);
-                    var emissive = CombineEmissive(Vector3.Zero, modelRenderer);
-                    if (mergeCandidate)
-                    {
-                        if (!TryResolveCubeTexture(textureFactory, modelRenderer, out var cubeTexture))
-                            continue;
-
-                        AppendMergeMember(
-                            MakeMergeKey(tint, cubeTexture, null, factors, emissive),
-                            new MergeMember(
-                                entity.Id, null, transform, cubeTexture, modelRenderer.TilingFactor));
-                        stats.Vertices += UnitCubeVertexCount;
-                        stats.Indices += UnitCubeIndexCount;
-                        continue;
-                    }
-
-                    if (ShouldSkipOpaqueDraw(hasFrustum, frustum, transform, Aabb.UnitCube, shadowCasterMaxDistanceSq,
-                            shadowCasterViewPosition, skipCastersContainingLight, ref stats))
-                        continue;
-
-                    if (!string.IsNullOrWhiteSpace(modelRenderer.TexturePath))
-                        DrawCubeWithTexture(graphics3D, textureFactory, modelRenderer, transform, entity, factors, emissive);
-                    else
-                        graphics3D.DrawCube(transform, modelRenderer.Color, entity.Id,
-                            metallic: factors.Metallic, roughness: factors.Roughness, ao: factors.Ao,
-                            emissive: emissive);
-                    stats.CubeDraws++;
-                    continue;
-                }
-
-                if (kind == OpaqueSurfaceKind.SingleSubmesh)
-                {
-                    var submesh = model!.Submeshes[submeshIndex];
-                    var level = MeshLod.Select(submesh, transform, lodView.ViewPosition, lodView, modelRenderer.LodBias);
-                    if (mergeCandidate && submesh.LodCount <= 1 && submesh.BakeVertices is not null)
-                    {
-                        AppendMergeSubmesh(modelRenderer, transform, tint, entity.Id, submesh, ref stats);
-                        continue;
-                    }
-
-                    if (submesh.Bounds is { } bounds
-                        && ShouldSkipOpaqueDraw(hasFrustum, frustum, transform, bounds, shadowCasterMaxDistanceSq,
-                            shadowCasterViewPosition, skipCastersContainingLight, ref stats))
-                        continue;
-
-                    QueueSubmesh(modelRenderer, transform, tint, entity.Id, submesh, level, ref stats);
-                    continue;
-                }
-
-                foreach (var submesh in model!.Submeshes)
-                {
-                    var level = MeshLod.Select(submesh, transform, lodView.ViewPosition, lodView, modelRenderer.LodBias);
-                    if (mergeCandidate && submesh.LodCount <= 1 && submesh.BakeVertices is not null)
-                    {
-                        AppendMergeSubmesh(modelRenderer, transform, tint, entity.Id, submesh, ref stats);
-                        continue;
-                    }
-
-                    if (submesh.Bounds is { } bounds
-                        && ShouldSkipOpaqueDraw(hasFrustum, frustum, transform, bounds, shadowCasterMaxDistanceSq,
-                            shadowCasterViewPosition, skipCastersContainingLight, ref stats))
-                        continue;
-
-                    QueueSubmesh(modelRenderer, transform, tint, entity.Id, submesh, level, ref stats);
-                }
-            }
+            if (useParallel)
+                CollectOpaqueParallel(graphics3D, ctx, ref stats);
+            else
+                CollectOpaqueSerial(graphics3D, ctx, ref stats);
         }
         finally
         {
-            // ponytail: three Stopwatches in the hot pass — enough to decide thread targets; drop when threading lands
             stats.CollectCpuMs = Stopwatch.GetElapsedTime(collectStart).TotalMilliseconds;
             var meshFlushStart = Stopwatch.GetTimestamp();
             FlushMeshBatches(graphics3D, ref stats);
@@ -857,8 +700,10 @@ internal static partial class SceneRenderPipeline
         int entityId,
         Mesh submesh,
         int level,
-        ref PassStats stats)
+        ref PassStats stats,
+        Dictionary<MeshBatchKey, List<MeshDrawInstance>>? batches = null)
     {
+        batches ??= MeshBatches;
         stats.Instances++;
         stats.Vertices += submesh.VertexCount;
         stats.Indices += submesh.IndexCountAt(level);
@@ -867,10 +712,10 @@ internal static partial class SceneRenderPipeline
         var pbr = ResolvePbr(modelRenderer);
         var emissive = CombineEmissive(submesh.EmissiveFactor, modelRenderer);
         var key = new MeshBatchKey(submesh, tint, pbr.Metallic, pbr.Roughness, pbr.Ao, emissive, level);
-        if (!MeshBatches.TryGetValue(key, out var batch))
+        if (!batches.TryGetValue(key, out var batch))
         {
-            batch = BatchLists.Count > 0 ? BatchLists.Pop() : [];
-            MeshBatches[key] = batch;
+            batch = ReferenceEquals(batches, MeshBatches) && BatchLists.Count > 0 ? BatchLists.Pop() : [];
+            batches[key] = batch;
         }
 
         batch.Add(new MeshDrawInstance
