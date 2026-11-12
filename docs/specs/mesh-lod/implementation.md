@@ -10,7 +10,7 @@ Package, on `Engine/Engine.csproj` only:
 
 `RuntimeMeshFormat.Version` becomes 2. `ImporterVersion` becomes 8 so the editor stamp misses and rewrites siblings. The reader accepts 1 and 2.
 
-Option bits match meshoptimizer 1.0, which that package vendors: lock border `1 << 0`, sparse `1 << 1`.
+Option bit used: lock border `1 << 0`.
 
 ## 1. Component field
 
@@ -65,7 +65,7 @@ view = new SceneView(
     Orthographic: orthographic);
 ```
 
-`SceneRenderSystem` already receives its dependencies from DryIoc. Add `IGameWindow` and pass `FramebufferSize.Y` into `CameraQueries.TryGetPrimaryView`. The editor viewport sets the same three fields from `_editorCamera.GetProjectionMatrix()` and `_frameBuffer.GetSpecification()` height. No new container registration.
+`LodViewportHeight` resolves the pixel height for LOD selection: window framebuffer by default, overridden by the editor Play path with the bound viewport framebuffer height. `SceneRenderSystem` passes `lodViewportHeight.Resolve()` into `CameraQueries.TryGetPrimaryView`. Edit-mode viewport builds `SceneView` from `_editorCamera` and `_frameBuffer.GetSpecification()` height directly.
 
 ## 3. Levels on Mesh
 
@@ -103,13 +103,14 @@ Level 0 is the original index buffer and is not stored in `LodErrors`. Entry `i`
 
 ## 4. Simplifier
 
-`RuntimeMeshLodSimplifier.TrySimplify`, called from `RuntimeMeshBuilder` after a successful Assimp import, per submesh, before `RuntimeMeshWriter.TryWrite`. Returns false on native failure so the builder skips stamping the sibling. Positions are a `float*` at the start of each 56-byte vertex. Attribute stream is normal (3) then UV (2), weights all 1. Each level simplifies from the original indices. `resultError` is relative to that original; `meshopt_simplifyScale` turns it into mesh units.
+`RuntimeMeshLodSimplifier.TrySimplify`, called from `RuntimeMeshBuilder` after a successful Assimp import, per submesh, before `RuntimeMeshWriter.TryWrite`. Returns false on native failure so the builder skips stamping the sibling. Positions are packed XYZ floats with stride 12. Attribute stream is normal (3) then UV (2), weights all 1. Each level simplifies from the original indices. `resultError` is relative to that original; `meshopt_simplifyScale` turns it into mesh units.
 
 ```csharp
 const uint LockBorder = 1u << 0;
 const float MaxRelativeError = 1f;
+const int PositionStride = 12;
 
-float scale = MeshOptimizer.SimplifyScale(positions, (UIntPtr)vertexCount, (UIntPtr)56);
+float scale = MeshOptimizer.SimplifyScale(positions, (UIntPtr)vertexCount, (UIntPtr)PositionStride);
 var source = (uint[])indices.Clone();
 var previousCount = source.Length;
 var previousError = 0f;
@@ -121,7 +122,7 @@ while (target >= 12 && target < previousCount * 0.75f)
     float step = 0f;
     var written = MeshOptimizer.SimplifyWithAttributes(
         destination, source, (UIntPtr)source.Length,
-        positions, (UIntPtr)vertexCount, (UIntPtr)56,
+        positions, (UIntPtr)vertexCount, (UIntPtr)PositionStride,
         attributes, (UIntPtr)20, weights, (UIntPtr)5,
         vertex_lock: null,
         (UIntPtr)target, MaxRelativeError,

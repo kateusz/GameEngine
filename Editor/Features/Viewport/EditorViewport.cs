@@ -54,7 +54,8 @@ public sealed class EditorViewport(
     FxaaPass fxaaPass,
     TonemapPass tonemapPass,
     SelectionOutlinePass selectionOutlinePass,
-    IEditorPreferences editorPreferences)
+    IEditorPreferences editorPreferences,
+    LodViewportHeight lodViewportHeight)
     : IEditorViewport
 {
     private readonly Vector2[] _viewportBounds = new Vector2[2];
@@ -383,7 +384,15 @@ public sealed class EditorViewport(
                 }
                 break;
             case SceneState.Play:
-                sceneContext.ActiveScene?.OnUpdateRuntime(deltaTime);
+                lodViewportHeight.OverridePixels = _frameBuffer.GetSpecification().Height;
+                try
+                {
+                    sceneContext.ActiveScene?.OnUpdateRuntime(deltaTime);
+                }
+                finally
+                {
+                    lodViewportHeight.OverridePixels = null;
+                }
                 break;
         }
 

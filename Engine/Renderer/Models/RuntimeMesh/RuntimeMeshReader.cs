@@ -374,35 +374,50 @@ internal static class RuntimeMeshReader
 
         for (var level = 0; level < lodCount; level++)
         {
-            if (!reader.TryReadSingle(out var error) || !float.IsFinite(error) || error <= 0f)
+            if (!TryReadOneLodLevel(reader, recordEnd, vertexCount, out var error, out var indices))
                 return false;
-            if (!reader.TryReadUInt32(out var indexCount)
-                || indexCount == 0
-                || indexCount % 3 != 0
-                || indexCount > RuntimeMeshFormat.MaxIndexCount)
-                return false;
-
-            var indexBytes = (int)indexCount * 4;
-            if (reader.Position > recordEnd - indexBytes)
-                return false;
-            if (!reader.TryReadBytes(indexBytes, out var indexData))
-                return false;
-
-            var indices = new uint[indexCount];
-            for (var idx = 0; idx < indexCount; idx++)
-            {
-                var index = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(indexData.Slice(idx * 4, 4));
-                if (index >= (uint)vertexCount)
-                    return false;
-
-                indices[idx] = index;
-            }
 
             parsed.LodErrors.Add(error);
             parsed.LodIndices.Add(indices);
         }
 
         return reader.Position <= recordEnd;
+    }
+
+    private static bool TryReadOneLodLevel(
+        RuntimeMeshBinaryReader reader,
+        int recordEnd,
+        int vertexCount,
+        out float error,
+        out uint[] indices)
+    {
+        error = 0f;
+        indices = [];
+        if (!reader.TryReadSingle(out error) || !float.IsFinite(error) || error <= 0f)
+            return false;
+        if (!reader.TryReadUInt32(out var indexCount)
+            || indexCount == 0
+            || indexCount % 3 != 0
+            || indexCount > RuntimeMeshFormat.MaxIndexCount)
+            return false;
+
+        var indexBytes = (int)indexCount * 4;
+        if (reader.Position > recordEnd - indexBytes)
+            return false;
+        if (!reader.TryReadBytes(indexBytes, out var indexData))
+            return false;
+
+        indices = new uint[indexCount];
+        for (var idx = 0; idx < indexCount; idx++)
+        {
+            var index = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(indexData.Slice(idx * 4, 4));
+            if (index >= (uint)vertexCount)
+                return false;
+
+            indices[idx] = index;
+        }
+
+        return true;
     }
 
     private static bool TryReadNodeTable(

@@ -1,6 +1,5 @@
 using ECS;
 using ECS.Systems;
-using Engine.Core.Window;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Models;
@@ -18,13 +17,13 @@ internal sealed class SceneRenderSystem(
     IVertexArrayFactory vertexArrayFactory,
     IVertexBufferFactory vertexBufferFactory,
     IIndexBufferFactory indexBufferFactory,
-    IGameWindow gameWindow) : ISystem
+    LodViewportHeight lodViewportHeight) : ISystem
 {
     public int Priority => 150;
 
     public void OnUpdate(TimeSpan deltaTime)
     {
-        if (!CameraQueries.TryGetPrimaryView(context, gameWindow.FramebufferSize.Y, out var view))
+        if (!CameraQueries.TryGetPrimaryView(context, lodViewportHeight.Resolve(), out var view))
             return;
 
         SceneRenderPipeline.RenderScene(

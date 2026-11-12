@@ -46,7 +46,7 @@ public class SceneSystemsFactoryTests
             Substitute.For<IVertexArrayFactory>(),
             Substitute.For<IVertexBufferFactory>(),
             Substitute.For<IIndexBufferFactory>(),
-            Substitute.For<IGameWindow>());
+            new LodViewportHeight(Substitute.For<IGameWindow>()));
 
         var systemManager = new SystemManager();
         factory.PopulateSystemManager(

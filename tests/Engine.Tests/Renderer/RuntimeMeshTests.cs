@@ -132,13 +132,15 @@ public class RuntimeMeshTests
     [Fact]
     public void TryRead_Version1_LoadsBaseIndicesAndNoExtraLevel()
     {
-        var bytes = RuntimeMeshWriter.Serialize(SampleModel(), new RuntimeMeshStamp(1, new byte[32],
-            RuntimeMeshFormat.ImporterVersion, RuntimeMeshFormat.AssimpPostProcessFlags));
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(
-            bytes.AsSpan(RuntimeMeshFormat.Magic.Length), 1);
+        var model = SampleModel();
+        model.Submeshes[0].LodIndices.Add([0u, 1u, 2u]);
+        model.Submeshes[0].LodErrors.Add(0.5f);
+        var bytes = RuntimeMeshWriter.Serialize(model, new RuntimeMeshStamp(1, new byte[32],
+            RuntimeMeshFormat.ImporterVersion, RuntimeMeshFormat.AssimpPostProcessFlags), version: 1);
 
         RuntimeMeshReader.TryRead(bytes, out var read).ShouldBeTrue();
-        var mesh = ToMesh(read!.Submeshes[0]);
+        read!.Submeshes[0].LodIndices.ShouldBeEmpty();
+        var mesh = ToMesh(read.Submeshes[0]);
         mesh.Indices.ShouldBe([0u, 1u, 2u]);
         mesh.LodCount.ShouldBe(1);
     }

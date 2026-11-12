@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.InteropServices;
 using Engine.Renderer.Meshes;
 using Engine.Renderer.Models.RuntimeMesh;
 using Shouldly;
@@ -8,13 +9,24 @@ namespace Engine.Tests.Renderer;
 [Trait("Category", "Unit")]
 public class RuntimeMeshLodSimplifierTests
 {
+    // Evergine.Bindings.MeshOptimizer ships osx-arm64 only among macOS RIDs.
+    private static bool NativeSimplifyAvailable =>
+        !(OperatingSystem.IsMacOS() && RuntimeInformation.ProcessArchitecture == Architecture.X64);
+
     [Fact]
     public void TrySimplify_Grid_StoresShorterInRangeLevelsWithGrowingError()
     {
         var submesh = Grid(8);
 
-        RuntimeMeshLodSimplifier.TrySimplify(submesh).ShouldBeTrue();
+        var ok = RuntimeMeshLodSimplifier.TrySimplify(submesh);
+        if (!NativeSimplifyAvailable)
+        {
+            ok.ShouldBeFalse();
+            submesh.LodIndices.ShouldBeEmpty();
+            return;
+        }
 
+        ok.ShouldBeTrue();
         submesh.LodIndices.Count.ShouldBeGreaterThan(1);
         submesh.LodErrors.Count.ShouldBe(submesh.LodIndices.Count);
         var previous = submesh.Indices.Count;
@@ -51,8 +63,15 @@ public class RuntimeMeshLodSimplifierTests
             submesh.Indices.AddRange([start, start + 1, start + 2]);
         }
 
-        RuntimeMeshLodSimplifier.TrySimplify(submesh).ShouldBeTrue();
+        var ok = RuntimeMeshLodSimplifier.TrySimplify(submesh);
+        if (!NativeSimplifyAvailable)
+        {
+            ok.ShouldBeFalse();
+            submesh.LodIndices.ShouldBeEmpty();
+            return;
+        }
 
+        ok.ShouldBeTrue();
         submesh.LodIndices.ShouldBeEmpty();
     }
 

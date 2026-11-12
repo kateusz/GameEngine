@@ -21,13 +21,14 @@ internal static class RuntimeMeshLodSimplifier
         if (vertexCount == 0 || submesh.Indices.Count <= 12 || submesh.Indices.Count % 3 != 0)
             return true;
 
-        var floatsPerVertex = RuntimeMeshFormat.VertexLayoutStride / sizeof(float);
-        var positions = new float[vertexCount * floatsPerVertex];
+        // Packed XYZ only — meshoptimizer position stride is 12, not the 56-byte vertex layout.
+        const int PositionStride = 12;
+        var positions = new float[vertexCount * 3];
         var attributes = new float[vertexCount * 5];
         for (var i = 0; i < vertexCount; i++)
         {
             var vertex = submesh.Vertices[i];
-            var baseIndex = i * floatsPerVertex;
+            var baseIndex = i * 3;
             positions[baseIndex] = vertex.Position.X;
             positions[baseIndex + 1] = vertex.Position.Y;
             positions[baseIndex + 2] = vertex.Position.Z;
@@ -50,7 +51,7 @@ internal static class RuntimeMeshLodSimplifier
         {
             float scale;
             fixed (float* positionPtr = positions)
-                scale = MeshOptimizer.SimplifyScale(positionPtr, (UIntPtr)vertexCount, (UIntPtr)RuntimeMeshFormat.VertexLayoutStride);
+                scale = MeshOptimizer.SimplifyScale(positionPtr, (UIntPtr)vertexCount, (UIntPtr)PositionStride);
 
             var target = (uint)System.Math.Max(12, (previousCount / 3 / 2) * 3);
             while (target >= 12 && target < previousCount * 0.75f)
@@ -66,7 +67,7 @@ internal static class RuntimeMeshLodSimplifier
                 {
                     written = MeshOptimizer.SimplifyWithAttributes(
                         destinationPtr, indexPtr, (UIntPtr)source.Length,
-                        positionPtr, (UIntPtr)vertexCount, (UIntPtr)RuntimeMeshFormat.VertexLayoutStride,
+                        positionPtr, (UIntPtr)vertexCount, (UIntPtr)PositionStride,
                         attributePtr, (UIntPtr)20, weightPtr, (UIntPtr)5,
                         vertex_lock: null,
                         (UIntPtr)target, MaxRelativeError,
