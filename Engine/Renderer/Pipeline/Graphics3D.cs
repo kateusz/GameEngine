@@ -60,6 +60,9 @@ internal sealed class Graphics3D(
     private readonly bool[] _pointShadowEnabled = new bool[LightingMath.MaxPointLights];
     private bool _shadowPass;
     private bool _pointShadowPass;
+    private bool _colorPass;
+    private IShader? _colorShader;
+    private bool? _drawCulling;
     private IFrameBuffer? _activePointMap;
     private Matrix4x4 _lightViewProjection = Matrix4x4.Identity;
     private Matrix4x4 _farLightViewProjection = Matrix4x4.Identity;
@@ -200,20 +203,20 @@ internal sealed class Graphics3D(
     public void BeginShadowCascade(Matrix4x4 lightViewProjection, int cascade)
     {
         _shadowPass = true;
+        _colorShader = null;
+        _drawCulling = null;
         var map = ShadowMap();
         map.Bind();
+        rendererApi.SetDepthTest(true);
+        rendererApi.SetDepthWrite(true);
         var res = (uint)_quality.DirectionalResolution;
         if (cascade == 0)
         {
             rendererApi.SetViewport(0, 0, res * (uint)_quality.Cascades, res);
-            rendererApi.SetDepthTest(true);
-            rendererApi.SetDepthWrite(true);
             rendererApi.Clear();
         }
 
         rendererApi.SetViewport((int)(cascade * res), 0, res, res);
-        rendererApi.SetDepthTest(true);
-        rendererApi.SetDepthWrite(true);
         _depthShader.Bind();
         _depthShader.SetMat4(ViewProjectionUniform, lightViewProjection);
     }
@@ -221,6 +224,7 @@ internal sealed class Graphics3D(
     public void EndShadowPass()
     {
         _depthShader.Unbind();
+        RestoreDrawCulling();
         _shadowMap?.Unbind();
         _shadowPass = false;
     }
@@ -246,6 +250,8 @@ internal sealed class Graphics3D(
         _pointShadowEntity[lightIndex] = entityId;
         _shadowPass = true;
         _pointShadowPass = true;
+        _colorShader = null;
+        _drawCulling = null;
         _activePointMap = map;
         map.Bind();
         map.BindDepthCubemapFace(face);
@@ -279,7 +285,9 @@ internal sealed class Graphics3D(
         _pointDepthShader.Unbind();
         _activePointMap?.Unbind();
         _activePointMap = null;
-        rendererApi.SetCullFrontFaces(false);
+        if (_drawCulling != true)
+            rendererApi.SetCullFrontFaces(false);
+        _drawCulling = null;
         _pointShadowPass = false;
         _shadowPass = false;
     }
@@ -349,6 +357,8 @@ internal sealed class Graphics3D(
             _skyShader.Unbind();
             rendererApi.SetFaceCulling(true);
             rendererApi.SetDepthWrite(true);
+            _colorShader = null;
+            _drawCulling = null;
         }
     }
 
@@ -403,6 +413,8 @@ internal sealed class Graphics3D(
             rendererApi.SetFaceCulling(true);
             rendererApi.SetDepthWrite(true);
             rendererApi.SetBlend(true);
+            _colorShader = null;
+            _drawCulling = null;
         }
     }
 
@@ -424,14 +436,24 @@ internal sealed class Graphics3D(
 
     public void BeginScene(in SceneView view)
     {
+        EndScene();
         _modelMaterial = null;
         _viewProjection = view.ViewProjection;
         _viewPosition = view.ViewPosition;
         UploadFrame();
+        rendererApi.SetDepthTest(true);
+        _colorPass = true;
     }
 
     public void EndScene()
     {
+        if (!_colorPass)
+            return;
+
+        _colorShader?.Unbind();
+        _colorShader = null;
+        RestoreDrawCulling();
+        _colorPass = false;
     }
 
     public void DrawCube(Matrix4x4 transform, Vector4 color, int entityId = -1, Texture2D? texture = null,
@@ -444,8 +466,14 @@ internal sealed class Graphics3D(
             return;
         }
 
-        rendererApi.SetDepthTest(true);
-        BindCommon(_cubeShader, transform, color, entityId);
+        BeginColorDraw(_cubeShader);
+        if (_colorPass)
+            SetDrawCulling(true);
+
+        _cubeShader.SetMat4("u_Model", transform);
+        _cubeShader.SetMat4("u_NormalMatrix", ComputeNormalMatrix(transform));
+        _cubeShader.SetFloat4("u_Color", color);
+        _cubeShader.SetInt("u_EntityID", entityId);
         
         _cubeShader.SetFloat("u_TilingFactor", tilingFactor);
         _cubeShader.SetFloat("u_Metallic", metallic);
@@ -462,7 +490,8 @@ internal sealed class Graphics3D(
         _cubeMesh.Bind();
         rendererApi.DrawIndexed(_cubeMesh.GetVertexArray(), (uint)_cubeMesh.GetIndexCount());
         RecordDraw(_cubeMesh, instanceCount: 1, isCube: true);
-        _cubeShader.Unbind();
+        if (!_colorPass)
+            _cubeShader.Unbind();
     }
 
     public void DrawMesh(Matrix4x4 transform, Mesh mesh, Vector4 tint, int entityId = -1,
@@ -499,13 +528,11 @@ internal sealed class Graphics3D(
 
             ApplyShadowSurface(_depthShader, mesh);
             UploadAndDraw(mesh, instances, _depthShader);
-            rendererApi.SetFaceCulling(true);
             return;
         }
 
-        rendererApi.SetDepthTest(true);
-        _modelShader.Bind();
-        rendererApi.SetFaceCulling(!mesh.DoubleSided);
+        BeginColorDraw(_modelShader);
+        SetDrawCulling(!mesh.DoubleSided);
         UploadModelMaterial(mesh, instances[0]);
         BindModelTexture(mesh.DiffuseTexture, 0, "u_DiffuseUvScale");
         BindModelTexture(mesh.MetallicRoughnessTexture, 1, "u_MetallicRoughnessUvScale");
@@ -513,9 +540,48 @@ internal sealed class Graphics3D(
         BindModelTexture(mesh.OcclusionTexture, OcclusionMapSlot, "u_OcclusionUvScale");
 
         UploadAndDraw(mesh, instances, _modelShader);
-        _modelShader.Unbind();
-        rendererApi.SetFaceCulling(true);
+        if (!_colorPass)
+        {
+            _modelShader.Unbind();
+            RestoreDrawCulling();
+        }
+
         DrawEmissive(mesh, instances);
+    }
+
+    private void BeginColorDraw(IShader shader)
+    {
+        if (!_colorPass)
+            rendererApi.SetDepthTest(true);
+
+        BindColorShader(shader);
+    }
+
+    private void BindColorShader(IShader shader)
+    {
+        if (ReferenceEquals(_colorShader, shader))
+            return;
+
+        shader.Bind();
+        if (_colorPass)
+            _colorShader = shader;
+    }
+
+    private void SetDrawCulling(bool enabled)
+    {
+        if (_drawCulling == enabled)
+            return;
+
+        rendererApi.SetFaceCulling(enabled);
+        _drawCulling = enabled;
+    }
+
+    private void RestoreDrawCulling()
+    {
+        if (_drawCulling == false)
+            rendererApi.SetFaceCulling(true);
+
+        _drawCulling = null;
     }
 
     private void UploadModelMaterial(Mesh mesh, in MeshDrawInstance instance)
@@ -564,10 +630,11 @@ internal sealed class Graphics3D(
         rendererApi.SetBlend(true);
         rendererApi.SetAdditiveBlend(true);
         rendererApi.SetDepthWrite(false);
-        rendererApi.SetFaceCulling(!mesh.DoubleSided);
+        if (!_colorPass)
+            rendererApi.SetFaceCulling(!mesh.DoubleSided);
         try
         {
-            _emissiveShader.Bind();
+            BindColorShader(_emissiveShader);
             _emissiveShader.SetFloat3("u_Emissive", factor);
             SetMapUvScale(_emissiveShader, "u_EmissiveUvScale", mesh.EmissiveTexture);
             mesh.EmissiveTexture.Bind(0);
@@ -575,8 +642,11 @@ internal sealed class Graphics3D(
         }
         finally
         {
-            _emissiveShader.Unbind();
-            rendererApi.SetFaceCulling(true);
+            if (!_colorPass)
+            {
+                _emissiveShader.Unbind();
+                rendererApi.SetFaceCulling(true);
+            }
             rendererApi.SetDepthWrite(true);
             rendererApi.SetAdditiveBlend(false);
             rendererApi.SetBlend(false);
@@ -699,7 +769,7 @@ internal sealed class Graphics3D(
     {
         var cutout = mesh.AlphaCutout && mesh.HasDiffuseMap;
         shader.SetInt("u_AlphaTest", cutout ? 1 : 0);
-        rendererApi.SetFaceCulling(!mesh.DoubleSided);
+        SetDrawCulling(!mesh.DoubleSided);
         if (cutout)
         {
             shader.SetFloat("u_AlphaCutoff", mesh.AlphaCutoff);
@@ -717,7 +787,6 @@ internal sealed class Graphics3D(
     private void DrawShadow(Mesh mesh, Matrix4x4 transform)
     {
         var shader = _pointShadowPass ? _pointDepthShader : _depthShader;
-        rendererApi.SetDepthTest(true);
         ApplyShadowSurface(shader, mesh);
         if (!_pointShadowPass)
             shader.SetInt("u_Instanced", 0);
@@ -725,7 +794,6 @@ internal sealed class Graphics3D(
         mesh.Bind();
         rendererApi.DrawIndexed(mesh.GetVertexArray(), (uint)mesh.GetIndexCount());
         RecordDraw(mesh, instanceCount: 1, isCube: mesh == _cubeMesh);
-        rendererApi.SetFaceCulling(true);
     }
 
     private void RecordDraw(Mesh mesh, int instanceCount, bool isCube)
@@ -798,15 +866,6 @@ internal sealed class Graphics3D(
         return names;
     }
 
-    private static void BindCommon(IShader shader, Matrix4x4 transform, Vector4 color, int entityId)
-    {
-        shader.Bind();
-        shader.SetMat4("u_Model", transform);
-        shader.SetMat4("u_NormalMatrix", ComputeNormalMatrix(transform));
-        shader.SetFloat4("u_Color", color);
-        shader.SetInt("u_EntityID", entityId);
-    }
-
     private static Matrix4x4 ComputeNormalMatrix(Matrix4x4 model) =>
         Matrix4x4.Invert(model, out var inv) ? Matrix4x4.Transpose(inv) : Matrix4x4.Identity;
 
@@ -846,6 +905,7 @@ internal sealed class Graphics3D(
         _pointShadowMapsByEntity.Clear();
 
         // Factory owns shader and cube-mesh lifetime; just release our references
+        _colorShader = null;
         _cubeShader = null!;
         _modelShader = null!;
         _depthShader = null!;
