@@ -11,6 +11,7 @@ using Shouldly;
 
 namespace Engine.Tests.Scene;
 
+[Collection("SceneRenderPipeline")]
 public class VisibilityZonePipelineTests
 {
     [Fact]
