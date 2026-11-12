@@ -97,7 +97,7 @@ public abstract class Application : IApplication
 
         _inputSystem = inputSystem;
 
-        foreach (var layer in _layersStack)
+        foreach (var layer in _layersStack.ToArray())
             layer.OnAttach();
     }
 

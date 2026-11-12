@@ -167,7 +167,11 @@ public sealed class Benchmark3DRunner(
         if (string.IsNullOrWhiteSpace(scenePath))
             return;
 
-        var full = Path.GetFullPath(scenePath);
+        var full = Path.IsPathRooted(scenePath)
+            ? scenePath
+            : projectContext.Root is { } root
+                ? Path.Combine(root, scenePath)
+                : Path.GetFullPath(scenePath);
         if (!File.Exists(full))
             return;
 
