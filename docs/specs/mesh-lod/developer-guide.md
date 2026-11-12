@@ -1,12 +1,12 @@
 # Mesh LOD — Developer Guide
 
-How to add cooked index levels and select one in the opaque walk. Assumes the `.mesh` cook, `SceneRenderPipeline`, and instanced mesh draws.
+How to add simplified index levels and select one in the opaque walk. Assumes the `.mesh` sibling write, `SceneRenderPipeline`, and instanced mesh draws.
 
 ## Implementation Overview
 
 ```mermaid
 flowchart TD
-    A[Editor cook of model.mesh] --> B[Assimp submesh]
+    A[Editor write of model.mesh] --> B[Assimp submesh]
     B --> C{Simplify one step}
     C -->|Cut at least a quarter, error within the mesh| D[Store index list and error]
     D --> C
@@ -49,7 +49,7 @@ Color and both shadow passes run this walk. Both call the selector with the game
 |------|------------------------|
 | Level 0 | The index list already stored on the submesh. Error 0. Not written a second time |
 | Coarser level | An extra index list in the version-2 chunk. Indices address the original vertices |
-| File error | Absolute mesh-space deviation stored for that list, forced to be at least 1.5× the previous list |
+| File error | Absolute mesh-space deviation stored for that list; each coarser level must be strictly larger than the previous |
 | World error | File error times the largest absolute axis scale of the entity world matrix |
 | Allowed error | `distance * frustumHeightAtUnit * (1 / bias) / viewportHeight`. Orthographic distance is 1 |
 | Frustum height | `2 / projection.M22`. Perspective: height of the frustum at distance 1. Orthographic: `2 * OrthographicSize` |
@@ -60,11 +60,11 @@ Color and both shadow passes run this walk. Both call the selector with the game
 
 ### 1. Simplify while the sibling mesh is written
 
-After Assimp fills a submesh, and before `RuntimeMeshWriter` finishes, run the simplifier on that submesh’s positions and indices. Positions are the first three floats of each vertex. The vertex stride is the existing 56-byte layout. Pass normals and UVs as attributes with weight 1 so the choice of which edge collapses respects them. The output indices still refer to the input vertices.
+After Assimp fills a submesh, and before `RuntimeMeshWriter` finishes, run the simplifier on that submesh’s positions and indices. Pack positions as tightly packed XYZ floats (stride 12). Pass normals and UVs as attributes with weight 1 so the choice of which edge collapses respects them. The output indices still refer to the input vertices.
 
-Each step targets half the current triangle count, with the border-lock and sparse flags. Keep the list only when the new index count is a positive multiple of three, every index is in range, and the count is at most 75% of the previous count. Accumulate error as the max of 1.5× the previous error and this step’s relative error, then multiply by `meshopt_simplifyScale` when storing. Stop at four triangles or fewer remaining, when a step fails the 75% cut, or when the accumulated relative error exceeds 1 (the mesh’s own size). Run the vertex-cache optimizer on each kept list. A thrown native call, or a missing library, logs once and writes the submesh with no extra lists.
+Each level is simplified from the original index list (not from the previous LOD), targeting half the previous kept triangle count, with the border-lock flag only. Keep the list only when the new index count is a positive multiple of three, every index is in range, and the count is at most 75% of the previous kept count. Store `relativeError * meshopt_simplifyScale` as the absolute mesh-space error versus the original surface; each coarser level’s error must be strictly larger than the previous. Stop at four triangles or fewer remaining, when a step fails the 75% cut, or when the relative error exceeds 1. Run the vertex-cache optimizer on each kept list. A thrown native call returns failure so the sibling is not stamped as up to date.
 
-### 2. Bump the file so old cooks still read
+### 2. Bump the file so old siblings still read
 
 Write version 2. Accept version 1 in the reader as a mesh with no extra lists. A version-2 submesh whose level block cannot be parsed logs, drops that submesh’s extra lists, and keeps the base indices. Any other version fails the whole file, as the reader does today. Bump the importer stamp so the editor rewrites existing siblings. The player does not rewrite them.
 

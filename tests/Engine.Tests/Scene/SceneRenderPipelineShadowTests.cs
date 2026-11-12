@@ -416,7 +416,7 @@ public class SceneRenderPipelineShadowTests
         var context = new Context();
         var entity = new Entity(1, "broken");
         entity.AddComponent(new TransformComponent());
-        entity.AddComponent(new ModelRendererComponent { ModelPath = @"C:\missing-shadow-model.glb" });
+        entity.AddComponent(new ModelRendererComponent { ModelPath = "/missing-shadow-model.glb" });
         context.Register(entity);
 
         var sun = new Entity(2, "sun");
@@ -489,7 +489,7 @@ public class SceneRenderPipelineShadowTests
     public void RenderScene_Mesh_PassesComponentFactors()
     {
         var mesh = new Mesh("part") { MetallicFactor = 0.3f, RoughnessFactor = 0.6f };
-        var model = new Model(@"C:\prop.glb", [mesh]);
+        var model = new Model("/prop.glb", [mesh]);
         var models = Substitute.For<IModelFactory>();
         models.Create(Arg.Any<string>()).Returns(model);
 
@@ -498,7 +498,7 @@ public class SceneRenderPipelineShadowTests
         entity.AddComponent(new TransformComponent());
         entity.AddComponent(new ModelRendererComponent
         {
-            ModelPath = @"C:\prop.glb",
+            ModelPath = "/prop.glb",
             Metallic = 0.8f,
             Roughness = 0.25f,
             Ao = 0.4f
@@ -522,7 +522,7 @@ public class SceneRenderPipelineShadowTests
     public void RenderScene_Mesh_AddsFileEmissiveToComponent()
     {
         var mesh = new Mesh("part") { EmissiveFactor = new Vector3(2f, 0f, 0f) };
-        var model = new Model(@"C:\prop.glb", [mesh]);
+        var model = new Model("/prop.glb", [mesh]);
         var models = Substitute.For<IModelFactory>();
         models.Create(Arg.Any<string>()).Returns(model);
         var project = Substitute.For<IProjectContext>();
@@ -534,7 +534,7 @@ public class SceneRenderPipelineShadowTests
         entity.AddComponent(new TransformComponent());
         entity.AddComponent(new ModelRendererComponent
         {
-            ModelPath = @"C:\prop.glb",
+            ModelPath = "/prop.glb",
             Emissive = new Vector3(0f, 1f, 0f),
             EmissiveStrength = 3f
         });
@@ -557,7 +557,7 @@ public class SceneRenderPipelineShadowTests
     public void RenderScene_UnpackedSubmesh_DrawsAdoptedMeshFactors()
     {
         var mesh = new Mesh("Cube.008") { MetallicFactor = 0f, RoughnessFactor = 0.122727275f };
-        var model = new Model(@"C:\rosliny.glb", [mesh]);
+        var model = new Model("/rosliny.glb", [mesh]);
         var models = Substitute.For<IModelFactory>();
         models.Create(Arg.Any<string>()).Returns(model);
 
@@ -566,7 +566,7 @@ public class SceneRenderPipelineShadowTests
         entity.AddComponent(new TransformComponent());
         entity.AddComponent(new ModelRendererComponent
         {
-            ModelPath = @"C:\rosliny.glb",
+            ModelPath = "/rosliny.glb",
             MeshIndex = 0
         });
         context.Register(entity);
@@ -633,14 +633,14 @@ public class SceneRenderPipelineShadowTests
     {
         var near = CreateTriangle("near", Vector3.Zero, new Vector3(1f, 0f, 0f), new Vector3(0f, 1f, 0f));
         var far = CreateTriangle("far", new Vector3(1000f, 0f, 0f), new Vector3(1001f, 0f, 0f), new Vector3(1000f, 1f, 0f));
-        var model = new Model(@"C:\prop.glb", [near, far]);
+        var model = new Model("/prop.glb", [near, far]);
         var models = Substitute.For<IModelFactory>();
         models.Create(Arg.Any<string>()).Returns(model);
 
         var context = SceneWithSun();
         var entity = new Entity(1, "prop");
         entity.AddComponent(new TransformComponent());
-        entity.AddComponent(new ModelRendererComponent { ModelPath = @"C:\prop.glb" });
+        entity.AddComponent(new ModelRendererComponent { ModelPath = "/prop.glb" });
         context.Register(entity);
 
         var graphics = new RecordingGraphics3D();
@@ -661,7 +661,7 @@ public class SceneRenderPipelineShadowTests
     public void RenderScene_SameMesh_DrawsOneInstanceBatch()
     {
         var mesh = new Mesh("part");
-        var model = new Model(@"C:\prop.glb", [mesh]);
+        var model = new Model("/prop.glb", [mesh]);
         var models = Substitute.For<IModelFactory>();
         models.Create(Arg.Any<string>()).Returns(model);
 
@@ -686,7 +686,7 @@ public class SceneRenderPipelineShadowTests
     public void RenderScene_DifferentFactors_SplitsInstanceBatches()
     {
         var mesh = new Mesh("part") { MetallicFactor = 0.3f, RoughnessFactor = 0.6f };
-        var model = new Model(@"C:\prop.glb", [mesh]);
+        var model = new Model("/prop.glb", [mesh]);
         var models = Substitute.For<IModelFactory>();
         models.Create(Arg.Any<string>()).Returns(model);
 
@@ -796,7 +796,7 @@ public class SceneRenderPipelineShadowTests
         entity.AddComponent(new TransformComponent());
         entity.AddComponent(new ModelRendererComponent
         {
-            ModelPath = @"C:\prop.glb",
+            ModelPath = "/prop.glb",
             Metallic = metallic,
             Roughness = 0f,
             Ao = 0f
@@ -920,7 +920,7 @@ public class SceneRenderPipelineShadowTests
             }]);
         }
 
-        public void DrawMeshInstances(Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances)
+        public void DrawMeshInstances(Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances, int level = 0)
         {
             MeshDraws++;
             MeshInstanceCounts.Add(instances.Length);

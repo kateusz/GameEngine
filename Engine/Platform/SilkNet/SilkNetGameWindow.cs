@@ -30,6 +30,8 @@ internal sealed class SilkNetGameWindow(
 
     public Vector2 ClientSize => new(window.Size.X, window.Size.Y);
 
+    public Vector2 FramebufferSize => new(window.FramebufferSize.X, window.FramebufferSize.Y);
+
     public event Action<InputEvent> OnInputEvent;
     public event Action<double> OnUpdate = null!;
     public event Action<WindowCloseEvent> OnClose = null!;

@@ -20,14 +20,18 @@ internal sealed class MeshDrawRecordingGraphics3D : IGraphics3D
     public int MergedColorDraws { get; private set; }
     public bool AcceptPointShadowFaces { get; init; }
     public List<int> PointShadowCubeIds { get; } = [];
+    public List<int> BatchInstanceCounts { get; } = [];
+    public List<int> BatchIndexCounts { get; } = [];
     public List<Engine.Renderer.Meshes.Mesh> DrawnMeshes { get; } = [];
     public List<Engine.Renderer.Meshes.Mesh> InstanceMeshes { get; } = [];
 
-    public void DrawMeshInstances(Engine.Renderer.Meshes.Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances)
+    public void DrawMeshInstances(Engine.Renderer.Meshes.Mesh mesh, ReadOnlySpan<MeshDrawInstance> instances, int level = 0)
     {
         MeshDraws++;
         InstanceDrawCalls++;
         InstanceMeshes.Add(mesh);
+        BatchInstanceCounts.Add(instances.Length);
+        BatchIndexCounts.Add(mesh.IndexCountAt(level));
     }
 
     public void BeginScene(in SceneView view) => LastView = view;

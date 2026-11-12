@@ -34,7 +34,10 @@ internal sealed class CameraQueries(Context context, IPointerSurface pointerSurf
             sceneView.ViewProjection);
     }
 
-    internal static bool TryGetPrimaryView(Context context, out SceneView view)
+    internal static bool TryGetPrimaryView(Context context, out SceneView view) =>
+        TryGetPrimaryView(context, 0f, out view);
+
+    internal static bool TryGetPrimaryView(Context context, float viewportHeight, out SceneView view)
     {
         foreach (var (entity, cameraComponent) in context.View<CameraComponent>())
         {
@@ -47,7 +50,7 @@ internal sealed class CameraQueries(Context context, IPointerSurface pointerSurf
                     : Matrix4x4.Identity);
 
             Scratch.Apply(cameraComponent);
-            return CameraViews.TryFrom(Scratch, transform, out view);
+            return CameraViews.TryFrom(Scratch, transform, viewportHeight, out view);
         }
 
         view = default;

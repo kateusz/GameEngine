@@ -14,11 +14,11 @@ internal static class RuntimeMeshFormat
 
     public const int HeaderSize = 128;
     public const int HeaderReservedBytes = 12;
-    public const uint Version = 1;
+    public const uint Version = 2;
     public const uint Flags = 0;
     public const uint VertexLayoutId = 1;
     public const uint IndexType = 1;
-    public const uint ImporterVersion = 6;
+    public const uint ImporterVersion = 8;
     public const uint SurfaceAlphaCutout = 1;
     public const uint SurfaceDoubleSided = 2;
     public const int VertexLayoutStride = 56;

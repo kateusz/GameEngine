@@ -37,14 +37,14 @@ internal static class RuntimeMeshWriter
         }
     }
 
-    public static byte[] Serialize(SourceModel model, RuntimeMeshStamp stamp)
+    public static byte[] Serialize(SourceModel model, RuntimeMeshStamp stamp, uint version = RuntimeMeshFormat.Version)
     {
         var body = new List<byte>(capacity: 4096);
         Align8(body);
 
         var meshOffset = body.Count;
         foreach (var mesh in model.Submeshes)
-            WriteMeshRecord(body, mesh);
+            WriteMeshRecord(body, mesh, version);
 
         Align8(body);
         var nodeOffset = body.Count;
@@ -61,6 +61,7 @@ internal static class RuntimeMeshWriter
         WriteHeader(
             file,
             stamp,
+            version,
             (ulong)fileSize,
             meshCount: (uint)model.Submeshes.Count,
             nodeCount: (uint)model.Nodes.Count,
@@ -75,6 +76,7 @@ internal static class RuntimeMeshWriter
     private static void WriteHeader(
         Span<byte> file,
         RuntimeMeshStamp stamp,
+        uint version,
         ulong fileSize,
         uint meshCount,
         uint nodeCount,
@@ -85,7 +87,7 @@ internal static class RuntimeMeshWriter
     {
         var writer = new RuntimeMeshBinaryWriter(file);
         writer.WriteMagic(RuntimeMeshFormat.Magic);
-        writer.WriteUInt32(RuntimeMeshFormat.Version);
+        writer.WriteUInt32(version);
         writer.WriteUInt64(fileSize);
         writer.WriteUInt32(RuntimeMeshFormat.Flags);
         writer.WriteUInt32(RuntimeMeshFormat.VertexLayoutId);
@@ -106,7 +108,7 @@ internal static class RuntimeMeshWriter
         writer.WriteZeros(RuntimeMeshFormat.HeaderReservedBytes);
     }
 
-    private static void WriteMeshRecord(List<byte> body, SourceSubmesh mesh)
+    private static void WriteMeshRecord(List<byte> body, SourceSubmesh mesh, uint version)
     {
         Align8(body);
         var start = body.Count;
@@ -144,6 +146,20 @@ internal static class RuntimeMeshWriter
 
         foreach (var index in mesh.Indices)
             AppendUInt32(body, index);
+
+        if (version >= 2)
+        {
+            var lodCount = System.Math.Min(mesh.LodIndices.Count, mesh.LodErrors.Count);
+            AppendUInt32(body, (uint)lodCount);
+            for (var level = 0; level < lodCount; level++)
+            {
+                AppendSingle(body, mesh.LodErrors[level]);
+                var lod = mesh.LodIndices[level];
+                AppendUInt32(body, (uint)lod.Length);
+                foreach (var index in lod)
+                    AppendUInt32(body, index);
+            }
+        }
 
         Align8(body);
         var length = body.Count - start;

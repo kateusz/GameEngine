@@ -136,6 +136,7 @@ public static class EngineIoCContainer
         );
 
         container.RegisterDelegate<IContentScaleProvider>(r => r.Resolve<IGameWindow>(), Reuse.Singleton);
+        container.Register<LodViewportHeight>(Reuse.Singleton);
     }
 
     private static void RegisterFactories(Container container)

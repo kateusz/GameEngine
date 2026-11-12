@@ -16,13 +16,14 @@ internal sealed class SceneRenderSystem(
     IModelFactory modelFactory,
     IVertexArrayFactory vertexArrayFactory,
     IVertexBufferFactory vertexBufferFactory,
-    IIndexBufferFactory indexBufferFactory) : ISystem
+    IIndexBufferFactory indexBufferFactory,
+    LodViewportHeight lodViewportHeight) : ISystem
 {
     public int Priority => 150;
 
     public void OnUpdate(TimeSpan deltaTime)
     {
-        if (!CameraQueries.TryGetPrimaryView(context, out var view))
+        if (!CameraQueries.TryGetPrimaryView(context, lodViewportHeight.Resolve(), out var view))
             return;
 
         SceneRenderPipeline.RenderScene(

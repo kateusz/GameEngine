@@ -241,7 +241,7 @@ internal static partial class SceneRenderPipeline
             try
             {
                 perf.DirectionalShadowPass = DrawOpaque3D(
-                    context, graphics3D, textureFactory, modelFactory, near,
+                    context, graphics3D, textureFactory, modelFactory, near, view,
                     shadowCasterMaxSq, shadowCasterView,
                     vertexArrayFactory: vertexArrayFactory,
                     vertexBufferFactory: vertexBufferFactory,
@@ -258,7 +258,7 @@ internal static partial class SceneRenderPipeline
                 try
                 {
                     perf.DirectionalShadowPass = Accumulate(perf.DirectionalShadowPass, DrawOpaque3D(
-                        context, graphics3D, textureFactory, modelFactory, lightViewProjection,
+                        context, graphics3D, textureFactory, modelFactory, lightViewProjection, view,
                         shadowCasterMaxSq, shadowCasterView,
                         vertexArrayFactory: vertexArrayFactory,
                         vertexBufferFactory: vertexBufferFactory,
@@ -351,7 +351,7 @@ internal static partial class SceneRenderPipeline
                         perf.PointShadowFaces++;
                         perf.PointShadowOpaque3D++;
                         perf.PointShadowPass = Accumulate(perf.PointShadowPass,
-                            DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, pointFaces[face],
+                            DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, pointFaces[face], view,
                                 shadowCasterMaxSq, shadowCasterView, light.Position,
                                 vertexArrayFactory, vertexBufferFactory, indexBufferFactory));
                     }
@@ -371,7 +371,7 @@ internal static partial class SceneRenderPipeline
         graphics3D.BeginScene(view);
         try
         {
-            perf.ColorPass = DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, view.ViewProjection,
+            perf.ColorPass = DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, view.ViewProjection, view,
                 vertexArrayFactory: vertexArrayFactory,
                 vertexBufferFactory: vertexBufferFactory,
                 indexBufferFactory: indexBufferFactory);
@@ -620,6 +620,7 @@ internal static partial class SceneRenderPipeline
         ITextureFactory textureFactory,
         IModelFactory? modelFactory,
         Matrix4x4 cullMatrix,
+        in SceneView lodView,
         float shadowCasterMaxDistanceSq = 0f,
         Vector3 shadowCasterViewPosition = default,
         Vector3? skipCastersContainingLight = null,
@@ -708,7 +709,8 @@ internal static partial class SceneRenderPipeline
                 if (kind == OpaqueSurfaceKind.SingleSubmesh)
                 {
                     var submesh = model!.Submeshes[submeshIndex];
-                    if (mergeCandidate && submesh.BakeVertices is not null)
+                    var level = MeshLod.Select(submesh, transform, lodView.ViewPosition, lodView, modelRenderer.LodBias);
+                    if (mergeCandidate && submesh.LodCount <= 1 && submesh.BakeVertices is not null)
                     {
                         AppendMergeSubmesh(modelRenderer, transform, tint, entity.Id, submesh, ref stats);
                         continue;
@@ -719,13 +721,14 @@ internal static partial class SceneRenderPipeline
                             shadowCasterViewPosition, skipCastersContainingLight, ref stats))
                         continue;
 
-                    QueueSubmesh(modelRenderer, transform, tint, entity.Id, submesh, ref stats);
+                    QueueSubmesh(modelRenderer, transform, tint, entity.Id, submesh, level, ref stats);
                     continue;
                 }
 
                 foreach (var submesh in model!.Submeshes)
                 {
-                    if (mergeCandidate && submesh.BakeVertices is not null)
+                    var level = MeshLod.Select(submesh, transform, lodView.ViewPosition, lodView, modelRenderer.LodBias);
+                    if (mergeCandidate && submesh.LodCount <= 1 && submesh.BakeVertices is not null)
                     {
                         AppendMergeSubmesh(modelRenderer, transform, tint, entity.Id, submesh, ref stats);
                         continue;
@@ -736,7 +739,7 @@ internal static partial class SceneRenderPipeline
                             shadowCasterViewPosition, skipCastersContainingLight, ref stats))
                         continue;
 
-                    QueueSubmesh(modelRenderer, transform, tint, entity.Id, submesh, ref stats);
+                    QueueSubmesh(modelRenderer, transform, tint, entity.Id, submesh, level, ref stats);
                 }
             }
         }
@@ -823,7 +826,7 @@ internal static partial class SceneRenderPipeline
     }
 
     private readonly record struct MeshBatchKey(
-        Mesh Mesh, Vector4 Tint, float Metallic, float Roughness, float Ao, Vector3 Emissive);
+        Mesh Mesh, Vector4 Tint, float Metallic, float Roughness, float Ao, Vector3 Emissive, int Level);
 
     private static readonly Dictionary<MeshBatchKey, List<MeshDrawInstance>> MeshBatches = new();
     private static readonly Stack<List<MeshDrawInstance>> BatchLists = new();
@@ -834,16 +837,17 @@ internal static partial class SceneRenderPipeline
         Vector4 tint,
         int entityId,
         Mesh submesh,
+        int level,
         ref PassStats stats)
     {
         stats.Instances++;
         stats.Vertices += submesh.VertexCount;
-        stats.Indices += submesh.GetIndexCount();
+        stats.Indices += submesh.IndexCountAt(level);
 
         AdoptSubmeshFactors(modelRenderer, submesh);
         var pbr = ResolvePbr(modelRenderer);
         var emissive = CombineEmissive(submesh.EmissiveFactor, modelRenderer);
-        var key = new MeshBatchKey(submesh, tint, pbr.Metallic, pbr.Roughness, pbr.Ao, emissive);
+        var key = new MeshBatchKey(submesh, tint, pbr.Metallic, pbr.Roughness, pbr.Ao, emissive, level);
         if (!MeshBatches.TryGetValue(key, out var batch))
         {
             batch = BatchLists.Count > 0 ? BatchLists.Pop() : [];
@@ -877,7 +881,7 @@ internal static partial class SceneRenderPipeline
                 else
                     stats.SingleMaterialDraws++;
 
-                graphics3D.DrawMeshInstances(key.Mesh, CollectionsMarshal.AsSpan(batch));
+                graphics3D.DrawMeshInstances(key.Mesh, CollectionsMarshal.AsSpan(batch), key.Level);
                 stats.MeshDraws++;
             }
         }

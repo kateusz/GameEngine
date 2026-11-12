@@ -1,6 +1,6 @@
 # Mesh LOD — Implementation
 
-C# sketch for the cook, the `.mesh` version, the selector, and the opaque walk. Paste into the existing types. Do not add an `ISystem`. Do not register the simplifier in DryIoc: the cook calls the Evergine binding directly, and the selector is a static function.
+C# sketch for the simplifier, the `.mesh` version, the selector, and the opaque walk. Paste into the existing types. Do not add an `ISystem`. Do not register the simplifier in DryIoc: it calls the Evergine binding directly, and the selector is a static function.
 
 Package, on `Engine/Engine.csproj` only:
 
@@ -8,9 +8,9 @@ Package, on `Engine/Engine.csproj` only:
 <PackageReference Include="Evergine.Bindings.MeshOptimizer" Version="2026.10.1.20" />
 ```
 
-`RuntimeMeshFormat.Version` becomes 2. `ImporterVersion` becomes 7 so the editor stamp misses and rewrites siblings. The reader accepts 1 and 2.
+`RuntimeMeshFormat.Version` becomes 2. `ImporterVersion` becomes 8 so the editor stamp misses and rewrites siblings. The reader accepts 1 and 2.
 
-Option bits match meshoptimizer 1.0, which that package vendors: lock border `1 << 0`, sparse `1 << 1`.
+Option bit used: lock border `1 << 0`.
 
 ## 1. Component field
 
@@ -65,7 +65,7 @@ view = new SceneView(
     Orthographic: orthographic);
 ```
 
-`SceneRenderSystem` already receives its dependencies from DryIoc. Add `IGameWindow` and pass `FramebufferSize.Y` into `CameraQueries.TryGetPrimaryView`. The editor viewport sets the same three fields from `_editorCamera.GetProjectionMatrix()` and `_frameBuffer.GetSpecification()` height. No new container registration.
+`LodViewportHeight` resolves the pixel height for LOD selection: window framebuffer by default, overridden by the editor Play path with the bound viewport framebuffer height. `SceneRenderSystem` passes `lodViewportHeight.Resolve()` into `CameraQueries.TryGetPrimaryView`. Edit-mode viewport builds `SceneView` from `_editorCamera` and `_frameBuffer.GetSpecification()` height directly.
 
 ## 3. Levels on Mesh
 
@@ -101,61 +101,53 @@ Level 0 is the original index buffer and is not stored in `LodErrors`. Entry `i`
 
 `Initialize` uploads `Indices` as buffer 0, then each `LodIndices` entry. `SetIndexBuffer` binds the vertex array and then the element buffer, which is the core-profile rule. A failed create drops that level and the levels after it. `GetIndexCount` stays the level-0 count so merge baking and stats that mean “source mesh” do not silently shrink.
 
-## 4. Cook
+## 4. Simplifier
 
-Called from `RuntimeMeshBuilder` after a successful Assimp import, per submesh, before `RuntimeMeshWriter.TryWrite`. Positions are a `float*` at the start of each 56-byte vertex. Attribute stream is normal (3) then UV (2), weights all 1. `resultError` is relative. `meshopt_simplifyScale` is the mesh size that turns it into mesh units.
+`RuntimeMeshLodSimplifier.TrySimplify`, called from `RuntimeMeshBuilder` after a successful Assimp import, per submesh, before `RuntimeMeshWriter.TryWrite`. Returns false on native failure so the builder skips stamping the sibling. Positions are packed XYZ floats with stride 12. Attribute stream is normal (3) then UV (2), weights all 1. Each level simplifies from the original indices. `resultError` is relative to that original; `meshopt_simplifyScale` turns it into mesh units.
 
 ```csharp
 const uint LockBorder = 1u << 0;
-const uint Sparse = 1u << 1;
 const float MaxRelativeError = 1f;
+const int PositionStride = 12;
 
-float scale = MeshOptNative.meshopt_simplifyScale(positions, (UIntPtr)vertexCount, (UIntPtr)56);
-var current = (uint[])indices.Clone();
-float relative = 0f;
+float scale = MeshOptimizer.SimplifyScale(positions, (UIntPtr)vertexCount, (UIntPtr)PositionStride);
+var source = (uint[])indices.Clone();
+var previousCount = source.Length;
+var previousError = 0f;
+var target = (uint)Math.Max(12, (previousCount / 3 / 2) * 3);
 
-while (current.Length > 12)
+while (target >= 12 && target < previousCount * 0.75f)
 {
-    uint target = (uint)Math.Max(12, (current.Length / 3 / 2) * 3);
-    var destination = new uint[current.Length];
+    var destination = new uint[source.Length];
     float step = 0f;
-    UIntPtr written;
-    try
-    {
-        written = MeshOptNative.meshopt_simplifyWithAttributes(
-            destination, current, (UIntPtr)current.Length,
-            positions, (UIntPtr)vertexCount, (UIntPtr)56,
-            attributes, (UIntPtr)20, weights, (UIntPtr)5,
-            vertexLock: null,
-            (UIntPtr)target, MaxRelativeError,
-            LockBorder | Sparse, &step);
-    }
-    catch (Exception)
-    {
-        LogOnceMissingLibrary();
-        return;
-    }
+    var written = MeshOptimizer.SimplifyWithAttributes(
+        destination, source, (UIntPtr)source.Length,
+        positions, (UIntPtr)vertexCount, (UIntPtr)PositionStride,
+        attributes, (UIntPtr)20, weights, (UIntPtr)5,
+        vertex_lock: null,
+        (UIntPtr)target, MaxRelativeError,
+        LockBorder, &step);
 
     int count = (int)written;
-    if (count == 0 || count % 3 != 0 || count > current.Length * 0.75f)
+    if (count <= 0 || count % 3 != 0 || count > previousCount * 0.75f || step > MaxRelativeError)
         break;
 
-    relative = MathF.Max(relative * 1.5f, step);
-    if (relative > MaxRelativeError)
+    var absolute = MathF.Max(step * scale, 1e-8f);
+    if (absolute <= previousError)
         break;
 
-    var kept = destination.AsSpan(0, count).ToArray();
     var cacheOptimized = new uint[count];
-    MeshOptNative.meshopt_optimizeVertexCache(
-        cacheOptimized, kept, (UIntPtr)count, (UIntPtr)vertexCount);
-    kept = cacheOptimized;
-    submesh.LodIndices.Add(kept);
-    submesh.LodErrors.Add(MathF.Max(relative * scale, 1e-8f));
-    current = kept;
+    MeshOptimizer.OptimizeVertexCache(cacheOptimized, destination.AsSpan(0, count).ToArray(),
+        (UIntPtr)count, (UIntPtr)vertexCount);
+    submesh.LodIndices.Add(cacheOptimized);
+    submesh.LodErrors.Add(absolute);
+    previousCount = count;
+    previousError = absolute;
+    target = (uint)Math.Max(12, (count / 3 / 2) * 3);
 }
 ```
 
-`catch` covers the missing dylib on an Intel Mac and any other load failure. The submesh is still written. Indices that fall outside `vertexCount` are rejected with the same `break`. The writer appends, for version 2 only, `uint count` then for each level `float error` and `uint indexCount` plus the indices. Version 1 has no tail. A short tail on one submesh logs and leaves that submesh’s lists empty.
+Native load failure clears any partial levels and returns false; the builder does not write a stamped sibling. Indices that fall outside `vertexCount` are rejected with the same `break`. The writer appends, for version 2 only, `uint count` then for each level `float error` and `uint indexCount` plus the indices. Version 1 has no tail. A short tail on one submesh logs and leaves that submesh’s lists empty.
 
 ## 5. Selector
 
@@ -198,7 +190,7 @@ internal static int Select(
 }
 ```
 
-`MaxAxisScale` is the max of the absolute lengths of the three basis axes. Errors are stored in order, so the first failure ends the scan.
+`MaxAxisScale` is the max of the three row lengths of the upper 3×3 (System.Numerics row-vector convention). Errors are stored in order, so the first failure ends the scan.
 
 ## 6. Walk, batch key, draw
 
@@ -229,7 +221,7 @@ if (submesh.HasCoarserLevel)
 - `Orthographic: true` ignores camera distance and uses distance 1.
 - Viewport height 0, an empty extra-level list, and a non-finite scale return 0.
 
-`RuntimeMeshLodCookTests` builds a manifold grid, runs the cook helper, and expects a shorter in-range index list, a multiple of three, a positive error, and a following error at least 1.5× the first. A second case feeds a step that cannot cut 25% and expects no extra list. The test project references the same Evergine package.
+`RuntimeMeshLodSimplifierTests` builds a manifold grid, runs `TrySimplify`, and expects a shorter in-range index list, a multiple of three, a positive error, and strictly growing errors. A second case feeds a step that cannot cut 25% and expects no extra list. The test project references the same Evergine package.
 
 `RuntimeMeshReader` tests: a version-1 byte buffer loads with `LodCount == 1`. A version-2 buffer with a truncated level block loads the base indices and no extra level.
 

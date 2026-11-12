@@ -4,6 +4,7 @@ using ECS;
 using ECS.Systems;
 using Engine.Audio;
 using Engine.Core;
+using Engine.Core.Window;
 using Engine.Physics;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.VertexArray;
@@ -44,7 +45,8 @@ public class SceneSystemsFactoryTests
             Substitute.For<IModelFactory>(),
             Substitute.For<IVertexArrayFactory>(),
             Substitute.For<IVertexBufferFactory>(),
-            Substitute.For<IIndexBufferFactory>());
+            Substitute.For<IIndexBufferFactory>(),
+            new LodViewportHeight(Substitute.For<IGameWindow>()));
 
         var systemManager = new SystemManager();
         factory.PopulateSystemManager(
