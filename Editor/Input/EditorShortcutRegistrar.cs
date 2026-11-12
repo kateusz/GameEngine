@@ -103,9 +103,16 @@ public class EditorShortcutRegistrar(
         Register(shortcutManager, EditorCommandIds.DeleteEntity, "Delete entity", "Edit",
             () =>
             {
-                if (selection.SelectedEntity is not { } entity || sceneContext.ActiveScene is not { } scene)
+                if (sceneContext.ActiveScene is not { } scene)
                     return;
-                history.Execute(new DestroyEntitySubtreeCommand(scene, entity.Id));
+                var selected = selection.SelectedEntities;
+                if (selected.Count == 0 || selection.SelectedEntity is not { } primary)
+                    return;
+                var toDelete = selected.Count > 1
+                    ? SceneHierarchyPanel.ResolveEntitiesToReparent(scene, primary, selected)
+                    : [primary];
+                foreach (var target in toDelete)
+                    history.Execute(new DestroyEntitySubtreeCommand(scene, target.Id));
             },
             EditWithSelection, KeyCodes.Delete, KeyModifiers.None);
         Register(shortcutManager, EditorCommandIds.Undo, "Undo", "Edit",

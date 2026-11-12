@@ -335,9 +335,14 @@ public class SceneHierarchyPanel(
 
             if (ImGui.MenuItem("Delete Entity", "Del"))
             {
-                var deletedId = entity.Id;
-                _expandedIds.Remove(deletedId);
-                history.Execute(new DestroyEntitySubtreeCommand(_scene, deletedId));
+                var toDelete = isSelected && selection.SelectedEntities.Count > 1
+                    ? ResolveEntitiesToReparent(_scene, entity, selection.SelectedEntities)
+                    : [entity];
+                foreach (var target in toDelete)
+                {
+                    _expandedIds.Remove(target.Id);
+                    history.Execute(new DestroyEntitySubtreeCommand(_scene, target.Id));
+                }
                 ApplyFilter(_searchQuery);
             }
 
