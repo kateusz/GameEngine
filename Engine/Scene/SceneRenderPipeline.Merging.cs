@@ -51,13 +51,12 @@ internal static partial class SceneRenderPipeline
         public MergeMember[] Members = [];
     }
 
-    private static readonly Dictionary<int, (Matrix4x4 World, long Frame)> WorldHistory = new();
-    private static readonly Dictionary<int, Matrix4x4> MergeFrameWorld = new();
+    private static Dictionary<int, Matrix4x4> WorldHistory = new();
+    private static Dictionary<int, Matrix4x4> MergeFrameWorld = new();
     private static readonly Dictionary<MergeMaterialKey, List<MergeMember>> MergeGroups = new();
     private static readonly Dictionary<MergeMaterialKey, List<CombinedMeshEntry>> CombinedMeshes = new();
     private static readonly HashSet<MergeMaterialKey> MergeTouchedKeys = new();
     private static Context? _mergeContext;
-    private static long _mergeFrame;
     private static bool _mergeInitWarned;
 
     /// <summary>
@@ -74,15 +73,11 @@ internal static partial class SceneRenderPipeline
         MergeFrameWorld.Clear();
         MergeTouchedKeys.Clear();
         _mergeContext = null;
-        _mergeFrame = 0;
     }
 
     private static void CommitMergeWorldHistory()
     {
-        foreach (var (id, world) in MergeFrameWorld)
-            WorldHistory[id] = (world, _mergeFrame);
-
-        MergeFrameWorld.Clear();
+        (WorldHistory, MergeFrameWorld) = (MergeFrameWorld, WorldHistory);
     }
 
     private static void EvictStaleCombinedMeshes()
@@ -115,11 +110,9 @@ internal static partial class SceneRenderPipeline
     private static bool TrackAndClassifyForMerge(Entity entity, Matrix4x4 world)
     {
         var finite = MatrixIsFinite(world);
-        var seen = WorldHistory.TryGetValue(entity.Id, out var previous);
         var idle = finite
-                   && seen
-                   && previous.Frame < _mergeFrame
-                   && world == previous.World;
+                   && WorldHistory.TryGetValue(entity.Id, out var previous)
+                   && world == previous;
 
         MergeFrameWorld[entity.Id] = world;
 
@@ -223,7 +216,29 @@ internal static partial class SceneRenderPipeline
                 if (members.Count == 0)
                     continue;
 
-                if (members.Count < 2)
+                Aabb groupBox = default;
+                var hasGroupBox = members.Count >= 2 && TryGetGroupBox(members, out groupBox);
+                List<CombinedMeshEntry>? cached = null;
+                if (members.Count >= 2 && CombinedMeshes.TryGetValue(key, out var existing)
+                    && CacheMatches(existing, members))
+                {
+                    cached = existing;
+                    MergeTouchedKeys.Add(key);
+                }
+
+                if (hasGroupBox
+                    && ShouldSkipOpaqueDraw(hasFrustum, frustum, Matrix4x4.Identity, groupBox,
+                        shadowCasterMaxDistanceSq, shadowCasterViewPosition, null, ref stats))
+                {
+                    continue;
+                }
+
+                var checkCastersIndividually = skipCastersContainingLight is { } lamp
+                    && (!hasGroupBox || Aabb.ContainsPoint(lamp, Matrix4x4.Identity, groupBox));
+                var entries = cached;
+                if (members.Count < 2 || checkCastersIndividually || (entries is null && !TryBuildCombined(key, members,
+                        vertexArrayFactory, vertexBufferFactory, indexBufferFactory,
+                        ref stats, out entries)))
                 {
                     foreach (var member in members)
                     {
@@ -236,43 +251,16 @@ internal static partial class SceneRenderPipeline
                         ReplayAsInstance(graphics3D, key, member, ref stats);
                     }
 
-                    continue;
-                }
-
-                var hasGroupBox = TryGetGroupBox(members, out var groupBox);
-                if (hasGroupBox
-                    && ShouldSkipOpaqueDraw(hasFrustum, frustum, Matrix4x4.Identity, groupBox,
-                        shadowCasterMaxDistanceSq, shadowCasterViewPosition, skipCastersContainingLight, ref stats))
-                {
                     continue;
                 }
 
                 MergeTouchedKeys.Add(key);
-                if (!TryGetCombined(key, members,
-                        vertexArrayFactory, vertexBufferFactory, indexBufferFactory,
-                        ref stats, out var entries))
+                foreach (var entry in entries)
                 {
-                    foreach (var member in members)
-                    {
-                        if (ShouldSkipMergeMember(member, hasFrustum, in frustum, shadowCasterMaxDistanceSq,
-                                shadowCasterViewPosition, skipCastersContainingLight, ref stats))
-                        {
-                            continue;
-                        }
-
-                        ReplayAsInstance(graphics3D, key, member, ref stats);
-                    }
-
-                    continue;
-                }
-
-                for (var i = 0; i < entries.Count; i++)
-                {
-                    var entry = entries[i];
                     if (!hasGroupBox
                         && entry.Mesh.Bounds is { } meshBounds
                         && ShouldSkipOpaqueDraw(hasFrustum, frustum, Matrix4x4.Identity, meshBounds,
-                            shadowCasterMaxDistanceSq, shadowCasterViewPosition, skipCastersContainingLight, ref stats))
+                            shadowCasterMaxDistanceSq, shadowCasterViewPosition, null, ref stats))
                     {
                         continue;
                     }
@@ -376,7 +364,7 @@ internal static partial class SceneRenderPipeline
         return true;
     }
 
-    private static bool TryGetCombined(
+    private static bool TryBuildCombined(
         MergeMaterialKey key,
         List<MergeMember> members,
         IVertexArrayFactory? vertexArrayFactory,
@@ -387,17 +375,8 @@ internal static partial class SceneRenderPipeline
     {
         entries = [];
 
-        if (CombinedMeshes.TryGetValue(key, out var cached) && CacheMatches(cached, members))
-        {
-            entries = cached;
-            return true;
-        }
-
-        if (cached is not null)
-        {
+        if (CombinedMeshes.Remove(key, out var cached))
             DisposeEntries(cached);
-            CombinedMeshes.Remove(key);
-        }
 
         if (vertexArrayFactory is null || vertexBufferFactory is null || indexBufferFactory is null)
             return false;
@@ -406,7 +385,6 @@ internal static partial class SceneRenderPipeline
         {
             DisposeEntries(entries);
             entries = [];
-            CombinedMeshes.Remove(key);
             return false;
         }
 
@@ -449,7 +427,7 @@ internal static partial class SceneRenderPipeline
         foreach (var member in members)
         {
             var incomingBytes = (long)IncomingVertexCount(member) * VertexStrideBytes;
-            if (sliceMembers.Count == 0 && incomingBytes > RenderingConstants.MaxVertexBufferBytes)
+            if (incomingBytes > RenderingConstants.MaxVertexBufferBytes)
                 return false;
 
             if (sliceMembers.Count > 0
@@ -490,7 +468,7 @@ internal static partial class SceneRenderPipeline
 
             try
             {
-                combined.Initialize(vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
+                combined.Initialize(vertexArrayFactory, vertexBufferFactory, indexBufferFactory, retainBakeGeometry: false);
             }
             catch (Exception ex)
             {
@@ -563,7 +541,7 @@ internal static partial class SceneRenderPipeline
         TransformNormalSpace(member.World, out var normalMatrix);
         var vertexOffset = vertices.Count;
 
-        var texCoordScale = member.Source is null && member.Tiling > 0f ? member.Tiling : 1f;
+        var texCoordScale = member.Source is null ? member.Tiling : 1f;
 
         foreach (var vertex in templateVertices)
         {

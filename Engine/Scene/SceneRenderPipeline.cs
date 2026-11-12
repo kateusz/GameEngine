@@ -58,8 +58,7 @@ internal static partial class SceneRenderPipeline
         IIndexBufferFactory? indexBufferFactory = null)
     {
         EnsureMergeState(context);
-        // One stamp per frame so every pass in frame 1 stays on the instance path.
-        _mergeFrame++;
+        MergeFrameWorld.Clear();
         graphics3D.DrawSkybox(view.SkyViewProjection);
         RenderSpritesAndSubTextures(context, graphics2D, textureFactory, view);
         Render3D(context, graphics3D, textureFactory, modelFactory, view,
@@ -631,6 +630,7 @@ internal static partial class SceneRenderPipeline
         var stats = new PassStats();
         var start = Stopwatch.GetTimestamp();
         var hasFrustum = Frustum.TryFromClip(cullMatrix, out var frustum);
+        var canMerge = vertexArrayFactory is not null && vertexBufferFactory is not null && indexBufferFactory is not null;
         try
         {
             foreach (var (entity, modelRenderer, transformComponent) in
@@ -662,7 +662,7 @@ internal static partial class SceneRenderPipeline
                     continue;
                 }
 
-                var mergeCandidate = TrackAndClassifyForMerge(entity, transform);
+                var mergeCandidate = canMerge && TrackAndClassifyForMerge(entity, transform);
                 var tint = modelRenderer.Color;
                 if (kind == OpaqueSurfaceKind.UnitCube)
                 {

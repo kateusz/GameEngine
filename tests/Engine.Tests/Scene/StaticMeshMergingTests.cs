@@ -37,6 +37,11 @@ public class StaticMeshMergingTests : IDisposable
         graphics.MergedDraws.ShouldBe(1);
         graphics.InstanceDrawCalls.ShouldBe(0);
         graphics.DrawnMeshes[0].VertexCount.ShouldBe(6);
+        graphics.DrawnMeshes[0].GetIndexCount().ShouldBe(6);
+        graphics.DrawnMeshes[0].BakeVertices.ShouldBeNull();
+        graphics.DrawnMeshes[0].BakeIndices.ShouldBeNull();
+        meshA.BakeVertices!.Length.ShouldBe(3);
+        meshB.BakeIndices!.Length.ShouldBe(3);
 
         model.Dispose();
     }
@@ -131,7 +136,8 @@ public class StaticMeshMergingTests : IDisposable
         var (_, _, model, models) = TwoPartModel(farSecondPart: true);
         var context = ContextWithParts(farSecondPart: true);
         var graphics = new MeshDrawRecordingGraphics3D();
-        var factories = Factories();
+        var uploaded = new List<Mesh.Vertex>();
+        var factories = Factories(uploaded.AddRange);
 
         Render(context, graphics, models, factories);
         Render(context, graphics, models, factories);
@@ -139,7 +145,7 @@ public class StaticMeshMergingTests : IDisposable
         graphics.MergedDraws.ShouldBe(1);
         var combined = graphics.DrawnMeshes[0];
         combined.VertexCount.ShouldBe(6);
-        combined.BakeVertices!.Select(v => v.Position.X).Where(x => x >= 1000f).ShouldNotBeEmpty();
+        uploaded.ShouldContain(v => v.Position.X >= 1000f);
 
         model.Dispose();
     }
@@ -170,7 +176,8 @@ public class StaticMeshMergingTests : IDisposable
 
         var graphics = new MeshDrawRecordingGraphics3D();
         var uploaded = new List<Mesh.Vertex>();
-        var factories = Factories(uploaded.AddRange);
+        var uploadedIndices = new List<uint>();
+        var factories = Factories(uploaded.AddRange, uploadedIndices.AddRange);
         Render(context, graphics, models, factories);
         Render(context, graphics, models, factories);
 
@@ -182,7 +189,7 @@ public class StaticMeshMergingTests : IDisposable
         var moved = uploaded.Single(v =>
             v.EntityId == 2 && MathF.Abs(v.Position.X - 11f) < 1e-4f && MathF.Abs(v.Position.Y) < 1e-4f);
         MathF.Abs(moved.Position.Y).ShouldBeLessThan(1e-4f);
-        graphics.DrawnMeshes[0].BakeIndices.ShouldBe(new uint[] { 0u, 1u, 2u, 3u, 4u, 5u });
+        uploadedIndices.ShouldBe(new uint[] { 0u, 1u, 2u, 3u, 4u, 5u });
     }
 
     [Fact]
@@ -207,7 +214,7 @@ public class StaticMeshMergingTests : IDisposable
     }
 
     [Fact]
-    public void DirectionalShadowPass_AndColorPass_BothDrawMergedMesh()
+    public void DirectionalShadow_PointShadow_AndColorPasses_DrawMergedMesh()
     {
         var (_, _, model, models) = TwoPartModel();
         var context = ContextWithParts();
@@ -219,17 +226,85 @@ public class StaticMeshMergingTests : IDisposable
             Intensity = 1f
         });
         context.Register(sun);
+        AddPointLight(context, new Vector3(1f, 0.5f, 3f));
 
-        var graphics = new MeshDrawRecordingGraphics3D();
+        var graphics = new MeshDrawRecordingGraphics3D { AcceptPointShadowFaces = true };
         var factories = Factories();
         Render(context, graphics, models, factories);
-        graphics = new MeshDrawRecordingGraphics3D();
+        graphics = new MeshDrawRecordingGraphics3D { AcceptPointShadowFaces = true };
         Render(context, graphics, models, factories);
 
-        graphics.MergedDraws.ShouldBeGreaterThan(1);
+        graphics.MergedDirectionalShadowDraws.ShouldBeGreaterThan(0);
+        graphics.MergedPointShadowDraws.ShouldBeGreaterThan(0);
+        graphics.MergedColorDraws.ShouldBe(1);
         graphics.InstanceDrawCalls.ShouldBe(0);
 
         model.Dispose();
+    }
+
+    [Fact]
+    public void LightInsideMergeGroup_OnlyExcludesCastersContainingLight()
+    {
+        var context = new Context();
+        AddCube(context, 1, 0f);
+        AddCube(context, 2, 2f);
+        AddPointLight(context, Vector3.Zero);
+        var models = Substitute.For<IModelFactory>();
+        var factories = Factories();
+
+        Render(context, new MeshDrawRecordingGraphics3D { AcceptPointShadowFaces = true }, models, factories);
+        var graphics = new MeshDrawRecordingGraphics3D { AcceptPointShadowFaces = true };
+        Render(context, graphics, models, factories);
+
+        graphics.PointShadowCubeIds.ShouldContain(2);
+        graphics.PointShadowCubeIds.ShouldNotContain(1);
+        graphics.MergedPointShadowDraws.ShouldBe(0);
+        graphics.MergedColorDraws.ShouldBe(1);
+    }
+
+    [Fact]
+    public void CulledGroup_ReusesCacheWhenVisibleAgain()
+    {
+        var (_, _, model, models) = TwoPartModel();
+        using var source = model;
+        var context = ContextWithParts();
+        var factories = Factories();
+        var graphics = new MeshDrawRecordingGraphics3D();
+
+        Render(context, graphics, models, factories);
+        Render(context, graphics, models, factories);
+        var combined = graphics.DrawnMeshes.Single();
+
+        graphics = new MeshDrawRecordingGraphics3D();
+        Render(context, graphics, models, factories, View(x: 1000f));
+        graphics.MergedDraws.ShouldBe(0);
+        Render(context, graphics, models, factories);
+
+        graphics.DrawnMeshes.Single().ShouldBeSameAs(combined);
+        graphics.GetStats().MergedRebuilds.ShouldBe(0);
+    }
+
+    [Fact]
+    public void RendererAbsentForOneFrame_UsesInstancePathOnReturn()
+    {
+        var (_, _, model, models) = TwoPartModel();
+        using var source = model;
+        var context = ContextWithParts();
+        var factories = Factories();
+        var graphics = new MeshDrawRecordingGraphics3D();
+
+        Render(context, graphics, models, factories);
+        Render(context, graphics, models, factories);
+        graphics.MergedDraws.ShouldBe(1);
+        var entity = context.GetById(2);
+        context.Remove(entity.Id);
+        Render(context, graphics, models, factories);
+        context.Register(entity);
+
+        graphics = new MeshDrawRecordingGraphics3D();
+        Render(context, graphics, models, factories);
+        graphics.MergedDraws.ShouldBe(0);
+        graphics.InstanceDrawCalls.ShouldBe(2);
     }
 
     [Fact]
@@ -268,14 +343,17 @@ public class StaticMeshMergingTests : IDisposable
         AssertStaysOnInstancePathAfterTwoIdleFrames(context, models);
     }
 
-    [Fact]
-    public void TwoIdleCubes_BakesTilingIntoTexCoords()
+    [Theory]
+    [InlineData(3f)]
+    [InlineData(0f)]
+    [InlineData(-2f)]
+    public void TwoIdleCubes_BakesTilingIntoTexCoords(float tiling)
     {
         var context = new Context();
         AddCube(context, 1, 0f);
         AddCube(context, 2, 2f);
-        MutateRenderer(context, 1, r => r.TilingFactor = 3f);
-        MutateRenderer(context, 2, r => r.TilingFactor = 3f);
+        MutateRenderer(context, 1, r => r.TilingFactor = tiling);
+        MutateRenderer(context, 2, r => r.TilingFactor = tiling);
 
         var models = Substitute.For<IModelFactory>();
         var uploaded = new List<Mesh.Vertex>();
@@ -286,8 +364,8 @@ public class StaticMeshMergingTests : IDisposable
         Render(context, graphics, models, factories);
 
         graphics.MergedDraws.ShouldBe(1);
-        uploaded.Count(v => MathF.Abs(v.TexCoord.X - 3f) < 1e-4f || MathF.Abs(v.TexCoord.Y - 3f) < 1e-4f)
-            .ShouldBeGreaterThan(0);
+        var expectedTexCoords = MeshFactory.CubeTemplate.Vertices.Select(v => v.TexCoord * tiling).ToArray();
+        uploaded.Select(v => v.TexCoord).ShouldBe(expectedTexCoords.Concat(expectedTexCoords));
     }
 
     [Fact]
@@ -312,7 +390,8 @@ public class StaticMeshMergingTests : IDisposable
         Context context,
         IGraphics3D graphics,
         IModelFactory models,
-        (IVertexArrayFactory VertexArray, IVertexBufferFactory VertexBuffer, IIndexBufferFactory IndexBuffer) factories)
+        (IVertexArrayFactory VertexArray, IVertexBufferFactory VertexBuffer, IIndexBufferFactory IndexBuffer) factories,
+        SceneView? view = null)
     {
         SceneRenderPipeline.RenderScene(
             context,
@@ -320,7 +399,7 @@ public class StaticMeshMergingTests : IDisposable
             graphics,
             Substitute.For<ITextureFactory>(),
             models,
-            View(),
+            view ?? View(),
             factories.VertexArray,
             factories.VertexBuffer,
             factories.IndexBuffer);
@@ -372,6 +451,16 @@ public class StaticMeshMergingTests : IDisposable
         context.Register(entity);
     }
 
+    private static void AddPointLight(Context context, Vector3 position)
+    {
+        var light = new Entity(98, "lamp");
+        var transform = new TransformComponent();
+        transform.SetWorldTransform(Matrix4x4.CreateTranslation(position));
+        light.AddComponent(transform);
+        light.AddComponent(new PointLightComponent { CastsShadow = true });
+        context.Register(light);
+    }
+
     private static void AddBody(Context context, int entityId, RigidBodyType bodyType)
     {
         foreach (var (entity, _) in context.View<ModelRendererComponent>())
@@ -419,13 +508,18 @@ public class StaticMeshMergingTests : IDisposable
     }
 
     private static (IVertexArrayFactory VertexArray, IVertexBufferFactory VertexBuffer, IIndexBufferFactory IndexBuffer)
-        Factories(Action<List<Mesh.Vertex>>? onVertices = null)
+        Factories(Action<List<Mesh.Vertex>>? onVertices = null, Action<uint[]>? onIndices = null)
     {
-        var vertexArray = Substitute.For<IVertexArray>();
-        vertexArray.IndexBuffer.Returns(Substitute.For<IIndexBuffer>());
-
         var vertexArrays = Substitute.For<IVertexArrayFactory>();
-        vertexArrays.Create().Returns(vertexArray);
+        vertexArrays.Create().Returns(_ =>
+        {
+            var vertexArray = Substitute.For<IVertexArray>();
+            IIndexBuffer indexBuffer = null!;
+            vertexArray.IndexBuffer.Returns(_ => indexBuffer);
+            vertexArray.When(array => array.SetIndexBuffer(Arg.Any<IIndexBuffer>()))
+                .Do(call => indexBuffer = call.Arg<IIndexBuffer>());
+            return vertexArray;
+        });
 
         var vertexBuffers = Substitute.For<IVertexBufferFactory>();
         vertexBuffers
@@ -437,14 +531,20 @@ public class StaticMeshMergingTests : IDisposable
             });
 
         var indexBuffers = Substitute.For<IIndexBufferFactory>();
-        indexBuffers.Create(Arg.Any<uint[]>(), Arg.Any<int>()).Returns(Substitute.For<IIndexBuffer>());
+        indexBuffers.Create(Arg.Any<uint[]>(), Arg.Any<int>()).Returns(call =>
+        {
+            onIndices?.Invoke(call.Arg<uint[]>());
+            var indexBuffer = Substitute.For<IIndexBuffer>();
+            indexBuffer.Count.Returns(call.Arg<int>());
+            return indexBuffer;
+        });
 
         return (vertexArrays, vertexBuffers, indexBuffers);
     }
 
-    private static SceneView View()
+    private static SceneView View(float x = 0f)
     {
-        var eye = new Vector3(0f, 2f, 5f);
+        var eye = new Vector3(x, 2f, 5f);
         var forward = Vector3.Normalize(new Vector3(0f, -0.3f, -1f));
         var view = Matrix4x4.CreateLookAt(eye, eye + forward, Vector3.UnitY);
         var projection = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 3f, 16f / 9f, 0.1f, 100f);

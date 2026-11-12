@@ -27,9 +27,9 @@ public sealed class PipelineBenchmarkRun : BenchmarkRun
     private readonly IGraphics3D _graphics3D;
     private readonly ITextureFactory _textures;
     private readonly IModelFactory _models;
-    private readonly IVertexArrayFactory _vertexArrays;
-    private readonly IVertexBufferFactory _vertexBuffers;
-    private readonly IIndexBufferFactory _indexBuffers;
+    private readonly IVertexArrayFactory? _vertexArrays;
+    private readonly IVertexBufferFactory? _vertexBuffers;
+    private readonly IIndexBufferFactory? _indexBuffers;
     private readonly bool _clearModelCache;
     private readonly Action? _onDispose;
     private readonly ExpectedShadow _expected;
@@ -48,9 +48,9 @@ public sealed class PipelineBenchmarkRun : BenchmarkRun
         IGraphics3D graphics3D,
         ITextureFactory textures,
         IModelFactory models,
-        IVertexArrayFactory vertexArrays,
-        IVertexBufferFactory vertexBuffers,
-        IIndexBufferFactory indexBuffers,
+        IVertexArrayFactory? vertexArrays,
+        IVertexBufferFactory? vertexBuffers,
+        IIndexBufferFactory? indexBuffers,
         bool clearModelCache,
         ExpectedShadow expected,
         Action? onDispose = null,

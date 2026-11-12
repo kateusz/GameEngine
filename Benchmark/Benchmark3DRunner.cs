@@ -47,6 +47,7 @@ public sealed class Benchmark3DRunner(
     [
         new("Cubes", "Cube count"),
         new("InstancedMesh", "Instanced mesh"),
+        new("MergedMesh", "Merged mesh"),
         new("UniqueMeshes", "Unique meshes"),
         new("GlbModels", "Project scene")
     ];
@@ -104,7 +105,7 @@ public sealed class Benchmark3DRunner(
         {
             BenchmarkScenes.AddDistrict(scene, count);
         }
-        else if (testId == "InstancedMesh")
+        else if (testId is "InstancedMesh" or "MergedMesh")
         {
             var path = PathBuilder.Resolve(BenchmarkScenes.TemplateAsset);
             if (models.Create(path, null) == null)
@@ -152,7 +153,9 @@ public sealed class Benchmark3DRunner(
             plan.ResultName, _duration, scene,
             plan.DirectionalShadows, plan.PointShadows,
             graphics2D, graphics3D, textures, models,
-            vertexArrays, vertexBuffers, indexBuffers,
+            plan.StaticMeshMerging ? vertexArrays : null,
+            plan.StaticMeshMerging ? vertexBuffers : null,
+            plan.StaticMeshMerging ? indexBuffers : null,
             clearModelCache: testId == "UniqueMeshes",
             ExpectedShadow.None);
         error = null;

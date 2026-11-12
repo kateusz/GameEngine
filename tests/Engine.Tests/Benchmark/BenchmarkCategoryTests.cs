@@ -91,7 +91,9 @@ public class BenchmarkCategoryTests : IDisposable
     public void Plan_matches_lighting_and_shadow_table()
     {
         ScenePlans.Plan("3D", "Cubes").ShouldBe(new ScenePlan("3D_Cubes", false, false, false, 0, false));
-        ScenePlans.Plan("3D", "InstancedMesh").ShouldBe(new ScenePlan("3D_InstancedMesh", false, false, false, 0, false));
+        ScenePlans.Plan("3D", "InstancedMesh").ShouldBe(new ScenePlan("3D_InstancedMesh", false, false, false, 0, false,
+            StaticMeshMerging: false));
+        ScenePlans.Plan("3D", "MergedMesh").ShouldBe(new ScenePlan("3D_MergedMesh", false, false, false, 0, false));
         ScenePlans.Plan("3D", "UniqueMeshes").ShouldBe(new ScenePlan("3D_UniqueMeshes", false, false, false, 0, false));
         ScenePlans.Plan("3D", "GlbModels").ShouldBe(new ScenePlan("3D_GlbModels", true, false, false, 0, false));
         ScenePlans.Plan("Lighting", "sun").ShouldBe(new ScenePlan("Lighting_Sun", false, false, true, 0, false));

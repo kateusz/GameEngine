@@ -6,14 +6,16 @@ public readonly record struct ScenePlan(
     bool PointShadows,
     bool Sun,
     int PointLights,
-    bool CastsShadow);
+    bool CastsShadow,
+    bool StaticMeshMerging = true);
 
 public static class ScenePlans
 {
     public static ScenePlan Plan(string category, string testId) => (category, testId) switch
     {
         ("3D", "Cubes") => new ScenePlan("3D_Cubes", false, false, false, 0, false),
-        ("3D", "InstancedMesh") => new ScenePlan("3D_InstancedMesh", false, false, false, 0, false),
+        ("3D", "InstancedMesh") => new ScenePlan("3D_InstancedMesh", false, false, false, 0, false, StaticMeshMerging: false),
+        ("3D", "MergedMesh") => new ScenePlan("3D_MergedMesh", false, false, false, 0, false),
         ("3D", "UniqueMeshes") => new ScenePlan("3D_UniqueMeshes", false, false, false, 0, false),
         ("3D", "GlbModels") => new ScenePlan("3D_GlbModels", true, false, false, 0, false),
         ("Lighting", "sun") => new ScenePlan("Lighting_Sun", false, false, true, 0, false),
