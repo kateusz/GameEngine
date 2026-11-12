@@ -143,12 +143,18 @@ internal static partial class SceneRenderPipeline
             source?.AlphaCutoff ?? 0.5f,
             source?.DoubleSided ?? false);
 
-    private static void AppendMergeMember(MergeMaterialKey key, MergeMember member)
+    private static void AppendMergeMember(MergeMaterialKey key, MergeMember member) =>
+        AppendMergeMember(MergeGroups, key, member);
+
+    private static void AppendMergeMember(
+        Dictionary<MergeMaterialKey, List<MergeMember>> groups,
+        MergeMaterialKey key,
+        MergeMember member)
     {
-        if (!MergeGroups.TryGetValue(key, out var members))
+        if (!groups.TryGetValue(key, out var members))
         {
             members = [];
-            MergeGroups[key] = members;
+            groups[key] = members;
         }
 
         members.Add(member);
@@ -160,14 +166,15 @@ internal static partial class SceneRenderPipeline
         Vector4 tint,
         int entityId,
         Mesh submesh,
-        ref PassStats stats)
+        ref PassStats stats,
+        Dictionary<MergeMaterialKey, List<MergeMember>>? groups = null)
     {
         AdoptSubmeshFactors(modelRenderer, submesh);
         var pbr = ResolvePbr(modelRenderer);
         var emissive = CombineEmissive(submesh.EmissiveFactor, modelRenderer);
         var key = MakeMergeKey(tint, submesh.DiffuseTexture, submesh, pbr, emissive);
 
-        AppendMergeMember(key, new MergeMember(entityId, submesh, transform, null, 0f));
+        AppendMergeMember(groups ?? MergeGroups, key, new MergeMember(entityId, submesh, transform, null, 0f));
 
         stats.Vertices += submesh.VertexCount;
         stats.Indices += submesh.GetIndexCount();

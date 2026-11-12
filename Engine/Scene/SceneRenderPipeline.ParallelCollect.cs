@@ -37,7 +37,6 @@ internal static partial class SceneRenderPipeline
         public Entity Entity;
         public ModelRendererComponent Renderer;
         public Matrix4x4 World;
-        public Vector4 Color;
         public PbrFactors Factors;
         public Vector3 Emissive;
     }
@@ -64,43 +63,16 @@ internal static partial class SceneRenderPipeline
         }
     }
 
-    private readonly struct OpaqueCollectContext
-    {
-        public readonly bool HasFrustum;
-        public readonly Frustum Frustum;
-        public readonly SceneView LodView;
-        public readonly float ShadowCasterMaxDistanceSq;
-        public readonly Vector3 ShadowCasterViewPosition;
-        public readonly Vector3? SkipCastersContainingLight;
-        public readonly IModelFactory? ModelFactory;
-        public readonly ITextureFactory TextureFactory;
-        public readonly bool CanMerge;
-        public readonly bool CacheOnly;
-
-        public OpaqueCollectContext(
-            bool hasFrustum,
-            in Frustum frustum,
-            in SceneView lodView,
-            float shadowCasterMaxDistanceSq,
-            Vector3 shadowCasterViewPosition,
-            Vector3? skipCastersContainingLight,
-            IModelFactory? modelFactory,
-            ITextureFactory textureFactory,
-            bool canMerge,
-            bool cacheOnly)
-        {
-            HasFrustum = hasFrustum;
-            Frustum = frustum;
-            LodView = lodView;
-            ShadowCasterMaxDistanceSq = shadowCasterMaxDistanceSq;
-            ShadowCasterViewPosition = shadowCasterViewPosition;
-            SkipCastersContainingLight = skipCastersContainingLight;
-            ModelFactory = modelFactory;
-            TextureFactory = textureFactory;
-            CanMerge = canMerge;
-            CacheOnly = cacheOnly;
-        }
-    }
+    private readonly record struct OpaqueCollectContext(
+        bool HasFrustum,
+        Frustum Frustum,
+        SceneView LodView,
+        float ShadowCasterMaxDistanceSq,
+        Vector3 ShadowCasterViewPosition,
+        Vector3? SkipCastersContainingLight,
+        IModelFactory? ModelFactory,
+        ITextureFactory TextureFactory,
+        bool CacheOnly);
 
     private static void MaterializeOpaqueCandidates(Context context, bool canMerge, ref PassStats stats)
     {
@@ -118,19 +90,17 @@ internal static partial class SceneRenderPipeline
             var world = ModelMeshPivot.ToDrawTransform(
                 transformComponent.GetWorldTransform(),
                 modelRenderer.Pivot);
-            var mergeCandidate = canMerge && TrackAndClassifyForMerge(entity, world);
             OpaqueCandidates.Add(new OpaqueCandidate
             {
                 Entity = entity,
                 Renderer = modelRenderer,
                 World = world,
-                MergeCandidate = mergeCandidate
+                MergeCandidate = canMerge && TrackAndClassifyForMerge(entity, world)
             });
         }
     }
 
     private static void CollectOpaqueSerial(
-        Context context,
         IGraphics3D graphics3D,
         OpaqueCollectContext ctx,
         ref PassStats stats)
@@ -138,12 +108,11 @@ internal static partial class SceneRenderPipeline
         for (var i = 0; i < OpaqueCandidates.Count; i++)
         {
             var candidate = OpaqueCandidates[i];
-            CollectCandidate(i, in candidate, in ctx, context, graphics3D, buffers: null, ref stats);
+            CollectCandidate(i, in candidate, in ctx, graphics3D, buffers: null, ref stats);
         }
     }
 
     private static void CollectOpaqueParallel(
-        Context context,
         IGraphics3D graphics3D,
         OpaqueCollectContext ctx,
         ref PassStats stats)
@@ -165,8 +134,7 @@ internal static partial class SceneRenderPipeline
                 {
                     var candidate = OpaqueCandidates[i];
                     var localStats = buffer.Stats;
-                    CollectCandidate(i, in candidate, in parallelCtx, context: null, graphics3D: null, buffer,
-                        ref localStats);
+                    CollectCandidate(i, in candidate, in parallelCtx, graphics3D: null, buffer, ref localStats);
                     buffer.Stats = localStats;
                 }
             });
@@ -177,17 +145,13 @@ internal static partial class SceneRenderPipeline
             ClearSharedCollectQueues();
             ImmediateCubes.Clear();
             DeferredCandidateIndices.Clear();
-            var serialCtx = new OpaqueCollectContext(
-                ctx.HasFrustum, ctx.Frustum, ctx.LodView, ctx.ShadowCasterMaxDistanceSq,
-                ctx.ShadowCasterViewPosition, ctx.SkipCastersContainingLight,
-                ctx.ModelFactory, ctx.TextureFactory, ctx.CanMerge, cacheOnly: false);
-            CollectOpaqueSerial(context, graphics3D, serialCtx, ref stats);
+            CollectOpaqueSerial(graphics3D, ctx with { CacheOnly = false }, ref stats);
             return;
         }
 
         MergeWorkerBuffers(degree, ref stats);
         ReplayImmediateCubes(graphics3D, ctx.TextureFactory, ref stats);
-        ResolveDeferredCandidates(context, graphics3D, ctx, ref stats);
+        ResolveDeferredCandidates(graphics3D, ctx, ref stats);
     }
 
     private static void EnsureWorkerBuffers(int degree)
@@ -212,9 +176,6 @@ internal static partial class SceneRenderPipeline
         }
 
         MeshBatches.Clear();
-        foreach (var members in MergeGroups.Values)
-            members.Clear();
-        // MergeGroups keys stay; FlushMergeGroups clears members — keep consistent with serial
         MergeGroups.Clear();
     }
 
@@ -255,9 +216,6 @@ internal static partial class SceneRenderPipeline
             DeferredCandidateIndices.AddRange(buffer.Deferred);
             stats = Accumulate(stats, buffer.Stats);
         }
-
-        if (ImmediateCubes.Count > 1)
-            ImmediateCubes.Sort(static (a, b) => a.Entity.Id.CompareTo(b.Entity.Id));
     }
 
     private static void ReplayImmediateCubes(
@@ -272,7 +230,7 @@ internal static partial class SceneRenderPipeline
                 DrawCubeWithTexture(graphics3D, textureFactory, draw.Renderer, draw.World, draw.Entity,
                     draw.Factors, draw.Emissive);
             else
-                graphics3D.DrawCube(draw.World, draw.Color, draw.Entity.Id,
+                graphics3D.DrawCube(draw.World, draw.Renderer.Color, draw.Entity.Id,
                     metallic: draw.Factors.Metallic, roughness: draw.Factors.Roughness, ao: draw.Factors.Ao,
                     emissive: draw.Emissive);
             stats.CubeDraws++;
@@ -282,7 +240,6 @@ internal static partial class SceneRenderPipeline
     }
 
     private static void ResolveDeferredCandidates(
-        Context context,
         IGraphics3D graphics3D,
         OpaqueCollectContext parallelCtx,
         ref PassStats stats)
@@ -290,19 +247,13 @@ internal static partial class SceneRenderPipeline
         if (DeferredCandidateIndices.Count == 0)
             return;
 
-        var serialCtx = new OpaqueCollectContext(
-            parallelCtx.HasFrustum, parallelCtx.Frustum, parallelCtx.LodView,
-            parallelCtx.ShadowCasterMaxDistanceSq, parallelCtx.ShadowCasterViewPosition,
-            parallelCtx.SkipCastersContainingLight, parallelCtx.ModelFactory, parallelCtx.TextureFactory,
-            parallelCtx.CanMerge, cacheOnly: false);
-
-        // Stable order for determinism vs serial when only misses defer.
+        var serialCtx = parallelCtx with { CacheOnly = false };
         DeferredCandidateIndices.Sort();
         for (var i = 0; i < DeferredCandidateIndices.Count; i++)
         {
             var index = DeferredCandidateIndices[i];
             var candidate = OpaqueCandidates[index];
-            CollectCandidate(index, in candidate, in serialCtx, context, graphics3D, buffers: null, ref stats);
+            CollectCandidate(index, in candidate, in serialCtx, graphics3D, buffers: null, ref stats);
         }
 
         DeferredCandidateIndices.Clear();
@@ -312,7 +263,6 @@ internal static partial class SceneRenderPipeline
         int candidateIndex,
         in OpaqueCandidate candidate,
         in OpaqueCollectContext ctx,
-        Context? context,
         IGraphics3D? graphics3D,
         CollectBuffers? buffers,
         ref PassStats stats)
@@ -336,7 +286,7 @@ internal static partial class SceneRenderPipeline
                 && !string.IsNullOrWhiteSpace(modelRenderer.ModelPath)
                 && ctx.ModelFactory != null)
             {
-                var resolved = ResolveModelAssetPath(modelRenderer.ModelPath);
+                var resolved = PathBuilder.Resolve(modelRenderer.ModelPath);
                 var loaded = ctx.CacheOnly
                     ? (ctx.ModelFactory.TryGetCached(resolved, out var cached) ? cached : null)
                     : ctx.ModelFactory.Create(resolved);
@@ -347,18 +297,12 @@ internal static partial class SceneRenderPipeline
             return;
         }
 
-        if (needsLoad && buffers is not null)
-        {
-            buffers.Deferred.Add(candidateIndex);
-            return;
-        }
-
         var tint = modelRenderer.Color;
         if (kind == OpaqueSurfaceKind.UnitCube)
         {
             if (!string.IsNullOrWhiteSpace(modelRenderer.ModelPath) && !ctx.CacheOnly)
             {
-                var resolvedPath = ResolveModelAssetPath(modelRenderer.ModelPath);
+                var resolvedPath = PathBuilder.Resolve(modelRenderer.ModelPath);
                 if (WarnedFailedModels.Add(resolvedPath))
                     Logger.Warning(
                         "Failed to load model assetPath={ModelPath} resolved={ResolvedPath} — drawing unit cube instead",
@@ -376,9 +320,6 @@ internal static partial class SceneRenderPipeline
                     return;
                 }
 
-                if (graphics3D is null && buffers is null)
-                    return;
-
                 if (!TryResolveCubeTexture(ctx.TextureFactory, modelRenderer, out var cubeTexture))
                     return;
 
@@ -386,7 +327,7 @@ internal static partial class SceneRenderPipeline
                 var member = new MergeMember(
                     entity.Id, null, transform, cubeTexture, modelRenderer.TilingFactor);
                 if (buffers is not null)
-                    AppendMergeMemberLocal(buffers, key, member);
+                    AppendMergeMember(buffers.MergeGroups, key, member);
                 else
                     AppendMergeMember(key, member);
                 stats.Vertices += UnitCubeVertexCount;
@@ -399,19 +340,16 @@ internal static partial class SceneRenderPipeline
                     ref stats))
                 return;
 
-            var immediate = new ImmediateCubeDraw
-            {
-                Entity = entity,
-                Renderer = modelRenderer,
-                World = transform,
-                Color = modelRenderer.Color,
-                Factors = factors,
-                Emissive = emissive
-            };
-
             if (buffers is not null)
             {
-                buffers.ImmediateCubes.Add(immediate);
+                buffers.ImmediateCubes.Add(new ImmediateCubeDraw
+                {
+                    Entity = entity,
+                    Renderer = modelRenderer,
+                    World = transform,
+                    Factors = factors,
+                    Emissive = emissive
+                });
                 return;
             }
 
@@ -431,9 +369,8 @@ internal static partial class SceneRenderPipeline
 
         if (kind == OpaqueSurfaceKind.SingleSubmesh)
         {
-            var submesh = model!.Submeshes[submeshIndex];
-            QueueOrMergeSubmesh(modelRenderer, transform, tint, entity.Id, submesh, mergeCandidate, in ctx, buffers,
-                ref stats);
+            QueueOrMergeSubmesh(modelRenderer, transform, tint, entity.Id, model!.Submeshes[submeshIndex],
+                mergeCandidate, in ctx, buffers, ref stats);
             return;
         }
 
@@ -456,10 +393,8 @@ internal static partial class SceneRenderPipeline
         var level = MeshLod.Select(submesh, transform, ctx.LodView.ViewPosition, ctx.LodView, modelRenderer.LodBias);
         if (mergeCandidate && submesh.LodCount <= 1 && submesh.BakeVertices is not null)
         {
-            if (buffers is not null)
-                AppendMergeSubmeshLocal(buffers, modelRenderer, transform, tint, entityId, submesh, ref stats);
-            else
-                AppendMergeSubmesh(modelRenderer, transform, tint, entityId, submesh, ref stats);
+            AppendMergeSubmesh(modelRenderer, transform, tint, entityId, submesh, ref stats,
+                buffers?.MergeGroups);
             return;
         }
 
@@ -468,98 +403,7 @@ internal static partial class SceneRenderPipeline
                 ctx.ShadowCasterViewPosition, ctx.SkipCastersContainingLight, ref stats))
             return;
 
-        if (buffers is not null)
-            QueueSubmeshLocal(buffers, modelRenderer, transform, tint, entityId, submesh, level, ref stats);
-        else
-            QueueSubmesh(modelRenderer, transform, tint, entityId, submesh, level, ref stats);
-    }
-
-    private static void AppendMergeMemberLocal(CollectBuffers buffers, MergeMaterialKey key, MergeMember member)
-    {
-        if (!buffers.MergeGroups.TryGetValue(key, out var members))
-        {
-            members = [];
-            buffers.MergeGroups[key] = members;
-        }
-
-        members.Add(member);
-    }
-
-    private static void AppendMergeSubmeshLocal(
-        CollectBuffers buffers,
-        ModelRendererComponent modelRenderer,
-        Matrix4x4 transform,
-        Vector4 tint,
-        int entityId,
-        Mesh submesh,
-        ref PassStats stats)
-    {
-        AdoptSubmeshFactors(modelRenderer, submesh);
-        var pbr = ResolvePbr(modelRenderer);
-        var emissive = CombineEmissive(submesh.EmissiveFactor, modelRenderer);
-        var key = MakeMergeKey(tint, submesh.DiffuseTexture, submesh, pbr, emissive);
-        AppendMergeMemberLocal(buffers, key, new MergeMember(entityId, submesh, transform, null, 0f));
-        stats.Vertices += submesh.VertexCount;
-        stats.Indices += submesh.GetIndexCount();
-    }
-
-    private static void QueueSubmeshLocal(
-        CollectBuffers buffers,
-        ModelRendererComponent modelRenderer,
-        Matrix4x4 transform,
-        Vector4 tint,
-        int entityId,
-        Mesh submesh,
-        int level,
-        ref PassStats stats)
-    {
-        stats.Instances++;
-        stats.Vertices += submesh.VertexCount;
-        stats.Indices += submesh.IndexCountAt(level);
-
-        AdoptSubmeshFactors(modelRenderer, submesh);
-        var pbr = ResolvePbr(modelRenderer);
-        var emissive = CombineEmissive(submesh.EmissiveFactor, modelRenderer);
-        var key = new MeshBatchKey(submesh, tint, pbr.Metallic, pbr.Roughness, pbr.Ao, emissive, level);
-        if (!buffers.MeshBatches.TryGetValue(key, out var batch))
-        {
-            batch = [];
-            buffers.MeshBatches[key] = batch;
-        }
-
-        batch.Add(new MeshDrawInstance
-        {
-            Transform = transform,
-            EntityId = entityId,
-            Tint = tint,
-            Metallic = pbr.Metallic,
-            Roughness = pbr.Roughness,
-            Ao = pbr.Ao,
-            Emissive = emissive
-        });
-    }
-
-    /// <summary>
-    /// PathBuilder.Resolve needs a project context for relative paths. Unit tests often pass
-    /// rooted Unix paths or Windows drive letters on macOS — those must not touch AssetsPath.
-    /// </summary>
-    private static string ResolveModelAssetPath(string path)
-    {
-        if (string.IsNullOrWhiteSpace(path))
-            return path;
-
-        var normalized = path.Replace('\\', '/');
-        if (Path.IsPathRooted(normalized))
-            return Path.GetFullPath(normalized);
-
-        // Windows-style absolute path on a non-Windows host (common in pipeline unit tests).
-        if (normalized.Length >= 3
-            && char.IsAsciiLetter(normalized[0])
-            && normalized[1] == ':'
-            && normalized[2] == '/')
-            return normalized;
-
-        return PathBuilder.Resolve(path);
+        QueueSubmesh(modelRenderer, transform, tint, entityId, submesh, level, ref stats, buffers?.MeshBatches);
     }
 
     private static bool TryResolveOpaqueSurface(
@@ -589,7 +433,7 @@ internal static partial class SceneRenderPipeline
         if (modelFactory == null)
             return false;
 
-        var resolvedPath = ResolveModelAssetPath(modelRenderer.ModelPath);
+        var resolvedPath = PathBuilder.Resolve(modelRenderer.ModelPath);
         if (cacheOnly)
         {
             if (!modelFactory.TryGetCached(resolvedPath, out model))

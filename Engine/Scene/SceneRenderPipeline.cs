@@ -593,12 +593,12 @@ internal static partial class SceneRenderPipeline
             var ctx = new OpaqueCollectContext(
                 hasFrustum, frustum, lodView, shadowCasterMaxDistanceSq,
                 shadowCasterViewPosition, skipCastersContainingLight,
-                modelFactory, textureFactory, canMerge, cacheOnly: useParallel);
+                modelFactory, textureFactory, useParallel);
 
             if (useParallel)
-                CollectOpaqueParallel(context, graphics3D, ctx, ref stats);
+                CollectOpaqueParallel(graphics3D, ctx, ref stats);
             else
-                CollectOpaqueSerial(context, graphics3D, ctx, ref stats);
+                CollectOpaqueSerial(graphics3D, ctx, ref stats);
         }
         finally
         {
@@ -700,8 +700,10 @@ internal static partial class SceneRenderPipeline
         int entityId,
         Mesh submesh,
         int level,
-        ref PassStats stats)
+        ref PassStats stats,
+        Dictionary<MeshBatchKey, List<MeshDrawInstance>>? batches = null)
     {
+        batches ??= MeshBatches;
         stats.Instances++;
         stats.Vertices += submesh.VertexCount;
         stats.Indices += submesh.IndexCountAt(level);
@@ -710,10 +712,10 @@ internal static partial class SceneRenderPipeline
         var pbr = ResolvePbr(modelRenderer);
         var emissive = CombineEmissive(submesh.EmissiveFactor, modelRenderer);
         var key = new MeshBatchKey(submesh, tint, pbr.Metallic, pbr.Roughness, pbr.Ao, emissive, level);
-        if (!MeshBatches.TryGetValue(key, out var batch))
+        if (!batches.TryGetValue(key, out var batch))
         {
-            batch = BatchLists.Count > 0 ? BatchLists.Pop() : [];
-            MeshBatches[key] = batch;
+            batch = ReferenceEquals(batches, MeshBatches) && BatchLists.Count > 0 ? BatchLists.Pop() : [];
+            batches[key] = batch;
         }
 
         batch.Add(new MeshDrawInstance

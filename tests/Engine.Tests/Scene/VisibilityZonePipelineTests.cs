@@ -40,12 +40,12 @@ public class VisibilityZonePipelineTests
         var transform = new TransformComponent();
         transform.SetWorldTransform(Matrix4x4.CreateTranslation(0f, 0f, 0f));
         prop.AddComponent(transform);
-        prop.AddComponent(new ModelRendererComponent { ModelPath = @"C:\prop.glb", VisibilityZoneEntityId = 10 });
+        prop.AddComponent(new ModelRendererComponent { ModelPath = "/prop.glb", VisibilityZoneEntityId = 10 });
         context.Register(prop);
 
         var mesh = CreateTriangleMesh("part");
         var models = Substitute.For<Engine.Renderer.Models.IModelFactory>();
-        models.Create(Arg.Any<string>()).Returns(new Engine.Renderer.Models.Model(@"C:\prop.glb", [mesh]));
+        models.Create(Arg.Any<string>()).Returns(new Engine.Renderer.Models.Model("/prop.glb", [mesh]));
 
         var graphics = new MeshDrawRecordingGraphics3D();
         var eye = new Vector3(100f, 0f, 0f);
@@ -78,12 +78,12 @@ public class VisibilityZonePipelineTests
         var transform = new TransformComponent();
         transform.SetWorldTransform(Matrix4x4.CreateTranslation(0f, 0f, 0f));
         prop.AddComponent(transform);
-        prop.AddComponent(new ModelRendererComponent { ModelPath = @"C:\prop.glb", VisibilityZoneEntityId = 10 });
+        prop.AddComponent(new ModelRendererComponent { ModelPath = "/prop.glb", VisibilityZoneEntityId = 10 });
         context.Register(prop);
 
         var mesh = CreateTriangleMesh("part");
         var models = Substitute.For<Engine.Renderer.Models.IModelFactory>();
-        models.Create(Arg.Any<string>()).Returns(new Engine.Renderer.Models.Model(@"C:\prop.glb", [mesh]));
+        models.Create(Arg.Any<string>()).Returns(new Engine.Renderer.Models.Model("/prop.glb", [mesh]));
 
         var graphics = new MeshDrawRecordingGraphics3D();
         var eye = Vector3.Zero;

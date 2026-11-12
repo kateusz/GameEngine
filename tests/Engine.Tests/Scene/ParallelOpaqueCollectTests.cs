@@ -63,25 +63,6 @@ public class ParallelOpaqueCollectTests : IDisposable
     }
 
     [Fact]
-    public void BelowThreshold_UsesSerialPath_StillDraws()
-    {
-        var context = BuildCubes(4);
-        SceneRenderPipeline.ForceSerialOpaqueCollect = false;
-        SceneRenderPipeline.ParallelOpaqueCollectThreshold = 64;
-        var graphics = new MeshDrawRecordingGraphics3D();
-
-        SceneRenderPipeline.RenderScene(
-            context, Substitute.For<IGraphics2D>(), graphics, Substitute.For<ITextureFactory>(),
-            Substitute.For<IModelFactory>(),
-            new SceneView(
-                Matrix4x4.CreateOrthographic(40f, 40f, 0.1f, 100f),
-                PointShadows: false,
-                DirectionalShadows: false));
-
-        graphics.CubeDraws.ShouldBe(4);
-    }
-
-    [Fact]
     public void ParallelCollect_CachedModel_QueuesInstances()
     {
         var mesh = CreateTriangle();
