@@ -543,8 +543,16 @@ internal sealed class Graphics3D(
 
         shader.SetInt("u_Instanced", 1);
         _instanceUpload.Clear();
-        foreach (var instance in instances)
-            _instanceUpload.Add(PackInstance(instance));
+        if (_shadowPass)
+        {
+            foreach (var instance in instances)
+                _instanceUpload.Add(PackShadowInstance(instance));
+        }
+        else
+        {
+            foreach (var instance in instances)
+                _instanceUpload.Add(PackInstance(instance));
+        }
 
         rendererApi.DrawIndexedInstanced(
             mesh.GetVertexArray(), indexCount, CollectionsMarshal.AsSpan(_instanceUpload));
@@ -697,6 +705,17 @@ internal sealed class Graphics3D(
     {
         Model = Matrix4x4.Transpose(instance.Transform),
         Normal = Matrix4x4.Transpose(ComputeNormalMatrix(instance.Transform)),
+        EntityId = instance.EntityId
+    };
+
+    /// <summary>
+    /// Shadow passes: depth.vert reads only a_InstanceModel, so the inverse-transpose is pure waste —
+    /// it was one <c>Matrix4x4.Invert</c> per instance per pass. Follows <see cref="UploadAndDraw"/>'s
+    /// own packing unchanged; upgrade if a depth shader ever needs world normals.
+    /// </summary>
+    internal static MeshInstanceData PackShadowInstance(MeshDrawInstance instance) => new()
+    {
+        Model = Matrix4x4.Transpose(instance.Transform),
         EntityId = instance.EntityId
     };
 

@@ -92,6 +92,7 @@ public sealed class PipelineBenchmarkRun : BenchmarkRun
     private readonly ExpectedShadow _expected;
     private readonly IScenePresenter _display;
     private readonly ShadowQuality? _editorShadowQuality;
+    private readonly float _viewportHeightPixels;
     private bool _disposed;
     private Statistics _last = new();
 
@@ -113,7 +114,8 @@ public sealed class PipelineBenchmarkRun : BenchmarkRun
         Action? onDispose = null,
         IScenePresenter? display = null,
         ShadowQuality? editorShadowQuality = null,
-        IFrameBufferFactory? frameBuffers = null)
+        IFrameBufferFactory? frameBuffers = null,
+        float viewportHeightPixels = 0f)
     {
         _pipeline = new(graphics2D, graphics3D, textures, models, vertexArrays, vertexBuffers, indexBuffers, frameBuffers);
         ResultName = resultName;
@@ -133,6 +135,7 @@ public sealed class PipelineBenchmarkRun : BenchmarkRun
         _expected = expected;
         _display = display ?? DirectScenePresenter.Instance;
         _editorShadowQuality = editorShadowQuality;
+        _viewportHeightPixels = viewportHeightPixels;
     }
 
     public override string ResultName { get; }
@@ -150,7 +153,7 @@ public sealed class PipelineBenchmarkRun : BenchmarkRun
         _graphics3D.ResetStats();
         _graphics3D.SetSkybox(string.IsNullOrWhiteSpace(_scene.Skybox) ? null : _scene.Skybox);
         _scene.UpdateWorldTransforms();
-        _pipeline.RenderScene(_scene.Context, _camera.CreateView(_directionalShadows, _pointShadows));
+        _pipeline.RenderScene(_scene.Context, _camera.CreateView(_directionalShadows, _pointShadows, _viewportHeightPixels));
         _last = _graphics3D.GetStats();
     }
 

@@ -79,7 +79,12 @@ public sealed class BenchmarkCamera
         Distance = System.Math.Clamp(Distance - scrollY * step, 1f, 400f);
     }
 
-    public SceneView CreateView(bool directionalShadows, bool pointShadows)
+    /// <param name="viewportHeightPixels">
+    /// Framebuffer height, as <c>LodViewportHeight</c> resolves it for the editor and runtime.
+    /// Leaving it 0 makes <c>MeshLod.Select</c> always pick level 0, so a perf run pays full
+    /// geometry the real viewport would have decimated.
+    /// </param>
+    public SceneView CreateView(bool directionalShadows, bool pointShadows, float viewportHeightPixels = 0f)
     {
         var eye = Eye;
         var view = Matrix4x4.CreateLookAt(eye, Focal, Vector3.UnitY);
@@ -89,12 +94,18 @@ public sealed class BenchmarkCamera
         skyView.M43 = 0f;
         var projection = Matrix4x4.CreatePerspectiveFieldOfView(
             MathF.PI / 3f, DisplayConfig.DefaultAspectRatio, 0.1f, 500f);
+        // Same conversion the editor viewport does: world height visible one unit from the eye.
+        var frustumHeightAtUnit = MathF.Abs(projection.M22) > float.Epsilon
+            ? 2f / MathF.Abs(projection.M22)
+            : 0f;
         return new SceneView(
             view * projection,
             eye,
             pointShadows,
             DirectionalShadows: directionalShadows,
-            SkyViewProjection: skyView * projection);
+            SkyViewProjection: skyView * projection,
+            ViewportHeight: viewportHeightPixels,
+            FrustumHeightAtUnit: frustumHeightAtUnit);
     }
 
     void Orbit(Vector2 delta)

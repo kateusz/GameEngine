@@ -43,6 +43,12 @@ public sealed class Benchmark3DRunner(
     Container container) : IBenchmarkRunner
 {
     private readonly EditorScenePresenter _editorDisplay = new(window, hdrTarget, tonemap);
+
+    /// <summary>
+    /// LOD pixel height exactly as the run's HDR target sees it, so benchmark and editor decimate
+    /// the same way. Zero means "no LOD" to <c>MeshLod</c>, which silently hides the cost.
+    /// </summary>
+    private float LodHeight() => EditorScenePresenter.Pixels(window.ClientSize.Y, window.ContentScale);
     private int _count = 1000;
     private float _duration = 5f;
     private string _projectPathInput = "";
@@ -170,7 +176,8 @@ public sealed class Benchmark3DRunner(
             plan.StaticMeshMerging ? indexBuffers : null,
             clearModelCache: testId == "UniqueMeshes",
             ExpectedShadow.None,
-            frameBuffers: frameBuffers);
+            frameBuffers: frameBuffers,
+            viewportHeightPixels: LodHeight());
         error = null;
         return true;
     }
@@ -370,7 +377,8 @@ public sealed class Benchmark3DRunner(
             onDispose: startedPlay ? scene.OnRuntimeStop : null,
             display: _editorDisplay,
             editorShadowQuality: PipelineBenchmarkRun.ShadowSettings.FromEditorPreferences(prefsPath).ToQuality(),
-            frameBuffers: frameBuffers);
+            frameBuffers: frameBuffers,
+            viewportHeightPixels: LodHeight());
         // Scripted games: pose as-is. Art scenes: frame the visible geometry.
         if (startedPlay)
         {
