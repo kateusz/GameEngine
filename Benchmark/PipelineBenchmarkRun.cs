@@ -20,6 +20,61 @@ public enum ExpectedShadow
 
 public sealed class PipelineBenchmarkRun : BenchmarkRun
 {
+    /// <summary>
+    /// Shadow settings as the editor UI sees them, so a perf run measures the cost the user
+    /// actually pays. Defaults mirror a fresh editor install.
+    /// </summary>
+    public sealed record ShadowSettings(
+        int DirectionalResolution = 1024,
+        int PointResolution = 512,
+        float Distance = 50f,
+        int PcfTaps = 1,
+        bool PointPcf = false,
+        int Cascades = 1)
+    {
+        public ShadowQuality ToQuality() =>
+            new ShadowQuality(DirectionalResolution, PointResolution, Distance, PcfTaps, PointPcf, Cascades).Sanitized();
+
+        /// <summary>
+        /// Reads the editor's saved preferences so a benchmark matches this machine's viewport.
+        /// Missing or corrupt file falls back to the fresh-install defaults.
+        /// </summary>
+        public static ShadowSettings FromEditorPreferences(string preferencesPath)
+        {
+            try
+            {
+                if (!File.Exists(preferencesPath))
+                    return new ShadowSettings();
+
+                using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(preferencesPath));
+                var root = doc.RootElement;
+                return new ShadowSettings(
+                    Read(root, "SunShadowResolution", 1024),
+                    Read(root, "PointShadowResolution", 512),
+                    Read(root, "ShadowDistance", 50f),
+                    Read(root, "ShadowPcf", 1),
+                    Read(root, "PointShadowPcf", false),
+                    Read(root, "ShadowCascades", 1));
+            }
+            catch (Exception ex) when (ex is IOException or System.Text.Json.JsonException or UnauthorizedAccessException)
+            {
+                return new ShadowSettings();
+            }
+        }
+
+        static int Read(System.Text.Json.JsonElement root, string name, int fallback) =>
+            root.TryGetProperty(name, out var value) && value.TryGetInt32(out var parsed) ? parsed : fallback;
+
+        static float Read(System.Text.Json.JsonElement root, string name, float fallback) =>
+            root.TryGetProperty(name, out var value) && value.TryGetSingle(out var parsed) ? parsed : fallback;
+
+        static bool Read(System.Text.Json.JsonElement root, string name, bool fallback) =>
+            root.TryGetProperty(name, out var value) && value.ValueKind is System.Text.Json.JsonValueKind.True
+                or System.Text.Json.JsonValueKind.False
+                ? value.GetBoolean()
+                : fallback;
+    }
+
     private readonly SceneRenderPipeline _pipeline;
     private readonly IScene _scene;
     private readonly BenchmarkCamera _camera = new();
@@ -36,7 +91,7 @@ public sealed class PipelineBenchmarkRun : BenchmarkRun
     private readonly Action? _onDispose;
     private readonly ExpectedShadow _expected;
     private readonly IScenePresenter _display;
-    private readonly bool _matchEditorLight;
+    private readonly ShadowQuality? _editorShadowQuality;
     private bool _disposed;
     private Statistics _last = new();
 
@@ -57,7 +112,7 @@ public sealed class PipelineBenchmarkRun : BenchmarkRun
         ExpectedShadow expected,
         Action? onDispose = null,
         IScenePresenter? display = null,
-        bool matchEditorLight = false,
+        ShadowQuality? editorShadowQuality = null,
         IFrameBufferFactory? frameBuffers = null)
     {
         _pipeline = new(graphics2D, graphics3D, textures, models, vertexArrays, vertexBuffers, indexBuffers, frameBuffers);
@@ -77,7 +132,7 @@ public sealed class PipelineBenchmarkRun : BenchmarkRun
         _onDispose = onDispose;
         _expected = expected;
         _display = display ?? DirectScenePresenter.Instance;
-        _matchEditorLight = matchEditorLight;
+        _editorShadowQuality = editorShadowQuality;
     }
 
     public override string ResultName { get; }
@@ -87,8 +142,8 @@ public sealed class PipelineBenchmarkRun : BenchmarkRun
 
     void DrawFrame()
     {
-        if (_matchEditorLight)
-            _graphics3D.SetShadowQuality(ShadowQuality.For(ShadowPreset.Low)); // ponytail: stock editor defaults; ignores editor-preferences.json
+        if (_editorShadowQuality is { } quality)
+            _graphics3D.SetShadowQuality(quality);
 
         _graphics2D.SetClearColor(_scene.BackgroundColor);
         _graphics2D.Clear();

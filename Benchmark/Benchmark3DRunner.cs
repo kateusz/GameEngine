@@ -354,6 +354,12 @@ public sealed class Benchmark3DRunner(
         foreach (var (_, model) in scene.Context.View<ModelRendererComponent>())
             model.VisibilityZoneEntityId = -1;
         var plan = ScenePlans.Plan("3D", "GlbModels");
+        // Benchmark cannot reference the Editor project, so it reads the same prefs file directly:
+        // a perf run must pay the shadow cost this machine's viewport actually pays.
+        var prefsPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "GameEngine",
+            "editor-preferences.json");
         pipeline = new PipelineBenchmarkRun(
             plan.ResultName, durationSeconds, scene,
             plan.DirectionalShadows, plan.PointShadows,
@@ -363,11 +369,57 @@ public sealed class Benchmark3DRunner(
             ExpectedShadow.None,
             onDispose: startedPlay ? scene.OnRuntimeStop : null,
             display: _editorDisplay,
-            matchEditorLight: true,
+            editorShadowQuality: PipelineBenchmarkRun.ShadowSettings.FromEditorPreferences(prefsPath).ToQuality(),
             frameBuffers: frameBuffers);
-        // Scripted games: pose as-is. Art scenes: orbit pullback for framing.
-        if (TryPrimaryLook(scene, out var eye, out var focal, pullback: startedPlay ? 0f : 64f))
-            pipeline.Frame(eye, focal);
+        // Scripted games: pose as-is. Art scenes: frame the visible geometry.
+        if (startedPlay)
+        {
+            if (TryPrimaryLook(scene, out var eye, out var focal, pullback: 0f))
+                pipeline.Frame(eye, focal);
+        }
+        else if (TryFrameScene(scene, out var artEye, out var artFocal))
+        {
+            pipeline.Frame(artEye, artFocal);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Frames the scene from its own extent so small scenes (a plant, a prop) fill the view
+    /// instead of sitting as a dot 64 units away. The 64 clamp keeps large scenes on the old
+    /// pulled-back framing. <c>ponytail:</c> the radius comes from model world positions only, so
+    /// a scene that is one huge mesh (size in geometry, not in spread) frames too tight; upgrade
+    /// with per-mesh bounds when that shows up.
+    /// </summary>
+    internal static bool TryFrameScene(IScene scene, out Vector3 eye, out Vector3 focal)
+    {
+        eye = default;
+        focal = default;
+        if (!TryPrimaryLook(scene, out var cameraEye, out var lookAt, pullback: 0f))
+            return false;
+
+        var forward = Vector3.Normalize(lookAt - cameraEye);
+        var count = 0;
+        var centroid = Vector3.Zero;
+        foreach (var (_, _, transform) in scene.Context.View<ModelRendererComponent, SceneComponents.TransformComponent>())
+        {
+            centroid += transform.GetWorldTransform().Translation;
+            count++;
+        }
+
+        if (count == 0)
+            return false;
+
+        centroid /= count;
+        var radius = 0f;
+        foreach (var (_, _, transform) in scene.Context.View<ModelRendererComponent, SceneComponents.TransformComponent>())
+            radius = MathF.Max(radius, Vector3.Distance(transform.GetWorldTransform().Translation, centroid));
+
+        // 60° vertical FOV: half-extent / tan(30°) ≈ 1.73, with margin.
+        var distance = BenchmarkCamera.FramingDistance(radius);
+        focal = centroid;
+        eye = centroid - forward * distance;
         return true;
     }
 

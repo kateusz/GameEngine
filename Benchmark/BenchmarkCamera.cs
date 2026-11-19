@@ -11,6 +11,14 @@ public sealed class BenchmarkCamera
     const int Right = 1;
     const int Middle = 2;
 
+    /// <summary>
+    /// Eye distance that frames a sphere of <paramref name="radius"/> in the 60° FOV, with margin.
+    /// Clamped to 4..64 so a huge art scene keeps the old pulled-back framing instead of
+    /// flying off, and a tiny one still gets a usable near plane.
+    /// </summary>
+    public static float FramingDistance(float radius) =>
+        System.Math.Clamp(MathF.Max(radius, 0.5f) * 1.9f, 4f, 64f);
+
     Vector2 _last;
     bool _hasLast;
     bool _left;

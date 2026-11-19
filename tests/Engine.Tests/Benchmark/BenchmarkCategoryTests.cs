@@ -215,7 +215,7 @@ public class BenchmarkCategoryTests : IDisposable
             display: new ScopePresenter(
                 () => inside = true,
                 () => inside = false),
-            matchEditorLight: true);
+            editorShadowQuality: ShadowQuality.For(ShadowPreset.Low));
 
         run.Tick(TimeSpan.FromMilliseconds(16));
 
@@ -226,6 +226,53 @@ public class BenchmarkCategoryTests : IDisposable
         graphics3D.LastView!.Value.DirectionalShadows.ShouldBeTrue();
         graphics3D.LastView.Value.PointShadows.ShouldBeFalse();
     }
+
+    [Fact]
+    public void Project_scene_applies_the_editor_shadow_quality_it_is_given()
+    {
+        var scene = new Engine.Scene.Scene("t", new Context(), new SystemManager(),
+            new PhysicsRuntimeBodyStore(), new PhysicsContactQueue(), null!, NullCameraQueries.Instance);
+        var graphics3D = new MeshDrawRecordingGraphics3D();
+        var high = ShadowQuality.For(ShadowPreset.High);
+        using var run = new PipelineBenchmarkRun(
+            "3D_GlbModels", 0f, scene, true, false,
+            new ClearProbe(() => true), graphics3D,
+            Substitute.For<ITextureFactory>(), Substitute.For<IModelFactory>(),
+            Substitute.For<IVertexArrayFactory>(), Substitute.For<IVertexBufferFactory>(),
+            Substitute.For<IIndexBufferFactory>(),
+            false, ExpectedShadow.None,
+            editorShadowQuality: high);
+
+        run.Tick(TimeSpan.FromMilliseconds(16));
+
+        graphics3D.ShadowQuality.ShouldBe(high);
+    }
+
+    [Fact]
+    public void Shadow_settings_read_the_editor_preferences_file()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"prefs-{Guid.NewGuid():N}.json");
+        File.WriteAllText(path, """
+            {"SunShadowResolution":2048,"PointShadowResolution":1024,"ShadowDistance":200,
+             "ShadowPcf":5,"PointShadowPcf":true,"ShadowCascades":2}
+            """);
+        try
+        {
+            PipelineBenchmarkRun.ShadowSettings.FromEditorPreferences(path).ToQuality()
+                .ShouldBe(new ShadowQuality(2048, 1024, 200f, PcfTaps: 5, PointPcf: true, Cascades: 2));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Shadow_settings_fall_back_to_editor_defaults_without_a_file() =>
+        PipelineBenchmarkRun.ShadowSettings
+            .FromEditorPreferences(Path.Combine(Path.GetTempPath(), $"missing-{Guid.NewGuid():N}.json"))
+            .ToQuality()
+            .ShouldBe(ShadowQuality.For(ShadowPreset.Low));
 
     private sealed class ScopePresenter(Action enter, Action leave) : IScenePresenter
     {
