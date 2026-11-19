@@ -6,6 +6,7 @@ using Engine.Audio;
 using Engine.Core;
 using Engine.Physics;
 using Engine.Renderer.Buffers;
+using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
@@ -27,7 +28,8 @@ internal sealed class SceneSystemsFactory(
     IVertexArrayFactory vertexArrayFactory,
     IVertexBufferFactory vertexBufferFactory,
     IIndexBufferFactory indexBufferFactory,
-    LodViewportHeight lodViewportHeight) : ISceneSystemsFactory
+    LodViewportHeight lodViewportHeight,
+    IFrameBufferFactory frameBufferFactory) : ISceneSystemsFactory
 {
     private static readonly Vector2 DefaultGravity2D = new(0, -9.8f);
 
@@ -49,7 +51,7 @@ internal sealed class SceneSystemsFactory(
             new PhysicsDebugRenderSystem(graphics2D, context, debugSettings, bodyStore),
             audioSystem,
             new SceneRenderSystem(graphics2D, graphics3D, textureFactory, context, modelFactory,
-                vertexArrayFactory, vertexBufferFactory, indexBufferFactory, lodViewportHeight)
+                vertexArrayFactory, vertexBufferFactory, indexBufferFactory, lodViewportHeight, frameBufferFactory)
         ];
 
         foreach (var system in systems)

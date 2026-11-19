@@ -4,6 +4,7 @@ using ECS;
 using Engine.Project;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
+using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Meshes;
 using Engine.Renderer.Models;
@@ -25,33 +26,33 @@ public sealed class SceneRenderPipeline : IDisposable
     private readonly SceneRenderDataBuilder _builder;
     private readonly SceneRenderState _state = new();
     private readonly MeshPassRenderer _meshPass;
+    private readonly ShadowRenderer _shadows;
     private bool _disposed;
     private readonly HashSet<string> WarnedFailedSprites = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<OrderedSprite> SpriteDrawList = new(256);
     private static readonly Comparison<OrderedSprite> SpriteDrawOrder = CompareSprites;
     private static readonly Vector2[] DefaultTextureCoords = [new(0,0), new(1,0), new(1,1), new(0,1)];
-    private readonly List<(int Id, PointShadowCache.CasterPose Pose)> PointShadowCasterBuffer = new();
-    private readonly List<(int Id, PointShadowCache.LampPose Pose)> PointShadowLampBuffer = new();
-    private bool _shadowFitWarned;
-    private bool _pointShadowWarned;
     public SceneRenderPipeline(IGraphics2D graphics2D, IGraphics3D graphics3D,
         ITextureFactory textureFactory, IModelFactory? modelFactory,
         IVertexArrayFactory? vertexArrayFactory = null, IVertexBufferFactory? vertexBufferFactory = null,
-        IIndexBufferFactory? indexBufferFactory = null)
+        IIndexBufferFactory? indexBufferFactory = null, IFrameBufferFactory? frameBufferFactory = null)
     {
         this.graphics2D = graphics2D; this.graphics3D = graphics3D; this.textureFactory = textureFactory;
         _builder = new(textureFactory, modelFactory);
         _meshPass = new(graphics3D, _state.StaticMeshes, vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
+        _shadows = new(graphics3D, _meshPass, _state.PointShadows, frameBufferFactory);
     }
 
     public void RenderScene(Context context, in SceneView view)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (_state.Activate(context)) _builder.Release();
-        if (graphics3D.ActivateScene(context)) _state.PointShadows.MarkStale();
+        if (graphics3D.ActivateScene(context)) _shadows.OnSceneChanged();
         _state.StaticMeshes.BeginFrame();
         var allocated = GC.GetAllocatedBytesForCurrentThread();
         var start = Stopwatch.GetTimestamp();
+        // Bind for the whole frame: quality changes and color binds must see the same maps.
+        _shadows.Bind();
         try
         {
             var buildStart = Stopwatch.GetTimestamp();
@@ -69,11 +70,10 @@ public sealed class SceneRenderPipeline : IDisposable
         }
         finally
         {
+            _shadows.Unbind();
             _builder.ReleaseFrame();
             _state.StaticMeshes.AbortFrame();
             SpriteDrawList.Clear();
-            PointShadowCasterBuffer.Clear();
-            PointShadowLampBuffer.Clear();
         }
     }
 
@@ -81,8 +81,9 @@ public sealed class SceneRenderPipeline : IDisposable
     {
         if (_disposed) return;
         _disposed = true;
+        _shadows.Dispose();
         _state.Dispose(); _builder.Release();
-        SpriteDrawList.Clear(); PointShadowCasterBuffer.Clear(); PointShadowLampBuffer.Clear();
+        SpriteDrawList.Clear();
         graphics3D.ReleaseSceneResources();
     }
     private struct OrderedSprite
@@ -224,161 +225,34 @@ public sealed class SceneRenderPipeline : IDisposable
                 perf.PointShadowLights++;
         }
 
-        var shadowCasterMax = view.DirectionalShadowCasterMaxDistance;
-        var fitDistance = graphics3D.ShadowQuality.Distance;
-        if (shadowCasterMax > 0f)
-            shadowCasterMax = System.Math.Min(shadowCasterMax, fitDistance);
-        var shadowCasterMaxSq = shadowCasterMax > 0f ? shadowCasterMax * shadowCasterMax : 0f;
-        var shadowCasterView = view.ViewPosition;
-        var sunResolution = graphics3D.ShadowQuality.DirectionalResolution;
-        var cascades = graphics3D.ShadowQuality.Cascades;
-
-        graphics3D.SetDirectionalShadow(Matrix4x4.Identity, false);
-        if (view.DirectionalShadows &&
-            lightColor != Vector3.Zero &&
-            LightingMath.TryFitDirectionalShadow(
-                view.ViewProjection, lightDirection, out var lightViewProjection, fitDistance, sunResolution))
+        _shadows.Bind();
+        try
         {
-            perf.DirectionalShadow = true;
-            var nearSplit = fitDistance * 0.25f;
-            Matrix4x4 nearProjection = default;
-            var hasNear = cascades > 1 && nearSplit >= 1f &&
-                          LightingMath.TryFitDirectionalShadow(
-                              view.ViewProjection, lightDirection, out nearProjection, nearSplit, sunResolution);
-            var near = hasNear ? nearProjection : lightViewProjection;
-            graphics3D.BeginShadowCascade(near, 0);
+            var shadows = default(RenderShadowStats);
+            _shadows.Render(data, view, ref shadows);
+            perf.DirectionalShadow = shadows.DirectionalShadow;
+            perf.DirectionalShadowPass = shadows.DirectionalPass;
+            perf.PointShadowPass = shadows.PointPass;
+            perf.PointShadowCasters = shadows.PointShadowCasters;
+            perf.PointShadowLightsCacheHit = shadows.PointShadowLightsCacheHit;
+            perf.PointShadowLightsTooFar = shadows.PointShadowLightsTooFar;
+            perf.PointShadowLightsRedrawn = shadows.PointShadowLightsRedrawn;
+            perf.PointShadowFaces = shadows.PointShadowFaces;
+            perf.PointShadowOpaque3D = shadows.PointShadowOpaque3D;
+
+            graphics3D.BeginScene(view);
             try
             {
-                perf.DirectionalShadowPass = _meshPass.DrawOpaque3D(
-                    data, near, view,
-                    shadowCasterMaxSq, shadowCasterView);
+                perf.ColorPass = _meshPass.DrawOpaque3D(data, view.ViewProjection, view);
             }
             finally
             {
-                graphics3D.EndShadowPass();
+                graphics3D.EndScene();
             }
-
-            if (hasNear)
-            {
-                graphics3D.BeginShadowCascade(lightViewProjection, 1);
-                try
-                {
-                    perf.DirectionalShadowPass = Accumulate(perf.DirectionalShadowPass, _meshPass.DrawOpaque3D(
-                        data, lightViewProjection, view,
-                        shadowCasterMaxSq, shadowCasterView));
-                }
-                finally
-                {
-                    graphics3D.EndShadowPass();
-                }
-            }
-
-            graphics3D.SetDirectionalShadow(near, true);
-            graphics3D.SetFarDirectionalShadow(lightViewProjection);
-        }
-        else if (view.DirectionalShadows && lightColor != Vector3.Zero && !_shadowFitWarned)
-        {
-            _shadowFitWarned = true;
-            Logger.Warning("Directional shadow fit failed; drawing the frame without directional shadows");
-        }
-
-        if (!view.PointShadows)
-        {
-            _state.PointShadows.MarkStale();
-        }
-        else
-        {
-            PointShadowCasterBuffer.Clear();
-            PointShadowCasterBuffer.AddRange(data.Casters);
-            perf.PointShadowCasters = PointShadowCasterBuffer.Count;
-            PointShadowLampBuffer.Clear();
-            for (var li = 0; li < pointCount; li++)
-            {
-                var resolved = data.PointLights[li];
-                if (!resolved.CastsShadow)
-                    continue;
-                PointShadowLampBuffer.Add((resolved.EntityId, new PointShadowCache.LampPose(resolved.Position, resolved.Range)));
-            }
-
-            Span<Matrix4x4> pointFaces = stackalloc Matrix4x4[LightingMath.PointShadowFaceCount];
-            for (var i = 0; i < pointCount; i++)
-            {
-                var light = data.PointLights[i];
-                if (!light.CastsShadow)
-                    continue;
-
-                var dirty = _state.PointShadows.NeedsRedraw(
-                    light.EntityId, light.Position, light.Range, PointShadowCasterBuffer);
-                var near = Vector3.Distance(view.ViewPosition, light.Position) <= LightingMath.PointShadowDistance;
-                if (!dirty)
-                {
-                    if (near)
-                        _state.PointShadows.RememberClean(light.EntityId);
-                    if (near && !graphics3D.UseCachedPointShadow(i, light.EntityId))
-                        dirty = true;
-                    else
-                    {
-                        perf.PointShadowLightsCacheHit++;
-                        continue;
-                    }
-                }
-
-                _state.PointShadows.RememberDirty(light.EntityId);
-                if (!near)
-                {
-                    perf.PointShadowLightsTooFar++;
-                    continue;
-                }
-
-                if (!LightingMath.TryBuildPointShadowFaces(light.Position, light.Range, pointFaces))
-                    continue;
-
-                perf.PointShadowLightsRedrawn++;
-                var drew = true;
-                for (var face = 0; face < LightingMath.PointShadowFaceCount; face++)
-                {
-                    if (!graphics3D.BeginPointShadowFace(
-                            i, light.EntityId, face, pointFaces[face], light.Position, light.Range))
-                    {
-                        if (!_pointShadowWarned)
-                        {
-                            _pointShadowWarned = true;
-                            Logger.Warning("Point shadow cubemap failed; drawing that light without a shadow");
-                        }
-
-                        drew = false;
-                        break;
-                    }
-
-                    try
-                    {
-                        perf.PointShadowFaces++;
-                        perf.PointShadowOpaque3D++;
-                        perf.PointShadowPass = Accumulate(perf.PointShadowPass,
-                            _meshPass.DrawOpaque3D(data, pointFaces[face], view,
-                                shadowCasterMaxSq, shadowCasterView, light.Position));
-                    }
-                    finally
-                    {
-                        graphics3D.EndPointShadowFace();
-                    }
-                }
-
-                if (drew)
-                    _state.PointShadows.RememberClean(light.EntityId);
-            }
-
-            _state.PointShadows.Replace(PointShadowCasterBuffer, PointShadowLampBuffer);
-        }
-
-        graphics3D.BeginScene(view);
-        try
-        {
-            perf.ColorPass = _meshPass.DrawOpaque3D(data, view.ViewProjection, view);
         }
         finally
         {
-            graphics3D.EndScene();
+            _shadows.Unbind();
         }
 
         perf.GpuDrawCalls = graphics3D.GetStats().DrawCalls;
@@ -426,31 +300,6 @@ public sealed class SceneRenderPipeline : IDisposable
         public int PointShadowFaces;
         public int PointShadowOpaque3D;
         public uint GpuDrawCalls;
-    }
-
-    private static MeshPassStats Accumulate(MeshPassStats total, MeshPassStats pass)
-    {
-        total.Renderers += pass.Renderers;
-        total.MeshDraws += pass.MeshDraws;
-        total.Instances += pass.Instances;
-        total.CubeDraws += pass.CubeDraws;
-        total.Culled += pass.Culled;
-        total.MissingMeshIndex += pass.MissingMeshIndex;
-        total.ShadowCasterCulled += pass.ShadowCasterCulled;
-        total.ZoneCulled += pass.ZoneCulled;
-        total.SingleMaterialDraws += pass.SingleMaterialDraws;
-        total.MultiMaterialDraws += pass.MultiMaterialDraws;
-        total.MaxBatchInstances = System.Math.Max(total.MaxBatchInstances, pass.MaxBatchInstances);
-        total.MergedGroups += pass.MergedGroups;
-        total.MergedVertices += pass.MergedVertices;
-        total.MergedRebuilds += pass.MergedRebuilds;
-        total.Vertices += pass.Vertices;
-        total.Indices += pass.Indices;
-        total.CpuMs += pass.CpuMs;
-        total.CollectCpuMs += pass.CollectCpuMs;
-        total.MeshFlushCpuMs += pass.MeshFlushCpuMs;
-        total.MergeFlushCpuMs += pass.MergeFlushCpuMs;
-        return total;
     }
 
     internal static Vector2[] GetSubTextureTexCoords(SubTextureRendererComponent component, Texture2D texture)

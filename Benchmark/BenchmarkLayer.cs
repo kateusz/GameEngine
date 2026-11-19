@@ -8,6 +8,7 @@ using Engine.Project;
 using Engine.Events.Input;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
+using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
@@ -29,6 +30,7 @@ public class BenchmarkLayer(
     IVertexArrayFactory vertexArrayFactory,
     IVertexBufferFactory vertexBufferFactory,
     IIndexBufferFactory indexBufferFactory,
+    IFrameBufferFactory frameBufferFactory,
     ISceneSerializer scenes,
     IProjectContext projectContext,
     IGameWindow window,
@@ -44,13 +46,13 @@ public class BenchmarkLayer(
     private readonly Benchmark2DRunner _twoD = new(graphics2D, sceneFactory, textureFactory);
     private readonly Benchmark3DRunner _threeD = new(
         sceneFactory, graphics2D, graphics3D, textureFactory, modelFactory,
-        vertexArrayFactory, vertexBufferFactory, indexBufferFactory,
+        vertexArrayFactory, vertexBufferFactory, indexBufferFactory, frameBufferFactory,
         scenes, projectContext, window, hdrTarget, tonemap,
         sceneContext, scriptEngine, serializers, resolveGameSystems, container);
     private readonly BenchmarkGridRunner _lighting = new("Lighting", sceneFactory, graphics2D, graphics3D, textureFactory,
-        modelFactory, vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
+        modelFactory, vertexArrayFactory, vertexBufferFactory, indexBufferFactory, frameBufferFactory);
     private readonly BenchmarkGridRunner _shadows = new("Shadows", sceneFactory, graphics2D, graphics3D, textureFactory,
-        modelFactory, vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
+        modelFactory, vertexArrayFactory, vertexBufferFactory, indexBufferFactory, frameBufferFactory);
     private readonly ActiveRun _active = new();
     private readonly List<BenchmarkResult> _results = [];
     private readonly Stopwatch _frameTimer = new();

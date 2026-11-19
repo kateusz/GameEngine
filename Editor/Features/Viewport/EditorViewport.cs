@@ -59,7 +59,7 @@ public sealed class EditorViewport(
     : IEditorViewport
 {
     private readonly SceneRenderPipeline _renderPipeline = new(graphics2D, graphics3D, textureFactory, modelFactory,
-        vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
+        vertexArrayFactory, vertexBufferFactory, indexBufferFactory, frameBufferFactory);
     private readonly Vector2[] _viewportBounds = new Vector2[2];
 
     private EditorCamera _editorCamera = null!;

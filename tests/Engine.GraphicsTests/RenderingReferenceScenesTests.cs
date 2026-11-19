@@ -77,7 +77,8 @@ public class RenderingReferenceScenesTests(HeadlessGraphicsContextFixture fixtur
         using var pipeline = new SceneRenderPipeline(fixture.Graphics2D, graphics, textures, models,
             scenario == "merging" ? fixture.VertexArrayFactory : null,
             scenario == "merging" ? fixture.VertexBufferFactory : null,
-            scenario == "merging" ? fixture.IndexBufferFactory : null);
+            scenario == "merging" ? fixture.IndexBufferFactory : null,
+            fixture.FrameBufferFactory);
         var context = MakeScene(scenario, 10);
         // Environment/LUT preparation runs during Init/SetSkybox, before the first frame.
         // Give it the same explicit initial state regardless of test execution order.

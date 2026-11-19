@@ -7,6 +7,7 @@ using Engine.Core;
 using Engine.Core.Window;
 using Engine.Physics;
 using Engine.Renderer.Buffers;
+using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
@@ -46,7 +47,8 @@ public class SceneSystemsFactoryTests
             Substitute.For<IVertexArrayFactory>(),
             Substitute.For<IVertexBufferFactory>(),
             Substitute.For<IIndexBufferFactory>(),
-            new LodViewportHeight(Substitute.For<IGameWindow>()));
+            new LodViewportHeight(Substitute.For<IGameWindow>()),
+            Substitute.For<IFrameBufferFactory>());
 
         var systemManager = new SystemManager();
         factory.PopulateSystemManager(

@@ -1,6 +1,7 @@
 using ECS;
 using ECS.Systems;
 using Engine.Renderer.Buffers;
+using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
@@ -17,10 +18,11 @@ internal sealed class SceneRenderSystem(
     IVertexArrayFactory vertexArrayFactory,
     IVertexBufferFactory vertexBufferFactory,
     IIndexBufferFactory indexBufferFactory,
-    LodViewportHeight lodViewportHeight) : ISystem
+    LodViewportHeight lodViewportHeight,
+    IFrameBufferFactory frameBufferFactory) : ISystem
 {
     private readonly SceneRenderPipeline _pipeline = new(graphics2D, graphics3D, textureFactory, modelFactory,
-        vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
+        vertexArrayFactory, vertexBufferFactory, indexBufferFactory, frameBufferFactory);
 
     public void OnShutdown() => _pipeline.Dispose();
 

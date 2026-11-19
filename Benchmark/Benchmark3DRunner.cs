@@ -6,6 +6,7 @@ using Engine.Core.Window;
 using Engine.Events.Input;
 using Engine.Project;
 using Engine.Renderer.Buffers;
+using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
@@ -29,6 +30,7 @@ public sealed class Benchmark3DRunner(
     IVertexArrayFactory vertexArrays,
     IVertexBufferFactory vertexBuffers,
     IIndexBufferFactory indexBuffers,
+    IFrameBufferFactory frameBuffers,
     ISceneSerializer scenes,
     IProjectContext projectContext,
     IGameWindow window,
@@ -167,7 +169,8 @@ public sealed class Benchmark3DRunner(
             plan.StaticMeshMerging ? vertexBuffers : null,
             plan.StaticMeshMerging ? indexBuffers : null,
             clearModelCache: testId == "UniqueMeshes",
-            ExpectedShadow.None);
+            ExpectedShadow.None,
+            frameBuffers: frameBuffers);
         error = null;
         return true;
     }
@@ -360,7 +363,8 @@ public sealed class Benchmark3DRunner(
             ExpectedShadow.None,
             onDispose: startedPlay ? scene.OnRuntimeStop : null,
             display: _editorDisplay,
-            matchEditorLight: true);
+            matchEditorLight: true,
+            frameBuffers: frameBuffers);
         // Scripted games: pose as-is. Art scenes: orbit pullback for framing.
         if (TryPrimaryLook(scene, out var eye, out var focal, pullback: startedPlay ? 0f : 64f))
             pipeline.Frame(eye, focal);

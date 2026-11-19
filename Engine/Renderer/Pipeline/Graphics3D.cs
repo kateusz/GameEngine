@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
-using Engine.Project;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Meshes;
@@ -47,15 +46,11 @@ internal sealed class Graphics3D(
     private IShader _emissiveShader = null!;
     private IShader _depthShader = null!;
     private IShader _pointDepthShader = null!;
-    private IShader _equirectShader = null!;
-    private IShader _skyShader = null!;
-    private IShader _irradianceShader = null!;
-    private IShader _prefilterShader = null!;
-    private IShader _brdfShader = null!;
     private IUniformBuffer _frame = null!;
     private Mesh _cubeMesh = null!;
-    private IFrameBuffer? _shadowMap;
-    private readonly Dictionary<int, IFrameBuffer> _pointShadowMapsByEntity = new();
+    private readonly EnvironmentLighting _environment = new(rendererApi, shaderFactory);
+    private ShadowMapStore? _boundShadowMaps;
+    private ShadowMapStore? _fallbackShadowMaps;
     private readonly int[] _pointShadowEntity = new int[LightingMath.MaxPointLights];
     private readonly bool[] _pointShadowEnabled = new bool[LightingMath.MaxPointLights];
     private bool _shadowPass;
@@ -84,14 +79,8 @@ internal sealed class Graphics3D(
     private bool _disposed;
     private object? _sceneIdentity;
 
-    // ponytail: scale 4 puts a face at 2 units. PerspectiveNear >= 2 clips the sky.
-    // Upgrade path: scale from that camera's near and far.
-    private const float SkyScale = 4f;
-    private uint _skyCubemap;
-    private uint _irradiance;
-    private uint _prefilter;
-    private uint _brdfLut;
-    private string _skySource = "";
+    private ShadowMapStore ShadowMaps =>
+        _boundShadowMaps ?? (_fallbackShadowMaps ??= new ShadowMapStore(frameBuffers));
 
     public void Init()
     {
@@ -121,14 +110,6 @@ internal sealed class Graphics3D(
         _pointDepthShader.SetInt("u_DiffuseMap", 0);
         _pointDepthShader.SetFloat2("u_DiffuseUvScale", Vector2.One);
         _pointDepthShader.Unbind();
-        _equirectShader = shaderFactory.Create(ShaderId.EquirectToCube);
-        _skyShader = shaderFactory.Create(ShaderId.Skybox);
-        _equirectShader.Bind();
-        _equirectShader.SetInt("u_Equirect", 0);
-        _equirectShader.Unbind();
-        _skyShader.Bind();
-        _skyShader.SetInt("u_Skybox", 0);
-        _skyShader.Unbind();
         _modelShader.Bind();
         _modelShader.SetInt("u_DiffuseMap", 0);
         _modelShader.SetInt("u_MetallicRoughnessMap", 1);
@@ -152,29 +133,23 @@ internal sealed class Graphics3D(
         _emissiveShader.SetFloat2("u_EmissiveUvScale", Vector2.One);
         _emissiveShader.Unbind();
 
-        _irradianceShader = shaderFactory.Create(ShaderId.Irradiance);
-        _prefilterShader = shaderFactory.Create(ShaderId.Prefilter);
-        _brdfShader = shaderFactory.Create(ShaderId.BrdfLut);
-        _irradianceShader.Bind();
-        _irradianceShader.SetInt("environmentMap", 0);
-        _irradianceShader.Unbind();
-        _prefilterShader.Bind();
-        _prefilterShader.SetInt("environmentMap", 0);
-        _prefilterShader.Unbind();
-        _brdfShader.Bind();
-        rendererApi.TryCreateBrdfLut(out _brdfLut);
-        _brdfShader.Unbind();
+        _environment.Init(_cubeMesh);
     }
 
     public ShadowQuality ShadowQuality => _quality;
 
+    public void BindShadowMapStore(ShadowMapStore? store)
+    {
+        _boundShadowMaps = store;
+        // Quality may have changed while no store was bound (unit recorders, editor preferences).
+        store?.SyncQuality(_quality);
+    }
+
     public void ReleaseSceneResources()
     {
         if (_shadowPass) throw new InvalidOperationException("Cannot retire scene resources during a shadow pass.");
-        _shadowMap?.Dispose();
-        _shadowMap = null;
-        foreach (var map in _pointShadowMapsByEntity.Values) map.Dispose();
-        _pointShadowMapsByEntity.Clear();
+        // Host-owned bound store is cleared by ShadowRenderer; only retire the fallback.
+        _fallbackShadowMaps?.Clear();
         Array.Clear(_pointShadowEnabled);
         Array.Fill(_pointShadowEntity, -1);
         _shadowsEnabled = false;
@@ -191,23 +166,9 @@ internal sealed class Graphics3D(
 
     public void SetShadowQuality(ShadowQuality quality)
     {
-        var next = quality.Sanitized();
-        var sunChanged = next.DirectionalResolution != _quality.DirectionalResolution
-                         || next.Cascades != _quality.Cascades;
-        var pointChanged = next.PointResolution != _quality.PointResolution;
-        _quality = next;
-        if (sunChanged && _shadowMap != null)
-        {
-            _shadowMap.Dispose();
-            _shadowMap = null;
-        }
-
-        if (!pointChanged)
-            return;
-
-        foreach (var map in _pointShadowMapsByEntity.Values)
-            map.Dispose();
-        _pointShadowMapsByEntity.Clear();
+        _quality = quality.Sanitized();
+        _boundShadowMaps?.SyncQuality(_quality);
+        _fallbackShadowMaps?.SyncQuality(_quality);
     }
 
     public void SetFarDirectionalShadow(Matrix4x4 lightViewProjection) =>
@@ -227,7 +188,7 @@ internal sealed class Graphics3D(
         _shadowPass = true;
         _colorShader = null;
         _drawCulling = null;
-        var map = ShadowMap();
+        var map = ShadowMaps.GetOrCreateDirectional(_quality);
         map.Bind();
         rendererApi.SetDepthTest(true);
         rendererApi.SetDepthWrite(true);
@@ -248,7 +209,7 @@ internal sealed class Graphics3D(
     {
         _depthShader.Unbind();
         RestoreDrawCulling();
-        _shadowMap?.Unbind();
+        ShadowMaps.Directional?.Unbind();
         _shadowPass = false;
     }
 
@@ -262,7 +223,7 @@ internal sealed class Graphics3D(
         IFrameBuffer map;
         try
         {
-            map = PointShadowMap(entityId);
+            map = ShadowMaps.GetOrCreatePoint(entityId, _quality);
         }
         catch (Exception)
         {
@@ -295,7 +256,7 @@ internal sealed class Graphics3D(
     {
         if ((uint)lightIndex >= LightingMath.MaxPointLights)
             return false;
-        if (!_pointShadowMapsByEntity.TryGetValue(entityId, out _))
+        if (!ShadowMaps.TryGetPoint(entityId, out _))
             return false;
 
         _pointShadowEntity[lightIndex] = entityId;
@@ -317,144 +278,16 @@ internal sealed class Graphics3D(
 
     public void SetSkybox(string? path)
     {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            ClearSky();
-            return;
-        }
-
-        if (string.Equals(path, _skySource, StringComparison.Ordinal))
-            return;
-
-        var full = Path.IsPathRooted(path) ? Path.GetFullPath(path) : PathBuilder.Resolve(path);
-        if (!rendererApi.TryCreateSkyCapture(full, out var environment, out var capture))
-        {
-            _skySource = path;
-            return;
-        }
-
-        using (capture)
-        {
-            Span<Matrix4x4> faces = stackalloc Matrix4x4[LightingMath.PointShadowFaceCount];
-            if (!LightingMath.TryBuildPointShadowFaces(Vector3.Zero, LightingMath.SkyCaptureFar, faces)
-                || !DrawEnvironment(capture, environment, faces)
-                || !capture.GenerateEnvironmentMips()
-                || !DrawIrradiance(capture, faces)
-                || !DrawPrefilter(capture, faces))
-            {
-                rendererApi.DeleteTexture(environment);
-                rendererApi.DeleteTexture(capture.IrradianceId);
-                rendererApi.DeleteTexture(capture.PrefilterId);
-                _skySource = path;
-                return;
-            }
-
-            ClearSky();
-            _skyCubemap = environment;
-            _irradiance = capture.IrradianceId;
-            _prefilter = capture.PrefilterId;
-            _skySource = path;
-        }
+        _environment.SetSkybox(path);
+        _colorShader = null;
+        _drawCulling = null;
     }
 
     public void DrawSkybox(Matrix4x4 skyViewProjection)
     {
-        if (_skyCubemap == 0)
-            return;
-
-        rendererApi.SetDepthTest(true);
-        rendererApi.SetDepthWrite(false);
-        rendererApi.SetFaceCulling(false);
-        try
-        {
-            _skyShader.Bind();
-            _skyShader.SetMat4(ViewProjectionUniform, skyViewProjection);
-            _skyShader.SetFloat("u_Scale", SkyScale);
-            rendererApi.BindTextureCube(_skyCubemap, 0);
-            _cubeMesh.Bind();
-            rendererApi.DrawIndexed(_cubeMesh.GetVertexArray(), (uint)_cubeMesh.GetIndexCount());
-        }
-        finally
-        {
-            rendererApi.BindTextureCube(0, 0);
-            _skyShader.Unbind();
-            rendererApi.SetFaceCulling(true);
-            rendererApi.SetDepthWrite(true);
-            _colorShader = null;
-            _drawCulling = null;
-        }
-    }
-
-    private bool DrawEnvironment(ISkyCapture capture, uint environment, ReadOnlySpan<Matrix4x4> faces) =>
-        DrawFaces(_equirectShader, capture, environment, faces, mip: 0, LightingMath.SkyCaptureFaceSize, roughness: null);
-
-    private bool DrawIrradiance(ISkyCapture capture, ReadOnlySpan<Matrix4x4> faces) =>
-        DrawFaces(_irradianceShader, capture, capture.IrradianceId, faces, mip: 0, LightingMath.IrradianceFaceSize, roughness: null);
-
-    private bool DrawPrefilter(ISkyCapture capture, ReadOnlySpan<Matrix4x4> faces)
-    {
-        for (var mip = 0; mip < LightingMath.PrefilterMipCount; mip++)
-        {
-            var roughness = mip / (float)(LightingMath.PrefilterMipCount - 1);
-            var size = LightingMath.PrefilterFaceSize >> mip;
-            if (!DrawFaces(_prefilterShader, capture, capture.PrefilterId, faces, mip, size, roughness))
-                return false;
-        }
-
-        return true;
-    }
-
-    private bool DrawFaces(
-        IShader shader, ISkyCapture capture, uint cubemap, ReadOnlySpan<Matrix4x4> faces,
-        int mip, int size, float? roughness)
-    {
-        rendererApi.SetDepthTest(true);
-        rendererApi.SetDepthWrite(true);
-        rendererApi.SetFaceCulling(false);
-        rendererApi.SetBlend(false);
-        try
-        {
-            shader.Bind();
-            shader.SetFloat("u_Scale", 1f);
-            if (roughness is { } value)
-                shader.SetFloat("u_Roughness", value);
-            _cubeMesh.Bind();
-            for (var i = 0; i < faces.Length; i++)
-            {
-                if (!capture.Begin(cubemap, i, mip, size))
-                    return false;
-
-                shader.SetMat4(ViewProjectionUniform, faces[i]);
-                rendererApi.DrawIndexed(_cubeMesh.GetVertexArray(), (uint)_cubeMesh.GetIndexCount());
-            }
-
-            return true;
-        }
-        finally
-        {
-            shader.Unbind();
-            rendererApi.SetFaceCulling(true);
-            rendererApi.SetDepthWrite(true);
-            rendererApi.SetBlend(true);
-            _colorShader = null;
-            _drawCulling = null;
-        }
-    }
-
-    private void ClearSky()
-    {
-        rendererApi.BindTextureCube(0, IrradianceSlot);
-        rendererApi.BindTextureCube(0, PrefilterSlot);
-        if (_skyCubemap != 0)
-            rendererApi.DeleteTexture(_skyCubemap);
-        if (_irradiance != 0)
-            rendererApi.DeleteTexture(_irradiance);
-        if (_prefilter != 0)
-            rendererApi.DeleteTexture(_prefilter);
-        _skyCubemap = 0;
-        _irradiance = 0;
-        _prefilter = 0;
-        _skySource = "";
+        _environment.DrawSkybox(skyViewProjection);
+        _colorShader = null;
+        _drawCulling = null;
     }
 
     public void BeginScene(in SceneView view)
@@ -741,7 +574,7 @@ internal sealed class Graphics3D(
 
     private void UploadFrame()
     {
-        var ibl = _irradiance != 0 && _prefilter != 0 && _brdfLut != 0;
+        var ibl = _environment.HasIbl;
         var frame = new FrameUniforms
         {
             ViewProjection = Matrix4x4.Transpose(_viewProjection),
@@ -773,20 +606,21 @@ internal sealed class Graphics3D(
         _frame.SetData(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref frame, 1)));
         _frame.BindTo(FrameBinding);
 
-        if (_shadowsEnabled && _shadowMap != null)
-            rendererApi.BindTexture2D(_shadowMap.GetDepthAttachmentRendererId(), ShadowMapSlot);
+        var maps = ShadowMaps;
+        if (_shadowsEnabled && maps.Directional != null)
+            rendererApi.BindTexture2D(maps.Directional.GetDepthAttachmentRendererId(), ShadowMapSlot);
         for (var i = 0; i < LightingMath.MaxPointLights; i++)
         {
             if (_pointShadowEnabled[i] && _pointShadowEntity[i] >= 0
-                && _pointShadowMapsByEntity.TryGetValue(_pointShadowEntity[i], out var pointMap))
+                && maps.TryGetPoint(_pointShadowEntity[i], out var pointMap))
                 rendererApi.BindTextureCube(pointMap.GetDepthAttachmentRendererId(), PointShadowSlot + i);
         }
 
         if (ibl)
         {
-            rendererApi.BindTextureCube(_irradiance, IrradianceSlot);
-            rendererApi.BindTextureCube(_prefilter, PrefilterSlot);
-            rendererApi.BindTexture2D(_brdfLut, BrdfLutSlot);
+            rendererApi.BindTextureCube(_environment.Irradiance, IrradianceSlot);
+            rendererApi.BindTextureCube(_environment.Prefilter, PrefilterSlot);
+            rendererApi.BindTexture2D(_environment.BrdfLut, BrdfLutSlot);
         }
     }
 
@@ -845,45 +679,6 @@ internal sealed class Graphics3D(
         _stats.Indices += (long)indexCount * instanceCount;
     }
 
-    private IFrameBuffer PointShadowMap(int entityId)
-    {
-        if (_pointShadowMapsByEntity.TryGetValue(entityId, out var existing))
-            return existing;
-
-        var size = (uint)_quality.PointResolution;
-        var spec = new FrameBufferSpecification(size, size)
-        {
-            AttachmentsSpec = new FrameBufferAttachmentSpecification([
-                new FrameBufferTextureSpecification(FrameBufferTextureFormat.DepthCubemap)
-            ])
-        };
-        var map = frameBuffers.Create(spec);
-        _pointShadowMapsByEntity[entityId] = map;
-        return map;
-    }
-
-    private IFrameBuffer ShadowMap()
-    {
-        if (_shadowMap != null)
-            return _shadowMap;
-
-        var tile = (uint)_quality.DirectionalResolution;
-        var size = tile * (uint)_quality.Cascades;
-        var spec = new FrameBufferSpecification(size, tile)
-        {
-            AttachmentsSpec = new FrameBufferAttachmentSpecification([
-                new FrameBufferTextureSpecification(FrameBufferTextureFormat.DepthComponent)
-                {
-                    // Linear compare is the 2×2 PCF. Nearest is a hard edge.
-                    Filter = FrameBufferTextureFilter.Linear,
-                    Wrap = FrameBufferTextureWrap.ClampToBorder
-                }
-            ])
-        };
-        _shadowMap = frameBuffers.Create(spec);
-        return _shadowMap;
-    }
-    
     private static string[] Names(string uniform)
     {
         var names = new string[LightingMath.MaxPointLights];
@@ -918,17 +713,12 @@ internal sealed class Graphics3D(
         if (_disposed)
             return;
 
-        _shadowMap?.Dispose();
-        _shadowMap = null;
+        _fallbackShadowMaps?.Dispose();
+        _fallbackShadowMaps = null;
+        _boundShadowMaps = null;
         _frame?.Dispose();
         _frame = null!;
-        ClearSky();
-        if (_brdfLut != 0)
-            rendererApi.DeleteTexture(_brdfLut);
-        _brdfLut = 0;
-        foreach (var map in _pointShadowMapsByEntity.Values)
-            map.Dispose();
-        _pointShadowMapsByEntity.Clear();
+        _environment.Dispose();
 
         // Factory owns shader and cube-mesh lifetime; just release our references
         _colorShader = null;
@@ -936,11 +726,6 @@ internal sealed class Graphics3D(
         _modelShader = null!;
         _depthShader = null!;
         _pointDepthShader = null!;
-        _equirectShader = null!;
-        _skyShader = null!;
-        _irradianceShader = null!;
-        _prefilterShader = null!;
-        _brdfShader = null!;
         _cubeMesh = null!;
 
         _disposed = true;

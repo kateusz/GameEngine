@@ -1,4 +1,5 @@
 using Engine.Renderer.Buffers;
+using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
@@ -17,7 +18,8 @@ public sealed class BenchmarkGridRunner(
     IModelFactory models,
     IVertexArrayFactory vertexArrays,
     IVertexBufferFactory vertexBuffers,
-    IIndexBufferFactory indexBuffers) : IBenchmarkRunner
+    IIndexBufferFactory indexBuffers,
+    IFrameBufferFactory frameBuffers) : IBenchmarkRunner
 {
     private float _duration = 5f;
 
@@ -78,7 +80,8 @@ public sealed class BenchmarkGridRunner(
             graphics2D, graphics3D, textures, models,
             vertexArrays, vertexBuffers, indexBuffers,
             clearModelCache: false,
-            expected);
+            expected,
+            frameBuffers: frameBuffers);
         error = null;
         return true;
     }

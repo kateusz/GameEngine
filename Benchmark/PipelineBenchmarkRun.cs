@@ -2,6 +2,7 @@ using System.Numerics;
 using Engine.Events.Input;
 using Engine.Renderer;
 using Engine.Renderer.Buffers;
+using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
@@ -56,9 +57,10 @@ public sealed class PipelineBenchmarkRun : BenchmarkRun
         ExpectedShadow expected,
         Action? onDispose = null,
         IScenePresenter? display = null,
-        bool matchEditorLight = false)
+        bool matchEditorLight = false,
+        IFrameBufferFactory? frameBuffers = null)
     {
-        _pipeline = new(graphics2D, graphics3D, textures, models, vertexArrays, vertexBuffers, indexBuffers);
+        _pipeline = new(graphics2D, graphics3D, textures, models, vertexArrays, vertexBuffers, indexBuffers, frameBuffers);
         ResultName = resultName;
         DurationSeconds = durationSeconds;
         _scene = scene;

@@ -3,6 +3,7 @@ using ECS.Systems;
 using Engine.Core.Window;
 using Engine.Project;
 using Engine.Renderer.Buffers;
+using Engine.Renderer.Buffers.FrameBuffer;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Models;
 using Engine.Renderer.Pipeline;
@@ -23,6 +24,7 @@ public sealed class BenchmarkRunnerFactory(
     IVertexArrayFactory vertexArrays,
     IVertexBufferFactory vertexBuffers,
     IIndexBufferFactory indexBuffers,
+    IFrameBufferFactory frameBuffers,
     ISceneSerializer scenes,
     IProjectContext projectContext,
     IGameWindow window,
@@ -40,12 +42,12 @@ public sealed class BenchmarkRunnerFactory(
     {
         "2D" => TwoD(),
         "3D" => new Benchmark3DRunner(sceneFactory, graphics2D, graphics3D, textures, models,
-            vertexArrays, vertexBuffers, indexBuffers, scenes, projectContext, window, hdrTarget, tonemap,
+            vertexArrays, vertexBuffers, indexBuffers, frameBuffers, scenes, projectContext, window, hdrTarget, tonemap,
             sceneContext, scriptEngine, serializers, resolveGameSystems, container),
         "Lighting" => new BenchmarkGridRunner("Lighting", sceneFactory, graphics2D, graphics3D, textures, models,
-            vertexArrays, vertexBuffers, indexBuffers),
+            vertexArrays, vertexBuffers, indexBuffers, frameBuffers),
         "Shadows" => new BenchmarkGridRunner("Shadows", sceneFactory, graphics2D, graphics3D, textures, models,
-            vertexArrays, vertexBuffers, indexBuffers),
+            vertexArrays, vertexBuffers, indexBuffers, frameBuffers),
         _ => null
     };
 
