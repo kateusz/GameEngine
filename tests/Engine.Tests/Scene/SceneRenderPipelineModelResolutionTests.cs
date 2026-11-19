@@ -17,12 +17,12 @@ namespace Engine.Tests.Scene;
 [Collection("StaticMeshMerging")]
 public class SceneRenderPipelineModelResolutionTests : IDisposable
 {
-    public SceneRenderPipelineModelResolutionTests() => PointShadowCache.Clear();
+    private readonly RenderPipelineTestHost _render = new();
+
 
     public void Dispose()
     {
-        PointShadowCache.Clear();
-        SceneRenderPipeline.ResetMergeState();
+        _render.Dispose();
     }
 
     [Theory]
@@ -136,12 +136,12 @@ public class SceneRenderPipelineModelResolutionTests : IDisposable
         return graphics;
     }
 
-    private static void Render(Context context, MeshDrawRecordingGraphics3D graphics, IModelFactory models)
+    private void Render(Context context, MeshDrawRecordingGraphics3D graphics, IModelFactory models)
     {
         var eye = new Vector3(0, 0, 5);
         var vp = Matrix4x4.CreateLookAt(eye, Vector3.Zero, Vector3.UnitY)
                  * Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 4, 1.5f, 0.1f, 100);
-        SceneRenderPipeline.RenderScene(context, Substitute.For<IGraphics2D>(), graphics,
+        _render.RenderScene(context, Substitute.For<IGraphics2D>(), graphics,
             Substitute.For<ITextureFactory>(), models, new SceneView(vp, eye));
     }
 }

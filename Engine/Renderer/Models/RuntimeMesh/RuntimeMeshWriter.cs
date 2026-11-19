@@ -8,6 +8,7 @@ internal static class RuntimeMeshWriter
 {
     public static bool TryWrite(string siblingPath, SourceModel model, RuntimeMeshStamp stamp)
     {
+        string? tempPath = null;
         try
         {
             var bytes = Serialize(model, stamp);
@@ -16,21 +17,24 @@ internal static class RuntimeMeshWriter
                 return false;
 
             Directory.CreateDirectory(directory);
-            var tempPath = siblingPath + ".tmp";
+            // Unique temp — parallel TryEnsureUpToDate on the same path must not share sibling.tmp
+            tempPath = Path.Combine(directory, $"{Path.GetFileName(siblingPath)}.{Guid.NewGuid():N}.tmp");
             File.WriteAllBytes(tempPath, bytes);
             File.Move(tempPath, siblingPath, overwrite: true);
+            tempPath = null;
             return true;
         }
         catch
         {
-            var tempPath = siblingPath + ".tmp";
-            if (File.Exists(tempPath))
+            if (tempPath != null && File.Exists(tempPath))
             {
                 try
                 {
                     File.Delete(tempPath);
                 }
-                catch {}
+                catch
+                {
+                }
             }
 
             return false;

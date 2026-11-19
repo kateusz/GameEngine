@@ -33,13 +33,17 @@ internal static class RuntimeMeshBuilder
         if (imported == null || imported.Submeshes.Count == 0)
             return false;
 
-        foreach (var submesh in imported.Submeshes)
+        var lodFailed = 0;
+        Parallel.ForEach(imported.Submeshes, submesh =>
         {
             if (!RuntimeMeshLodSimplifier.TrySimplify(submesh))
-            {
-                Logger.Warning("Skipping .mesh stamp for {Path}; LOD simplifier failed", normalizedPath);
-                return false;
-            }
+                Interlocked.Exchange(ref lodFailed, 1);
+        });
+
+        if (lodFailed != 0)
+        {
+            Logger.Warning("Skipping .mesh stamp for {Path}; LOD simplifier failed", normalizedPath);
+            return false;
         }
 
         return RuntimeMeshWriter.TryWrite(siblingPath, imported, stamp);

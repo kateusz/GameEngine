@@ -36,6 +36,10 @@ public interface IGraphics3D : IGraphics
     void SetSkybox(string? path);
     void DrawSkybox(Matrix4x4 skyViewProjection);
     void ResetStats();
+    /// <summary>Retires scene-owned shadow backing while the graphics context is current.</summary>
+    void ReleaseSceneResources() { }
+    /// <summary>Returns true when scene-owned GPU backing was retired for a different identity.</summary>
+    bool ActivateScene(object identity) => false;
     Statistics GetStats();
 }
 

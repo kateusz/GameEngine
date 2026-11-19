@@ -19,6 +19,7 @@ public enum ExpectedShadow
 
 public sealed class PipelineBenchmarkRun : BenchmarkRun
 {
+    private readonly SceneRenderPipeline _pipeline;
     private readonly IScene _scene;
     private readonly BenchmarkCamera _camera = new();
     private readonly bool _directionalShadows;
@@ -57,6 +58,7 @@ public sealed class PipelineBenchmarkRun : BenchmarkRun
         IScenePresenter? display = null,
         bool matchEditorLight = false)
     {
+        _pipeline = new(graphics2D, graphics3D, textures, models, vertexArrays, vertexBuffers, indexBuffers);
         ResultName = resultName;
         DurationSeconds = durationSeconds;
         _scene = scene;
@@ -91,10 +93,7 @@ public sealed class PipelineBenchmarkRun : BenchmarkRun
         _graphics3D.ResetStats();
         _graphics3D.SetSkybox(string.IsNullOrWhiteSpace(_scene.Skybox) ? null : _scene.Skybox);
         _scene.UpdateWorldTransforms();
-        SceneRenderPipeline.RenderScene(
-            _scene.Context, _graphics2D, _graphics3D, _textures, _models,
-            _camera.CreateView(_directionalShadows, _pointShadows),
-            _vertexArrays, _vertexBuffers, _indexBuffers);
+        _pipeline.RenderScene(_scene.Context, _camera.CreateView(_directionalShadows, _pointShadows));
         _last = _graphics3D.GetStats();
     }
 
@@ -118,6 +117,7 @@ public sealed class PipelineBenchmarkRun : BenchmarkRun
         if (_disposed)
             return;
         _disposed = true;
+        _pipeline.Dispose();
         _onDispose?.Invoke();
         _scene.Dispose();
         if (_clearModelCache)

@@ -3,18 +3,18 @@ using Engine.Renderer;
 
 namespace Engine.Scene;
 
-internal static class PointShadowCache
+internal sealed class PointShadowCache
 {
     internal readonly record struct CasterPose(Matrix4x4 World, Aabb Bounds, bool HasBounds);
     internal readonly record struct LampPose(Vector3 Position, float Range);
 
-    private static readonly Dictionary<int, CasterPose> Casters = new();
-    private static readonly Dictionary<int, LampPose> Lamps = new();
-    private static readonly HashSet<int> Dirty = new();
-    private static readonly HashSet<int> Seen = new();
-    private static bool _stale = true;
+    private readonly Dictionary<int, CasterPose> Casters = new();
+    private readonly Dictionary<int, LampPose> Lamps = new();
+    private readonly HashSet<int> Dirty = new();
+    private readonly HashSet<int> Seen = new();
+    private bool _stale = true;
 
-    public static void Clear()
+    public void Clear()
     {
         Casters.Clear();
         Lamps.Clear();
@@ -23,9 +23,9 @@ internal static class PointShadowCache
         _stale = true;
     }
 
-    public static void MarkStale() => _stale = true;
+    public void MarkStale() => _stale = true;
 
-    public static bool NeedsRedraw(
+    public bool NeedsRedraw(
         int lampId, Vector3 position, float range,
         IReadOnlyList<(int Id, CasterPose Pose)> current)
     {
@@ -68,11 +68,11 @@ internal static class PointShadowCache
         return false;
     }
 
-    public static void RememberDirty(int lampId) => Dirty.Add(lampId);
+    public void RememberDirty(int lampId) => Dirty.Add(lampId);
 
-    public static void RememberClean(int lampId) => Dirty.Remove(lampId);
+    public void RememberClean(int lampId) => Dirty.Remove(lampId);
 
-    public static void Replace(
+    public void Replace(
         IReadOnlyList<(int Id, CasterPose Pose)> casters,
         IReadOnlyList<(int Id, LampPose Pose)> lamps)
     {

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Engine.Core.DI;
 using Engine.Renderer.Textures;
 using Engine.Renderer.Textures.Compression;
@@ -10,13 +11,18 @@ internal sealed class TextureFactory : ITextureFactory
 {
     private static readonly ILogger Logger = Log.ForContext<TextureFactory>();
 
+    // ponytail: cap BC cooks — full ProcessorCount thrash on big scenes; raise if cook becomes the bottleneck
+    private static readonly SemaphoreSlim CookGate = new(System.Math.Clamp(Environment.ProcessorCount / 2, 1, 4));
+
     private const int PreviewMaxEdge = 64;
     private Texture2D? _whiteTexture;
     private Texture2D? _blackTexture;
     private Texture2D? _flatNormalTexture;
     private readonly Dictionary<string, Texture2D> _textureCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, byte> _pendingCooks = new(StringComparer.OrdinalIgnoreCase);
     private readonly EngineHostOptions _hostOptions;
     private readonly Lock _cacheLock = new();
+    private int _alive = 1;
     private bool _disposed;
 
     public TextureFactory(EngineHostOptions hostOptions) => _hostOptions = hostOptions;
@@ -68,6 +74,14 @@ internal sealed class TextureFactory : ITextureFactory
             var texture = OpenGLTexture2D.CreateFromRgba(rgba, width, height, sRgb, generateMipmaps: true,
                 normalizedPath);
             _textureCache[cacheKey] = texture;
+
+            if (_hostOptions.EnsureTextureDdsSiblingOnLoad)
+            {
+                var isNormal = TextureBcSource.IsNormalLoad(normalizedPath, sRgb);
+                var isOcclusion = TextureBcSource.IsOcclusionMap(normalizedPath);
+                QueueBackgroundCook(normalizedPath, sRgb, isNormal, isOcclusion, rgba, width, height);
+            }
+
             return texture;
         }
     }
@@ -78,6 +92,8 @@ internal sealed class TextureFactory : ITextureFactory
     {
         if (_disposed)
             return;
+
+        Interlocked.Exchange(ref _alive, 0);
 
         lock (_cacheLock)
         {
@@ -120,22 +136,58 @@ internal sealed class TextureFactory : ITextureFactory
             try
             {
                 var (rgba, width, height) = BcTextureEncoder.DecodeToRgba(normalizedPath, sRgb);
-                if (!TextureBcSidecar.CanEncodeWithoutPadding(width, height))
-                    return OpenGLTexture2D.Create(normalizedPath, sRgb);
+                QueueBackgroundCook(normalizedPath, sRgb, isNormal, isOcclusion, rgba, width, height);
 
-                var format = BcFormatPick.Pick(sRgb, isNormal, isOcclusion, rgba, width, height);
-                var (image, dds) = BcTextureEncoder.EncodeWithDds(rgba, width, height, format, sRgb, isNormal);
-                if (image != null && dds != null && BcDds.Write(sidecar, image.Value, dds))
-                    return OpenGLTexture2D.CreateCompressed(normalizedPath, image.Value);
+                return OpenGLTexture2D.CreateFromRgba(rgba, width, height, sRgb, generateMipmaps: true,
+                    normalizedPath);
             }
             catch (Exception ex)
             {
-                Logger.Warning(ex, "BC encode failed for {Path}; falling back to RGBA", normalizedPath);
+                Logger.Warning(ex, "Texture decode failed for {Path}; falling back to file load", normalizedPath);
             }
         }
 
         Logger.Warning("BC sibling missing, stale, or unsupported for {Path}; uploading uncompressed", path);
         return OpenGLTexture2D.Create(normalizedPath, sRgb);
+    }
+
+    private void QueueBackgroundCook(
+        string normalizedPath,
+        bool sRgb,
+        bool isNormal,
+        bool isOcclusion,
+        byte[] rgba,
+        int width,
+        int height)
+    {
+        if (Volatile.Read(ref _alive) == 0 || !TextureBcSidecar.CanEncodeWithoutPadding(width, height))
+            return;
+
+        var key = ToCacheKey(normalizedPath, sRgb);
+        if (!_pendingCooks.TryAdd(key, 0))
+            return;
+
+        Task.Run(async () =>
+        {
+            await CookGate.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                if (Volatile.Read(ref _alive) == 0)
+                    return;
+
+                TextureBcSidecar.TryEncodeFromRgba(normalizedPath, sRgb, isNormal, isOcclusion, rgba, width,
+                    height);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(ex, "BC background cook failed for {Path}", normalizedPath);
+            }
+            finally
+            {
+                CookGate.Release();
+                _pendingCooks.TryRemove(key, out _);
+            }
+        });
     }
 
     private static bool SidecarMatchesLoad(BcImage bc, bool sRgb, bool isNormal) =>

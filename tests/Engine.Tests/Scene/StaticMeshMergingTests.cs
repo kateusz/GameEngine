@@ -20,7 +20,9 @@ namespace Engine.Tests.Scene;
 [Trait("Category", "Unit")]
 public class StaticMeshMergingTests : IDisposable
 {
-    public void Dispose() => SceneRenderPipeline.ResetMergeState();
+    private readonly RenderPipelineTestHost _render = new();
+
+    public void Dispose() => _render.Dispose();
 
     [Fact]
     public void SecondIdleFrame_TwoMeshesSameKey_DrawsOneCombinedMesh()
@@ -31,7 +33,7 @@ public class StaticMeshMergingTests : IDisposable
         var factories = Factories();
 
         Render(context, graphics, models, factories);
-        graphics = new MeshDrawRecordingGraphics3D();
+        graphics.ClearFrame();
         Render(context, graphics, models, factories);
 
         graphics.MergedDraws.ShouldBe(1);
@@ -82,7 +84,7 @@ public class StaticMeshMergingTests : IDisposable
             }
         }
 
-        graphics = new MeshDrawRecordingGraphics3D();
+        graphics.ClearFrame();
         Render(context, graphics, models, factories);
 
         graphics.MergedDraws.ShouldBe(0);
@@ -101,7 +103,7 @@ public class StaticMeshMergingTests : IDisposable
         var factories = Factories();
 
         Render(context, graphics, models, factories);
-        graphics = new MeshDrawRecordingGraphics3D();
+        graphics.ClearFrame();
         Render(context, graphics, models, factories);
 
         graphics.MergedDraws.ShouldBe(0);
@@ -121,7 +123,7 @@ public class StaticMeshMergingTests : IDisposable
         var factories = Factories();
 
         Render(context, graphics, models, factories);
-        graphics = new MeshDrawRecordingGraphics3D();
+        graphics.ClearFrame();
         Render(context, graphics, models, factories);
 
         graphics.MergedDraws.ShouldBe(1);
@@ -198,12 +200,14 @@ public class StaticMeshMergingTests : IDisposable
         var (meshA, meshB, model, models) = TwoPartModel();
         var context = ContextWithParts();
         var working = Factories();
+        // Same host + throwing VAO from frame 1: merge upload only runs on frame 2.
+        var factories = (IVertexArrayFactory)new ThrowingVertexArrayFactory();
+        var upload = (factories, working.VertexBuffer, working.IndexBuffer);
         var graphics = new MeshDrawRecordingGraphics3D();
 
-        Render(context, graphics, models, working);
-        graphics = new MeshDrawRecordingGraphics3D();
-        Render(context, graphics, models,
-            (new ThrowingVertexArrayFactory(), working.VertexBuffer, working.IndexBuffer));
+        Render(context, graphics, models, upload);
+        graphics.ClearFrame();
+        Render(context, graphics, models, upload);
 
         graphics.MergedDraws.ShouldBe(0);
         graphics.InstanceDrawCalls.ShouldBe(2);
@@ -231,7 +235,7 @@ public class StaticMeshMergingTests : IDisposable
         var graphics = new MeshDrawRecordingGraphics3D { AcceptPointShadowFaces = true };
         var factories = Factories();
         Render(context, graphics, models, factories);
-        graphics = new MeshDrawRecordingGraphics3D { AcceptPointShadowFaces = true };
+        graphics.ClearFrame();
         Render(context, graphics, models, factories);
 
         graphics.MergedDirectionalShadowDraws.ShouldBeGreaterThan(0);
@@ -252,8 +256,9 @@ public class StaticMeshMergingTests : IDisposable
         var models = Substitute.For<IModelFactory>();
         var factories = Factories();
 
-        Render(context, new MeshDrawRecordingGraphics3D { AcceptPointShadowFaces = true }, models, factories);
         var graphics = new MeshDrawRecordingGraphics3D { AcceptPointShadowFaces = true };
+        Render(context, graphics, models, factories);
+        graphics.ClearFrame();
         Render(context, graphics, models, factories);
 
         graphics.PointShadowCubeIds.ShouldContain(2);
@@ -275,9 +280,10 @@ public class StaticMeshMergingTests : IDisposable
         Render(context, graphics, models, factories);
         var combined = graphics.DrawnMeshes.Single();
 
-        graphics = new MeshDrawRecordingGraphics3D();
+        graphics.ClearFrame();
         Render(context, graphics, models, factories, View(x: 1000f));
         graphics.MergedDraws.ShouldBe(0);
+        graphics.ClearFrame();
         Render(context, graphics, models, factories);
 
         graphics.DrawnMeshes.Single().ShouldBeSameAs(combined);
@@ -301,7 +307,7 @@ public class StaticMeshMergingTests : IDisposable
         Render(context, graphics, models, factories);
         context.Register(entity);
 
-        graphics = new MeshDrawRecordingGraphics3D();
+        graphics.ClearFrame();
         Render(context, graphics, models, factories);
         graphics.MergedDraws.ShouldBe(0);
         graphics.InstanceDrawCalls.ShouldBe(2);
@@ -322,6 +328,38 @@ public class StaticMeshMergingTests : IDisposable
         graphics.GetStats().MergedRebuilds.ShouldBe(0);
 
         model.Dispose();
+    }
+
+    [Fact]
+    public void TwoPipelines_SameEntityIds_DoNotShareMergeHistory()
+    {
+        var (_, _, model, models) = TwoPartModel();
+        using var _ = model;
+        var context = ContextWithParts();
+        var factories = Factories();
+
+        var graphicsA = new MeshDrawRecordingGraphics3D();
+        Render(context, graphicsA, models, factories);
+        graphicsA.ClearFrame();
+        Render(context, graphicsA, models, factories);
+        graphicsA.MergedDraws.ShouldBe(1);
+
+        var graphicsB = new MeshDrawRecordingGraphics3D();
+        Render(context, graphicsB, models, factories);
+        graphicsB.MergedDraws.ShouldBe(0);
+        graphicsB.InstanceDrawCalls.ShouldBe(2);
+    }
+
+    [Fact]
+    public void Pipeline_Dispose_IsIdempotent()
+    {
+        var pipeline = new SceneRenderPipeline(
+            Substitute.For<IGraphics2D>(),
+            new MeshDrawRecordingGraphics3D(),
+            Substitute.For<ITextureFactory>(),
+            Substitute.For<IModelFactory>());
+        pipeline.Dispose();
+        pipeline.Dispose();
     }
 
     [Fact]
@@ -423,8 +461,9 @@ public class StaticMeshMergingTests : IDisposable
         var (context, model, models) = LodScene(far, far);
         var factories = Factories();
 
-        Render(context, new MeshDrawRecordingGraphics3D(), models, factories, LodView());
         var graphics = new MeshDrawRecordingGraphics3D();
+        Render(context, graphics, models, factories, LodView());
+        graphics.ClearFrame();
         Render(context, graphics, models, factories, LodView());
 
         graphics.MergedDraws.ShouldBe(0);
@@ -445,14 +484,14 @@ public class StaticMeshMergingTests : IDisposable
         graphics.InstanceDrawCalls.ShouldBe(0);
     }
 
-    private static void Render(
+    private void Render(
         Context context,
         IGraphics3D graphics,
         IModelFactory models,
         (IVertexArrayFactory VertexArray, IVertexBufferFactory VertexBuffer, IIndexBufferFactory IndexBuffer) factories,
         SceneView? view = null)
     {
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             context,
             Substitute.For<IGraphics2D>(),
             graphics,
@@ -544,11 +583,12 @@ public class StaticMeshMergingTests : IDisposable
         }
     }
 
-    private static void AssertStaysOnInstancePathAfterTwoIdleFrames(Context context, IModelFactory models)
+    private void AssertStaysOnInstancePathAfterTwoIdleFrames(Context context, IModelFactory models)
     {
         var factories = Factories();
-        Render(context, new MeshDrawRecordingGraphics3D(), models, factories);
         var graphics = new MeshDrawRecordingGraphics3D();
+        Render(context, graphics, models, factories);
+        graphics.ClearFrame();
         Render(context, graphics, models, factories);
         graphics.MergedDraws.ShouldBe(0);
         graphics.InstanceDrawCalls.ShouldBe(2);
@@ -668,3 +708,4 @@ public class StaticMeshMergingTests : IDisposable
         public IVertexArray Create() => throw new InvalidOperationException("upload failed");
     }
 }
+

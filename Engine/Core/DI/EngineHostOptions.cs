@@ -24,8 +24,9 @@ public sealed record EngineHostOptions(string WindowTitle, int WindowWidth, int 
     public bool EnsureRuntimeMeshSiblingOnLoad { get; init; }
 
     /// <summary>
-    /// Editor and publish: encode a sibling <c>.dds</c> when missing or older than the source.
-    /// Runtime player: <c>false</c>.
+    /// Editor: when a sibling <c>.dds</c> is missing or stale, upload RGBA immediately and encode the
+    /// sibling on a background thread (GPU stays RGBA until the next cold load). Publish still cooks
+    /// synchronously via <c>TextureBcSidecar.TryEnsureUpToDate</c>. Runtime player: <c>false</c>.
     /// </summary>
     public bool EnsureTextureDdsSiblingOnLoad { get; init; }
 

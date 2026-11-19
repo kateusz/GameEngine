@@ -201,6 +201,8 @@ public abstract class Application : IApplication
             SafeDetachLayer(_layersStack[index]);
 
         _layersStack.Clear();
+        // Retire scene render systems before any shared GPU assets or the context.
+        _sceneContext.ActiveScene?.Dispose();
         _graphics2D?.Dispose();
         _graphics3D?.Dispose();
         _modelFactory.Dispose();

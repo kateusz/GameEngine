@@ -11,8 +11,10 @@ using Shouldly;
 
 namespace Engine.Tests.Scene;
 
-public class VisibilityZonePipelineTests
+public class VisibilityZonePipelineTests : IDisposable
 {
+    private readonly RenderPipelineTestHost _render = new();
+
     [Fact]
     public void Aabb_ContainsPoint_RespectsWorldTransform()
     {
@@ -48,7 +50,7 @@ public class VisibilityZonePipelineTests
 
         var graphics = new MeshDrawRecordingGraphics3D();
         var eye = new Vector3(100f, 0f, 0f);
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             context,
             Substitute.For<IGraphics2D>(),
             graphics,
@@ -86,7 +88,7 @@ public class VisibilityZonePipelineTests
 
         var graphics = new MeshDrawRecordingGraphics3D();
         var eye = Vector3.Zero;
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             context,
             Substitute.For<IGraphics2D>(),
             graphics,
@@ -127,4 +129,5 @@ public class VisibilityZonePipelineTests
         return view * projection;
     }
 
+    public void Dispose() => _render.Dispose();
 }

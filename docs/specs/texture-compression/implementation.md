@@ -101,26 +101,14 @@ public Texture2D Create(string path, bool sRgb = false)
 
 private Texture2D LoadWithDdsSibling(string path, bool sRgb)
 {
-    var sidecar = TextureSidecar.PathFor(path);
-    if (TextureSidecar.IsFresh(path, sidecar) && BcDds.TryRead(sidecar, out var bc))
-        return OpenGLTexture2D.CreateCompressed(path, bc);
-
-    if (_hostOptions.EnsureTextureDdsSiblingOnLoad)
-    {
-        var decoded = TextureFileDecoder.Decode(path, sRgb);
-        var rgba = ToRgba(decoded);
-        var format = BcFormatPick.Pick(sRgb, IsNormalLoad(path, sRgb), rgba, decoded.Width, decoded.Height);
-        var image = BcEncoder.Encode(rgba, decoded.Width, decoded.Height, format);
-        BcDds.Write(sidecar, image);
-        return OpenGLTexture2D.CreateCompressed(path, image);
-    }
-
-    Logger.Warning("BC sibling missing or stale for {Path}; uploading uncompressed", path);
-    return OpenGLTexture2D.Create(path, sRgb);
+    // usable sibling → CreateCompressed
+    // EnsureTextureDdsSiblingOnLoad + missing sibling:
+    //   decode → QueueBackgroundCook (Task.Run EncodeWithDds + Write) → CreateFromRgba
+    // else → RGBA + warning
 }
 ```
 
-`Decode` / `DecodePreview` / `CreateFromRgba` unchanged. A source path that already ends in `.dds` and parses as BC skips cook and calls `CreateCompressed` directly (stop Pfim decompress on that GPU path).
+`CreateFromRgba` with a cache path also queues the same background cook when the editor flag is on. A source path that already ends in `.dds` and parses as BC skips cook and calls `CreateCompressed` directly (stop Pfim decompress on that GPU path).
 
 ## OpenGL upload
 

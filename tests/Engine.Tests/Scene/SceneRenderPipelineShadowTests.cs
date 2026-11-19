@@ -22,13 +22,14 @@ namespace Engine.Tests.Scene;
 [Collection("PointShadowCache")]
 public class SceneRenderPipelineShadowTests
 {
-    public SceneRenderPipelineShadowTests() => PointShadowCache.Clear();
+    private readonly RenderPipelineTestHost _render = new();
+
     [Fact]
     public void RenderScene_NoDirectionalLight_SkipsShadowPass()
     {
         var graphics = new RecordingGraphics3D();
 
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             new Context(),
             Substitute.For<IGraphics2D>(),
             graphics,
@@ -48,7 +49,7 @@ public class SceneRenderPipelineShadowTests
         var graphics2D = Substitute.For<IGraphics2D>();
         graphics2D.When(g => g.BeginScene(Arg.Any<SceneView>())).Do(_ => graphics.Order.Add("begin-2d"));
 
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             new Context(),
             graphics2D,
             graphics,
@@ -76,7 +77,7 @@ public class SceneRenderPipelineShadowTests
         context.Register(sun);
 
         var graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             context,
             Substitute.For<IGraphics2D>(),
             graphics,
@@ -111,7 +112,7 @@ public class SceneRenderPipelineShadowTests
         LightingMath.TryFitDirectionalShadow(viewProjection, direction, out var expected).ShouldBeTrue();
 
         var graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             context,
             Substitute.For<IGraphics2D>(),
             graphics,
@@ -133,15 +134,15 @@ public class SceneRenderPipelineShadowTests
 
         var graphics = new RecordingGraphics3D();
         var view = new SceneView(ViewProjection(new Vector3(0f, 2f, 5f)));
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             context, Substitute.For<IGraphics2D>(), graphics,
             Substitute.For<ITextureFactory>(), Substitute.For<IModelFactory>(), view);
 
         graphics.PointShadowFaces.Count.ShouldBe(6);
         graphics.CachedPointShadowUses.ShouldBeEmpty();
 
-        graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        graphics.ClearFrame();
+        _render.RenderScene(
             context, Substitute.For<IGraphics2D>(), graphics,
             Substitute.For<ITextureFactory>(), Substitute.For<IModelFactory>(), view);
 
@@ -156,7 +157,7 @@ public class SceneRenderPipelineShadowTests
         var context = ContextWithCastingLampAndCube();
         var view = new SceneView(ViewProjection(new Vector3(0f, 2f, 5f)));
         var graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             context, Substitute.For<IGraphics2D>(), graphics,
             Substitute.For<ITextureFactory>(), Substitute.For<IModelFactory>(), view);
         graphics.PointShadowFaces.Count.ShouldBe(6);
@@ -169,8 +170,8 @@ public class SceneRenderPipelineShadowTests
             break;
         }
 
-        graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        graphics.ClearFrame();
+        _render.RenderScene(
             context, Substitute.For<IGraphics2D>(), graphics,
             Substitute.For<ITextureFactory>(), Substitute.For<IModelFactory>(), view);
 
@@ -186,19 +187,19 @@ public class SceneRenderPipelineShadowTests
         var editView = new SceneView(ViewProjection(new Vector3(0f, 2f, 5f)), PointShadows: false);
 
         var graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             context, Substitute.For<IGraphics2D>(), graphics,
             Substitute.For<ITextureFactory>(), Substitute.For<IModelFactory>(), playView);
         graphics.PointShadowFaces.Count.ShouldBe(6);
 
-        graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        graphics.ClearFrame();
+        _render.RenderScene(
             context, Substitute.For<IGraphics2D>(), graphics,
             Substitute.For<ITextureFactory>(), Substitute.For<IModelFactory>(), editView);
         graphics.PointShadowFaces.ShouldBeEmpty();
 
-        graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        graphics.ClearFrame();
+        _render.RenderScene(
             context, Substitute.For<IGraphics2D>(), graphics,
             Substitute.For<ITextureFactory>(), Substitute.For<IModelFactory>(), playView);
         graphics.PointShadowFaces.Count.ShouldBe(6);
@@ -222,7 +223,7 @@ public class SceneRenderPipelineShadowTests
 
         var view = new SceneView(ViewProjection(Vector3.Zero), Vector3.Zero);
         var graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             context, Substitute.For<IGraphics2D>(), graphics,
             Substitute.For<ITextureFactory>(), Substitute.For<IModelFactory>(), view);
         graphics.PointShadowFaces.ShouldBeEmpty();
@@ -234,15 +235,15 @@ public class SceneRenderPipelineShadowTests
             transform.SetWorldTransform(Matrix4x4.CreateTranslation(1f, 0f, 0f));
             break;
         }
-        graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        graphics.ClearFrame();
+        _render.RenderScene(
             context, Substitute.For<IGraphics2D>(), graphics,
             Substitute.For<ITextureFactory>(), Substitute.For<IModelFactory>(), view);
         graphics.PointShadowFaces.ShouldBeEmpty();
 
         lampTransform.SetWorldTransform(Matrix4x4.Identity);
-        graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        graphics.ClearFrame();
+        _render.RenderScene(
             context, Substitute.For<IGraphics2D>(), graphics,
             Substitute.For<ITextureFactory>(), Substitute.For<IModelFactory>(), view);
         graphics.PointShadowFaces.Count.ShouldBe(6);
@@ -287,7 +288,7 @@ public class SceneRenderPipelineShadowTests
         context.Register(lamp);
 
         var graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             context,
             Substitute.For<IGraphics2D>(),
             graphics,
@@ -306,7 +307,7 @@ public class SceneRenderPipelineShadowTests
         var context = ContextWithCastingLampAndCube();
 
         var graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             context,
             Substitute.For<IGraphics2D>(),
             graphics,
@@ -333,7 +334,7 @@ public class SceneRenderPipelineShadowTests
         context.Register(lamp);
 
         var graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             context,
             Substitute.For<IGraphics2D>(),
             graphics,
@@ -354,7 +355,7 @@ public class SceneRenderPipelineShadowTests
         context.Register(lamp);
 
         var graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             context,
             Substitute.For<IGraphics2D>(),
             graphics,
@@ -377,7 +378,7 @@ public class SceneRenderPipelineShadowTests
         context.Register(lamp);
 
         var graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             context,
             Substitute.For<IGraphics2D>(),
             graphics,
@@ -398,7 +399,7 @@ public class SceneRenderPipelineShadowTests
         context.Register(lamp);
 
         var graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             context,
             Substitute.For<IGraphics2D>(),
             graphics,
@@ -427,7 +428,7 @@ public class SceneRenderPipelineShadowTests
         models.Create(Arg.Any<string>()).Returns((Model?)null);
 
         var graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             context,
             Substitute.For<IGraphics2D>(),
             graphics,
@@ -449,7 +450,7 @@ public class SceneRenderPipelineShadowTests
         context.Register(entity);
 
         var graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             context,
             Substitute.For<IGraphics2D>(),
             graphics,
@@ -474,7 +475,7 @@ public class SceneRenderPipelineShadowTests
         context.Register(entity);
 
         var graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             context,
             Substitute.For<IGraphics2D>(),
             graphics,
@@ -506,7 +507,7 @@ public class SceneRenderPipelineShadowTests
         context.Register(entity);
 
         var graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             context,
             Substitute.For<IGraphics2D>(),
             graphics,
@@ -541,7 +542,7 @@ public class SceneRenderPipelineShadowTests
         context.Register(entity);
 
         var graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             context,
             Substitute.For<IGraphics2D>(),
             graphics,
@@ -570,9 +571,10 @@ public class SceneRenderPipelineShadowTests
             MeshIndex = 0
         });
         context.Register(entity);
+        var before = (ModelRendererComponent)entity.GetComponent<ModelRendererComponent>().Clone();
 
         var graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             context,
             Substitute.For<IGraphics2D>(),
             graphics,
@@ -581,7 +583,11 @@ public class SceneRenderPipelineShadowTests
             new SceneView(ViewProjection(new Vector3(0f, 2f, 5f))));
 
         graphics.MeshFactors.ShouldBe([(0f, 0.122727275f, 1f)]);
-        entity.GetComponent<ModelRendererComponent>().Roughness.ShouldBe(0.122727275f);
+        var renderer = entity.GetComponent<ModelRendererComponent>();
+        renderer.Roughness.ShouldBe(before.Roughness);
+        renderer.Metallic.ShouldBe(before.Metallic);
+        renderer.FactorsSeeded.ShouldBe(before.FactorsSeeded);
+        renderer.FactorsSeeded.ShouldBeFalse();
         model.Dispose();
     }
 
@@ -644,7 +650,7 @@ public class SceneRenderPipelineShadowTests
         context.Register(entity);
 
         var graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             context,
             Substitute.For<IGraphics2D>(),
             graphics,
@@ -670,7 +676,7 @@ public class SceneRenderPipelineShadowTests
         RegisterProp(context, 2);
 
         var graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             context,
             Substitute.For<IGraphics2D>(),
             graphics,
@@ -695,7 +701,7 @@ public class SceneRenderPipelineShadowTests
         RegisterProp(context, 2, metallic: 0f);
 
         var graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             context,
             Substitute.For<IGraphics2D>(),
             graphics,
@@ -725,7 +731,7 @@ public class SceneRenderPipelineShadowTests
         packed.Model.M41.ShouldBe(0f);
     }
 
-    private static RecordingGraphics3D RenderCube(
+    private RecordingGraphics3D RenderCube(
         Matrix4x4 world,
         Matrix4x4 viewProjection,
         SceneView? view = null)
@@ -739,7 +745,7 @@ public class SceneRenderPipelineShadowTests
         context.Register(cube);
 
         var graphics = new RecordingGraphics3D();
-        SceneRenderPipeline.RenderScene(
+        _render.RenderScene(
             context,
             Substitute.For<IGraphics2D>(),
             graphics,
@@ -940,6 +946,28 @@ public class SceneRenderPipelineShadowTests
         public void Init() { }
         public void SetClearColor(Vector4 color) { }
         public void Clear() { }
+
+        /// <summary>Zeros per-frame recordings without replacing the host (pipeline identity stays).</summary>
+        public void ClearFrame()
+        {
+            Shadows.Clear();
+            ShadowPasses.Clear();
+            Order.Clear();
+            EndShadowPasses = 0;
+            BeginScenes = 0;
+            CubeDraws = 0;
+            MeshDraws = 0;
+            MeshInstanceCounts.Clear();
+            CubeFactors.Clear();
+            MeshFactors.Clear();
+            CubeEmissive.Clear();
+            MeshEmissive.Clear();
+            PointShadowFaces.Clear();
+            CachedPointShadowUses.Clear();
+            EndPointShadowFaces = 0;
+        }
+
         public void Dispose() { }
     }
 }
+

@@ -86,10 +86,19 @@ public class RecentProjectsPanel(
 
         if (IsLoading)
         {
-            var text = sceneLoadService is { IsLoading: true, LoadingName: { } scene }
-                ? $"Loading project {_loadingProjectName} and scene {scene}..."
-                : $"Loading project {_loadingProjectName}...";
-            LoadingOverlayDrawer.DrawFullscreen(text, ref _loadingSpinnerRotation);
+            string text;
+            float? progress = null;
+            if (sceneLoadService.IsLoading)
+            {
+                text = $"Loading project {_loadingProjectName} — {sceneLoadService.LoadingStatusText}";
+                progress = sceneLoadService.LoadProgress;
+            }
+            else
+            {
+                text = $"Loading project {_loadingProjectName}...";
+            }
+
+            LoadingOverlayDrawer.DrawFullscreen(text, ref _loadingSpinnerRotation, progress);
         }
 
         if (_projectToRemove != null)

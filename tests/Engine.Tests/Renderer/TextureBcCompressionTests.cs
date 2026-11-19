@@ -143,6 +143,29 @@ public class TextureBcCompressionTests
     }
 
     [Fact]
+    public void TextureBcSidecar_TryEncodeFromRgba_CreatesUsableSibling()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "bc-bg-" + Guid.NewGuid());
+        Directory.CreateDirectory(dir);
+        var src = Path.Combine(dir, "leaf.png");
+        var rgba = SolidRgba(8, 8, 40, 120, 80, 255);
+        try
+        {
+            Assert.True(TextureBcSidecar.TryEncodeFromRgba(src, sRgb: true, isNormal: false, isOcclusion: false,
+                rgba, 8, 8));
+            var sidecar = BcDdsSidecarPath.ForSource(src, sRgb: true);
+            Assert.True(File.Exists(sidecar));
+            Assert.True(TextureBcSidecar.TryReadUsableSidecar(src, sidecar, sRgb: true, isNormal: false, out _));
+            Assert.True(TextureBcSidecar.TryEncodeFromRgba(src, sRgb: true, isNormal: false, isOcclusion: false,
+                rgba, 8, 8));
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void TextureBcSidecar_RejectsMismatchedImportFlags()
     {
         var dir = Path.Combine(Path.GetTempPath(), "bc-sidecar-" + Guid.NewGuid());

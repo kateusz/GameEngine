@@ -16,7 +16,7 @@ public class SceneRenderPipelineLightingTests
     [Fact]
     public void ResolveAmbient_NoLights_ReturnsDefaults()
     {
-        SceneRenderPipeline.ResolveAmbient(new Context()).ShouldBe((Vector3.One, 0.1f));
+        SceneRenderDataBuilder.ResolveAmbient(new Context()).ShouldBe((Vector3.One, 0.1f));
     }
 
     [Fact]
@@ -31,13 +31,13 @@ public class SceneRenderPipelineLightingTests
         });
         context.Register(entity);
 
-        SceneRenderPipeline.ResolveAmbient(context).ShouldBe((new Vector3(0.2f, 0.3f, 0.4f), 0.5f));
+        SceneRenderDataBuilder.ResolveAmbient(context).ShouldBe((new Vector3(0.2f, 0.3f, 0.4f), 0.5f));
     }
 
     [Fact]
     public void ResolveDirectional_NoLights_ReturnsDefaults()
     {
-        SceneRenderPipeline.ResolveDirectional(new Context())
+        SceneRenderDataBuilder.ResolveDirectional(new Context())
             .ShouldBe((LightingMath.DefaultDirection, Vector3.Zero));
     }
 
@@ -54,7 +54,7 @@ public class SceneRenderPipelineLightingTests
         });
         context.Register(entity);
 
-        SceneRenderPipeline.ResolveDirectional(context)
+        SceneRenderDataBuilder.ResolveDirectional(context)
             .ShouldBe((new Vector3(0, -1, 0), new Vector3(2f, 1.8f, 1.6f)));
     }
 
@@ -70,7 +70,7 @@ public class SceneRenderPipelineLightingTests
         });
         context.Register(entity);
 
-        SceneRenderPipeline.ResolveDirectional(context).Color.ShouldBe(Vector3.Zero);
+        SceneRenderDataBuilder.ResolveDirectional(context).Color.ShouldBe(Vector3.Zero);
     }
 
     [Fact]
@@ -94,7 +94,7 @@ public class SceneRenderPipelineLightingTests
         });
         context.Register(second);
 
-        SceneRenderPipeline.ResolveDirectional(context)
+        SceneRenderDataBuilder.ResolveDirectional(context)
             .ShouldBe((new Vector3(1, 0, 0), new Vector3(1f, 0f, 0f)));
     }
 
@@ -106,32 +106,32 @@ public class SceneRenderPipelineLightingTests
         entity.AddComponent(new DirectionalLightComponent { Direction = Vector3.Zero });
         context.Register(entity);
 
-        SceneRenderPipeline.ResolveDirectional(context).Direction.ShouldBe(LightingMath.DefaultDirection);
+        SceneRenderDataBuilder.ResolveDirectional(context).Direction.ShouldBe(LightingMath.DefaultDirection);
     }
 
     [Fact]
-    public void AdoptSubmeshFactors_DefaultChild_CopiesMeshOnce()
+    public void ImportedMaterialDefaults_DefaultChild_CopiesMeshOnce()
     {
         var renderer = new ModelRendererComponent { MeshIndex = 0 };
         var mesh = new Mesh("Cube.008") { MetallicFactor = 0f, RoughnessFactor = 0.122727275f };
 
-        SceneRenderPipeline.AdoptSubmeshFactors(renderer, mesh);
+        ImportedMaterialDefaults.Apply(renderer, mesh);
         renderer.Roughness.ShouldBe(0.122727275f);
         renderer.FactorsSeeded.ShouldBeTrue();
 
         renderer.Roughness = 0.5f;
-        SceneRenderPipeline.AdoptSubmeshFactors(renderer, mesh);
+        ImportedMaterialDefaults.Apply(renderer, mesh);
         renderer.Roughness.ShouldBe(0.5f);
         mesh.Dispose();
     }
 
     [Fact]
-    public void AdoptSubmeshFactors_EditedChild_KeepsComponentValues()
+    public void ImportedMaterialDefaults_EditedChild_KeepsComponentValues()
     {
         var renderer = new ModelRendererComponent { MeshIndex = 0, Metallic = 0.8f, Roughness = 0.25f };
         var mesh = new Mesh("Cube.008") { MetallicFactor = 0f, RoughnessFactor = 0.122727275f };
 
-        SceneRenderPipeline.AdoptSubmeshFactors(renderer, mesh);
+        ImportedMaterialDefaults.Apply(renderer, mesh);
 
         renderer.Metallic.ShouldBe(0.8f);
         renderer.Roughness.ShouldBe(0.25f);
@@ -140,12 +140,24 @@ public class SceneRenderPipelineLightingTests
     }
 
     [Fact]
+    public void ResolveEffectivePbr_UnseededDefaults_UsesMeshThenComponentAfterEdit()
+    {
+        var mesh = new Mesh("part") { MetallicFactor = 0.2f, RoughnessFactor = 0.3f };
+        var renderer = new ModelRendererComponent { ModelPath = "/prop.glb", MeshIndex = 0 };
+
+        SceneRenderDataBuilder.ResolveEffectivePbr(renderer, mesh).Roughness.ShouldBe(0.3f);
+        renderer.Roughness = 0.9f;
+        SceneRenderDataBuilder.ResolveEffectivePbr(renderer, mesh).Roughness.ShouldBe(0.9f);
+        mesh.Dispose();
+    }
+
+    [Fact]
     public void ResolvePbr_UsesComponentFactors()
     {
         var renderer = new ModelRendererComponent { Metallic = 0.8f, Roughness = 0.25f, Ao = 0.4f };
 
-        SceneRenderPipeline.ResolvePbr(renderer)
-            .ShouldBe(new SceneRenderPipeline.PbrFactors(0.8f, 0.25f, 0.4f));
+        SceneRenderDataBuilder.ResolvePbr(renderer)
+            .ShouldBe(new SceneRenderDataBuilder.PbrFactors(0.8f, 0.25f, 0.4f));
     }
 
     [Fact]
@@ -153,8 +165,8 @@ public class SceneRenderPipelineLightingTests
     {
         var renderer = new ModelRendererComponent { Metallic = 2f, Roughness = -1f, Ao = 3f };
 
-        SceneRenderPipeline.ResolvePbr(renderer)
-            .ShouldBe(new SceneRenderPipeline.PbrFactors(1f, 0f, 1f));
+        SceneRenderDataBuilder.ResolvePbr(renderer)
+            .ShouldBe(new SceneRenderDataBuilder.PbrFactors(1f, 0f, 1f));
     }
 
     [Fact]
@@ -174,7 +186,7 @@ public class SceneRenderPipelineLightingTests
         context.Register(entity);
 
         var lights = new PointLightData[LightingMath.MaxPointLights];
-        var count = SceneRenderPipeline.ResolvePointLights(context, lights);
+        var count = SceneRenderDataBuilder.ResolvePointLights(context, lights);
 
         count.ShouldBe(1);
         lights[0].Position.ShouldBe(new Vector3(10f, 10f, 10f));

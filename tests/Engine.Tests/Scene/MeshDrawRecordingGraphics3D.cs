@@ -78,6 +78,29 @@ internal sealed class MeshDrawRecordingGraphics3D : IGraphics3D
     public bool UseCachedPointShadow(int lightIndex, int entityId) => false;
     public void SetClearColor(Vector4 color) { }
     public void Clear() { }
+
+    /// <summary>Zeros per-frame recordings without replacing the host (pipeline identity stays).</summary>
+    public void ClearFrame()
+    {
+        MeshDraws = 0;
+        ShadowQualitySets = 0;
+        LastView = null;
+        InstanceDrawCalls = 0;
+        MergedDraws = 0;
+        MergedDirectionalShadowDraws = 0;
+        MergedPointShadowDraws = 0;
+        MergedColorDraws = 0;
+        CubeDraws = 0;
+        PointShadowCubeIds.Clear();
+        BatchInstanceCounts.Clear();
+        BatchIndexCounts.Clear();
+        DrawnMeshes.Clear();
+        InstanceMeshes.Clear();
+        _inDirectionalShadow = false;
+        _inPointShadow = false;
+        _stats = new Statistics();
+    }
+
     public void ResetStats() => _stats = new Statistics();
     public Engine.Renderer.Statistics GetStats() => _stats;
     public void Init() { }

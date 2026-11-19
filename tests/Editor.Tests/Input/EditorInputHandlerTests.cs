@@ -1,10 +1,13 @@
 using ECS.Systems;
 using Editor.Features.History;
+using Editor.Features.Models;
 using Editor.Features.Scene;
 using Editor.Features.Viewport;
 using Editor.Input;
 using Engine.Events.Input;
 using Engine.Project;
+using Engine.Renderer.Models;
+using Engine.Renderer.Textures;
 using Engine.Scene;
 using Engine.Scene.Serializer;
 using Input;
@@ -17,14 +20,17 @@ public class EditorInputHandlerTests
 {
     // ponytail: only IsLoading is read; idle service via substituted SceneManager (ctor args unused)
     private static EditorSceneLoadService IdleLoadService() =>
-        new(Substitute.For<SceneManager>(
-            Substitute.For<ISceneContext>(),
-            Substitute.For<ISceneSerializer>(),
-            null!,
-            static () => Array.Empty<IGameSystem>(),
-            Substitute.For<IProjectContext>(),
-            null!,
-            Substitute.For<IEditorHistory>()));
+        new(
+            Substitute.For<SceneManager>(
+                Substitute.For<ISceneContext>(),
+                Substitute.For<ISceneSerializer>(),
+                null!,
+                static () => Array.Empty<IGameSystem>(),
+                Substitute.For<IProjectContext>(),
+                null!,
+                Substitute.For<IEditorHistory>()),
+            new EditorModelLoadService(Substitute.For<IModelFactory>(), Substitute.For<ITextureFactory>()),
+            Substitute.For<ISceneContext>());
 
     private static EditorInputHandler Create(ISceneContext sceneContext, ShortcutManager shortcuts, IEditorViewport viewport) =>
         new(sceneContext, shortcuts, viewport, IdleLoadService());

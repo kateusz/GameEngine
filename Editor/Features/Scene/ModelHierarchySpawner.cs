@@ -225,12 +225,7 @@ public static class ModelHierarchySpawner
         }
 
         if (submeshes != null && (uint)meshIndex < (uint)submeshes.Count)
-        {
-            var mesh = submeshes[meshIndex];
-            renderer.Metallic = mesh.MetallicFactor;
-            renderer.Roughness = mesh.RoughnessFactor;
-            renderer.FactorsSeeded = true;
-        }
+            ImportedMaterialDefaults.Apply(renderer, submeshes[meshIndex]);
 
         var pivot = MeshCenter(submeshes, meshIndex);
         renderer.Pivot = pivot;

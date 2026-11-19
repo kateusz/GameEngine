@@ -1,15 +1,25 @@
 using System.Text.Json.Nodes;
+using Editor.Features.Models;
 using Editor.UI.Drawers;
+using Engine.Project;
+using Engine.Scene;
+using SceneComponents.Rendering;
 using Serilog;
 
 namespace Editor.Features.Scene;
 
-public sealed class EditorSceneLoadService(SceneManager sceneManager)
+public sealed class EditorSceneLoadService(
+    SceneManager sceneManager,
+    EditorModelLoadService modelLoadService,
+    ISceneContext sceneContext)
 {
     private static readonly ILogger Logger = Log.ForContext<EditorSceneLoadService>();
 
     private bool _holdForPaint;
     private Task<(string Path, JsonObject Root)>? _readTask;
+    private int _modelsRemaining;
+    private bool _warmingModels;
+    private readonly EditorLoadWorkMeter _work = new();
 
     private bool _showMessage;
     private string _messageTitle = "";
@@ -20,6 +30,24 @@ public sealed class EditorSceneLoadService(SceneManager sceneManager)
 
     public string? LoadingName { get; private set; }
 
+    /// <summary>Null while reading JSON or before first work unit is registered.</summary>
+    public float? LoadProgress =>
+        _warmingModels ? _work.Progress : null;
+
+    public string LoadingStatusText
+    {
+        get
+        {
+            var scene = string.IsNullOrEmpty(LoadingName) ? "scene" : LoadingName;
+            if (!_warmingModels || _work.Total == 0)
+                return $"Loading scene {scene}...";
+
+            var text = $"Loading scene {scene}... ({_work.Done}/{_work.Total})";
+            var busy = modelLoadService.BusyName;
+            return string.IsNullOrEmpty(busy) ? text : $"{text} — {busy}";
+        }
+    }
+
     public void Request(string resolvedPath)
     {
         if (IsLoading)
@@ -28,6 +56,9 @@ public sealed class EditorSceneLoadService(SceneManager sceneManager)
         var normalized = Path.GetFullPath(resolvedPath);
         IsLoading = true;
         _holdForPaint = true;
+        _warmingModels = false;
+        _modelsRemaining = 0;
+        _work.Reset();
         LoadingName = Path.GetFileNameWithoutExtension(normalized);
         _readTask = Task.Run(() =>
         {
@@ -50,6 +81,18 @@ public sealed class EditorSceneLoadService(SceneManager sceneManager)
             return;
         }
 
+        if (_warmingModels)
+        {
+            if (Volatile.Read(ref _modelsRemaining) > 0)
+                return;
+
+            _warmingModels = false;
+            _work.Reset();
+            IsLoading = false;
+            LoadingName = null;
+            return;
+        }
+
         if (_readTask is not { IsCompleted: true } task)
             return;
 
@@ -66,6 +109,8 @@ public sealed class EditorSceneLoadService(SceneManager sceneManager)
                     $"The scene loaded, but these unknown components were skipped:\n\n{list}",
                     MessageType.Warning);
             }
+
+            BeginModelWarmup();
         }
         catch (Exception ex)
         {
@@ -74,9 +119,6 @@ public sealed class EditorSceneLoadService(SceneManager sceneManager)
                 "Scene Load Failed",
                 $"Could not load the scene.\n\n{ex.Message}",
                 MessageType.Error);
-        }
-        finally
-        {
             IsLoading = false;
             LoadingName = null;
         }
@@ -88,6 +130,42 @@ public sealed class EditorSceneLoadService(SceneManager sceneManager)
             return;
 
         ModalDrawer.RenderMessageBox(_messageTitle, ref _showMessage, _messageBody, _messageType);
+    }
+
+    private void BeginModelWarmup()
+    {
+        var paths = CollectModelPaths();
+        if (paths.Count == 0)
+        {
+            IsLoading = false;
+            LoadingName = null;
+            return;
+        }
+
+        _warmingModels = true;
+        Volatile.Write(ref _modelsRemaining, paths.Count);
+        foreach (var path in paths)
+            modelLoadService.Request(path, _ => Interlocked.Decrement(ref _modelsRemaining), _work);
+    }
+
+    private List<string> CollectModelPaths()
+    {
+        var unique = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var scene = sceneContext.ActiveScene;
+        if (scene == null)
+            return [];
+
+        foreach (var (_, renderer) in scene.Context.View<ModelRendererComponent>())
+        {
+            if (string.IsNullOrWhiteSpace(renderer.ModelPath))
+                continue;
+
+            var resolved = PathBuilder.Resolve(renderer.ModelPath);
+            if (File.Exists(resolved))
+                unique.Add(Path.GetFullPath(resolved));
+        }
+
+        return [.. unique];
     }
 
     private void ShowMessage(string title, string body, MessageType type)

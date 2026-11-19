@@ -1,7 +1,11 @@
+using Serilog;
+
 namespace Engine.Renderer.Textures.Compression;
 
 public static class TextureBcSidecar
 {
+    private static readonly ILogger Logger = Log.ForContext(typeof(TextureBcSidecar));
+
     public static bool TryEnsureUpToDate(string sourcePath, out string? error)
     {
         error = null;
@@ -37,17 +41,44 @@ public static class TextureBcSidecar
         if (!CanEncodeWithoutPadding(width, height))
             return true;
 
-        var format = BcFormatPick.Pick(sRgb, isNormal, isOcclusion, rgba, width, height);
-        var (image, dds) = BcTextureEncoder.EncodeWithDds(rgba, width, height, format, sRgb, isNormal);
-        if (image == null || dds == null)
+        if (!TryEncodeFromRgba(normalized, sRgb, isNormal, isOcclusion, rgba, width, height))
         {
             error = $"BC encode failed for {normalized}";
             return false;
         }
 
+        return true;
+    }
+
+    /// <summary>Encode+write DDS sibling from already-decoded RGBA. No GPU cache updates.</summary>
+    internal static bool TryEncodeFromRgba(
+        string sourcePath,
+        bool sRgb,
+        bool isNormal,
+        bool isOcclusion,
+        byte[] rgba,
+        int width,
+        int height)
+    {
+        if (!CanEncodeWithoutPadding(width, height))
+            return false;
+
+        var normalized = Path.GetFullPath(sourcePath);
+        var sidecar = BcDdsSidecarPath.ForSource(normalized, sRgb);
+        if (TryReadUsableSidecar(normalized, sidecar, sRgb, isNormal, out _))
+            return true;
+
+        var format = BcFormatPick.Pick(sRgb, isNormal, isOcclusion, rgba, width, height);
+        var (image, dds) = BcTextureEncoder.EncodeWithDds(rgba, width, height, format, sRgb, isNormal);
+        if (image == null || dds == null)
+        {
+            Logger.Warning("BC encode failed for {Path}", normalized);
+            return false;
+        }
+
         if (!BcDds.Write(sidecar, image.Value, dds))
         {
-            error = $"Failed to write DDS sibling for {normalized}";
+            Logger.Warning("BC write failed for {Path}", sidecar);
             return false;
         }
 

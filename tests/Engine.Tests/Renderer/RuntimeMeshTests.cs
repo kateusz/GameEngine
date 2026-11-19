@@ -180,6 +180,55 @@ public class RuntimeMeshTests
         RuntimeMeshReader.TryRead(bytes, out _).ShouldBeFalse();
     }
 
+    [Fact]
+    public void TryWrite_ConcurrentSamePath_LeavesReadableMesh()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "mesh-race-" + Guid.NewGuid());
+        Directory.CreateDirectory(dir);
+        var path = Path.Combine(dir, "x.mesh");
+        var stamp = new RuntimeMeshStamp(1, new byte[32], RuntimeMeshFormat.ImporterVersion,
+            RuntimeMeshFormat.AssimpPostProcessFlags);
+        var start = new ManualResetEventSlim(false);
+        Exception? e1 = null;
+        Exception? e2 = null;
+        var ok1 = false;
+        var ok2 = false;
+
+        var t1 = new Thread(() =>
+        {
+            start.Wait();
+            try { ok1 = RuntimeMeshWriter.TryWrite(path, SampleModel(), stamp); }
+            catch (Exception ex) { e1 = ex; }
+        });
+        var t2 = new Thread(() =>
+        {
+            start.Wait();
+            try { ok2 = RuntimeMeshWriter.TryWrite(path, SampleModel(), stamp); }
+            catch (Exception ex) { e2 = ex; }
+        });
+
+        try
+        {
+            t1.Start();
+            t2.Start();
+            start.Set();
+            t1.Join();
+            t2.Join();
+
+            e1.ShouldBeNull();
+            e2.ShouldBeNull();
+            // Windows may fail one of two concurrent Move-to-same-path; content must still be a full write.
+            (ok1 || ok2).ShouldBeTrue();
+            File.Exists(path).ShouldBeTrue();
+            RuntimeMeshReader.TryRead(File.ReadAllBytes(path), out var read).ShouldBeTrue();
+            read.ShouldNotBeNull();
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
     private static Mesh ToMesh(SourceSubmesh submesh)
     {
         var mesh = new Mesh(submesh.Name);

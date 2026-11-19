@@ -88,8 +88,9 @@ public class EditorDockspace(
 
         if (sceneLoadService.IsLoading && !recentProjectsPanel.IsLoading)
             LoadingOverlayDrawer.DrawFullscreen(
-                $"Loading scene {sceneLoadService.LoadingName}...",
-                ref _sceneLoadingSpinnerRotation);
+                sceneLoadService.LoadingStatusText,
+                ref _sceneLoadingSpinnerRotation,
+                sceneLoadService.LoadProgress);
 
         sceneLoadService.Pump();
         sceneLoadService.Render();

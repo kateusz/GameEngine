@@ -58,6 +58,8 @@ public sealed class EditorViewport(
     LodViewportHeight lodViewportHeight)
     : IEditorViewport
 {
+    private readonly SceneRenderPipeline _renderPipeline = new(graphics2D, graphics3D, textureFactory, modelFactory,
+        vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
     private readonly Vector2[] _viewportBounds = new Vector2[2];
 
     private EditorCamera _editorCamera = null!;
@@ -102,6 +104,7 @@ public sealed class EditorViewport(
 
         _disposed = true;
         sceneContext.SceneChanged -= _sceneChangedHandler;
+        _renderPipeline.Dispose();
         _frameBuffer?.Dispose();
     }
 
@@ -126,7 +129,9 @@ public sealed class EditorViewport(
             pointerSurface.Set(_viewportBounds[0], _viewportSize);
 
         ResizeFramebufferIfNeeded();
-        RenderSceneToFramebuffer(deltaTime);
+        // Skip draw while scene JSON / model warmup runs — avoids sync ModelFactory.Create on this thread.
+        if (!sceneLoadService.IsLoading)
+            RenderSceneToFramebuffer(deltaTime);
 
         var ldr = tonemapPass.Resolve(_frameBuffer);
         if (ldr != null)
@@ -378,8 +383,7 @@ public sealed class EditorViewport(
                         ViewportHeight: _frameBuffer.GetSpecification().Height,
                         FrustumHeightAtUnit: frustumHeight,
                         Orthographic: projection.M44 != 0f);
-                    SceneRenderPipeline.RenderScene(scene.Context, graphics2D, graphics3D, textureFactory, modelFactory, view,
-                        vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
+                    _renderPipeline.RenderScene(scene.Context, view);
                     RenderEditor2DOverlays(scene.Context, view);
                 }
                 break;

@@ -56,8 +56,6 @@ public class RenderingReferenceScenesTests(HeadlessGraphicsContextFixture fixtur
 
     private void Capture(string root, string scenario)
     {
-        SceneRenderPipeline.ResetMergeState();
-        PointShadowCache.Clear();
         using var textures = new TextureFactory(new EngineHostOptions("reference", (int)Width, (int)Height));
         using var meshes = new MeshFactory(textures, fixture.VertexArrayFactory,
             fixture.VertexBufferFactory, fixture.IndexBufferFactory);
@@ -76,6 +74,10 @@ public class RenderingReferenceScenesTests(HeadlessGraphicsContextFixture fixtur
         using var model = new Model("reference", [mesh]);
         var models = Substitute.For<IModelFactory>();
         models.Create(Arg.Any<string>()).Returns(model);
+        using var pipeline = new SceneRenderPipeline(fixture.Graphics2D, graphics, textures, models,
+            scenario == "merging" ? fixture.VertexArrayFactory : null,
+            scenario == "merging" ? fixture.VertexBufferFactory : null,
+            scenario == "merging" ? fixture.IndexBufferFactory : null);
         var context = MakeScene(scenario, 10);
         // Environment/LUT preparation runs during Init/SetSkybox, before the first frame.
         // Give it the same explicit initial state regardless of test execution order.
@@ -114,8 +116,7 @@ public class RenderingReferenceScenesTests(HeadlessGraphicsContextFixture fixtur
                 if (frame == 2 && scenario == "scene-change")
                 {
                     context = MakeScene(scenario, 20);
-                    PointShadowCache.Clear();
-                }
+                            }
                 graphics.ResetStats();
                 fixture.RendererApi.SetBlend(true);
                 fixture.RendererApi.SetFaceCulling(true);
@@ -126,10 +127,7 @@ public class RenderingReferenceScenesTests(HeadlessGraphicsContextFixture fixtur
                     graphics.SetClearColor(new(0.02f, 0.03f, 0.04f, 1));
                     graphics.Clear();
                     hdr.ClearAttachment(1, -1);
-                    SceneRenderPipeline.RenderScene(context, fixture.Graphics2D, graphics, textures, models, view,
-                        scenario == "merging" ? fixture.VertexArrayFactory : null,
-                        scenario == "merging" ? fixture.VertexBufferFactory : null,
-                        scenario == "merging" ? fixture.IndexBufferFactory : null);
+                    pipeline.RenderScene(context, view);
                 }
                 finally { hdr.Unbind(); }
 
@@ -162,9 +160,7 @@ public class RenderingReferenceScenesTests(HeadlessGraphicsContextFixture fixtur
         }
         finally
         {
-            SceneRenderPipeline.ResetMergeState();
-            PointShadowCache.Clear();
-        }
+                }
     }
 
     private Mesh ReferenceMesh(bool lod)

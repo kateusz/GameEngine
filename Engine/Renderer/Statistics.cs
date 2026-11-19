@@ -40,6 +40,9 @@ public class Statistics
     /// <summary>Color pass: FlushMergeGroups (CPU merge rebuild + submit).</summary>
     public double ColorMergeFlushCpuMs { get; set; }
     public double ShadowCpuMs { get; set; }
+    public double PrepareCpuMs { get; set; }
+    public double SceneCpuMs { get; set; }
+    public long SceneAllocatedBytes { get; set; }
 
     public long Triangles => Indices / 3;
 }

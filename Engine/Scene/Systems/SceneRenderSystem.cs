@@ -19,6 +19,11 @@ internal sealed class SceneRenderSystem(
     IIndexBufferFactory indexBufferFactory,
     LodViewportHeight lodViewportHeight) : ISystem
 {
+    private readonly SceneRenderPipeline _pipeline = new(graphics2D, graphics3D, textureFactory, modelFactory,
+        vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
+
+    public void OnShutdown() => _pipeline.Dispose();
+
     public int Priority => 150;
 
     public void OnUpdate(TimeSpan deltaTime)
@@ -26,8 +31,6 @@ internal sealed class SceneRenderSystem(
         if (!CameraQueries.TryGetPrimaryView(context, lodViewportHeight.Resolve(), out var view))
             return;
 
-        SceneRenderPipeline.RenderScene(
-            context, graphics2D, graphics3D, textureFactory, modelFactory,
-            view, vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
+        _pipeline.RenderScene(context, view);
     }
 }

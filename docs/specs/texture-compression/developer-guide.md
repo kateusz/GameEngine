@@ -96,7 +96,7 @@ Why: BC5 is the cheap two-channel format; the third channel of a unit normal is 
 
 Sibling paths: `{source}.srgb.dds` and `{source}.linear.dds` (metadata stores `sRgb` / normal role).
 
-Editor `Create`: when `EnsureTextureDdsSiblingOnLoad` is on and the matching sibling is missing, stale, or import flags disagree, encode then upload. Runtime: never write; missing sibling → warning and RGBA.
+Editor `Create` / `CreateFromRgba`: when `EnsureTextureDdsSiblingOnLoad` is on and the matching sibling is missing, stale, or import flags disagree, upload RGBA immediately and queue BC encode+write of the sibling on a background thread. The GPU texture stays uncompressed for this session (meshes hold `Texture2D` refs; no hot-swap). The next cold load (or a later editor restart) reads the sibling. Runtime: never write; missing sibling → warning and RGBA.
 
 Publish: before `CopyAssets`, call `TextureBcSidecar.TryEnsureUpToDate` on raster sources. Publish infers `sRgb` from file name tokens (`normal`, `orm`, `metallic`, …). One failed encode fails publish.
 

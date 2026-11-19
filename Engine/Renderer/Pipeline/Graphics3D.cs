@@ -82,6 +82,7 @@ internal sealed class Graphics3D(
     private readonly List<MeshInstanceData> _instanceUpload = [];
     private Statistics _stats = new();
     private bool _disposed;
+    private object? _sceneIdentity;
 
     // ponytail: scale 4 puts a face at 2 units. PerspectiveNear >= 2 clips the sky.
     // Upgrade path: scale from that camera's near and far.
@@ -166,6 +167,27 @@ internal sealed class Graphics3D(
     }
 
     public ShadowQuality ShadowQuality => _quality;
+
+    public void ReleaseSceneResources()
+    {
+        if (_shadowPass) throw new InvalidOperationException("Cannot retire scene resources during a shadow pass.");
+        _shadowMap?.Dispose();
+        _shadowMap = null;
+        foreach (var map in _pointShadowMapsByEntity.Values) map.Dispose();
+        _pointShadowMapsByEntity.Clear();
+        Array.Clear(_pointShadowEnabled);
+        Array.Fill(_pointShadowEntity, -1);
+        _shadowsEnabled = false;
+        _sceneIdentity = null;
+    }
+
+    public bool ActivateScene(object identity)
+    {
+        if (ReferenceEquals(_sceneIdentity, identity)) return false;
+        ReleaseSceneResources();
+        _sceneIdentity = identity;
+        return true;
+    }
 
     public void SetShadowQuality(ShadowQuality quality)
     {

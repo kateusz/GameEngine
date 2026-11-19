@@ -26,8 +26,6 @@ public class SceneContext(
 
     public void SetScene(IScene newScene)
     {
-        PointShadowCache.Clear();
-        SceneRenderPipeline.ResetMergeState();
         ActiveScene = newScene;
         SceneChanged.Invoke(newScene);
     }

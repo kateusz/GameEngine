@@ -45,6 +45,28 @@ public class RuntimeMeshLodSimplifierTests
     }
 
     [Fact]
+    public void TrySimplify_ParallelSubmeshes_AllSucceedOrAllFailNative()
+    {
+        var submeshes = Enumerable.Range(0, 8).Select(_ => Grid(6)).ToList();
+        var failed = 0;
+        Parallel.ForEach(submeshes, submesh =>
+        {
+            if (!RuntimeMeshLodSimplifier.TrySimplify(submesh))
+                Interlocked.Exchange(ref failed, 1);
+        });
+
+        if (!NativeSimplifyAvailable)
+        {
+            failed.ShouldBe(1);
+            return;
+        }
+
+        failed.ShouldBe(0);
+        foreach (var submesh in submeshes)
+            submesh.LodIndices.Count.ShouldBeGreaterThan(0);
+    }
+
+    [Fact]
     public void TrySimplify_StepThatCannotCutAQuarter_StoresNoLevel()
     {
         var submesh = new SourceSubmesh

@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Numerics;
-using System.Runtime.InteropServices;
 using ECS;
 using Engine.Project;
 using Engine.Renderer;
@@ -12,73 +11,80 @@ using Engine.Renderer.Pipeline;
 using Engine.Renderer.Textures;
 using SceneComponents;
 using SceneComponents.Lighting;
-using SceneComponents.Physics;
 using SceneComponents.Rendering;
 using Serilog;
 
 namespace Engine.Scene;
 
-internal static partial class SceneRenderPipeline
+public sealed class SceneRenderPipeline : IDisposable
 {
-    private static readonly ILogger Logger = Log.ForContext(typeof(SceneRenderPipeline));
-
-    private static readonly HashSet<string> WarnedFailedModels = new(StringComparer.OrdinalIgnoreCase);
-    private static readonly HashSet<string> WarnedFailedSprites = new(StringComparer.OrdinalIgnoreCase);
-    // Shared by color and shadow passes, but never retained across RenderScene calls:
-    // the factory can clear/dispose its models or the active project can change.
-    private static readonly Dictionary<string, ResolvedFrameModel> FrameModels = new(StringComparer.Ordinal);
-    private readonly record struct ResolvedFrameModel(string Path, Model? Model);
-    private static readonly List<OrderedSprite> SpriteDrawList = new(256);
+    private static readonly ILogger Logger = Log.ForContext<SceneRenderPipeline>();
+    private readonly IGraphics2D graphics2D;
+    private readonly IGraphics3D graphics3D;
+    private readonly ITextureFactory textureFactory;
+    private readonly SceneRenderDataBuilder _builder;
+    private readonly SceneRenderState _state = new();
+    private readonly MeshPassRenderer _meshPass;
+    private bool _disposed;
+    private readonly HashSet<string> WarnedFailedSprites = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<OrderedSprite> SpriteDrawList = new(256);
     private static readonly Comparison<OrderedSprite> SpriteDrawOrder = CompareSprites;
-
-    private static readonly Vector2[] DefaultTextureCoords =
-    [
-        new(0.0f, 0.0f),
-        new(1.0f, 0.0f),
-        new(1.0f, 1.0f),
-        new(0.0f, 1.0f)
-    ];
-    
-    private static readonly PointLightData[] PointLightBuffer = new PointLightData[LightingMath.MaxPointLights];
-    private static readonly List<(int Id, PointShadowCache.CasterPose Pose)> PointShadowCasterBuffer = new();
-    private static readonly List<(int Id, PointShadowCache.LampPose Pose)> PointShadowLampBuffer = new();
-    private static readonly List<int> ActiveVisibilityZoneEntityIds = new();
-    private static readonly HashSet<int> WarnedMissingVisibilityZoneEntityIds = new();
-    private static bool _visibilityZonesEnabled;
-    private static bool _shadowFitWarned;
-    private static bool _pointShadowWarned;
-    private static long _nextPerfLogTicks;
-    private const int PerfLogIntervalMs = 1000;
-
-    public static void RenderScene(
-        Context context,
-        IGraphics2D graphics2D,
-        IGraphics3D graphics3D,
-        ITextureFactory textureFactory,
-        IModelFactory  modelFactory,
-        in SceneView view,
-        IVertexArrayFactory? vertexArrayFactory = null,
-        IVertexBufferFactory? vertexBufferFactory = null,
+    private static readonly Vector2[] DefaultTextureCoords = [new(0,0), new(1,0), new(1,1), new(0,1)];
+    private readonly List<(int Id, PointShadowCache.CasterPose Pose)> PointShadowCasterBuffer = new();
+    private readonly List<(int Id, PointShadowCache.LampPose Pose)> PointShadowLampBuffer = new();
+    private bool _shadowFitWarned;
+    private bool _pointShadowWarned;
+    public SceneRenderPipeline(IGraphics2D graphics2D, IGraphics3D graphics3D,
+        ITextureFactory textureFactory, IModelFactory? modelFactory,
+        IVertexArrayFactory? vertexArrayFactory = null, IVertexBufferFactory? vertexBufferFactory = null,
         IIndexBufferFactory? indexBufferFactory = null)
     {
-        FrameModels.Clear();
+        this.graphics2D = graphics2D; this.graphics3D = graphics3D; this.textureFactory = textureFactory;
+        _builder = new(textureFactory, modelFactory);
+        _meshPass = new(graphics3D, _state.StaticMeshes, vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
+    }
+
+    public void RenderScene(Context context, in SceneView view)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_state.Activate(context)) _builder.Release();
+        if (graphics3D.ActivateScene(context)) _state.PointShadows.MarkStale();
+        _state.StaticMeshes.BeginFrame();
+        var allocated = GC.GetAllocatedBytesForCurrentThread();
+        var start = Stopwatch.GetTimestamp();
         try
         {
-            EnsureMergeState(context);
-            MergeFrameWorld.Clear();
+            var buildStart = Stopwatch.GetTimestamp();
+            var data = _builder.Build(context, view);
+            var prepareMs = Stopwatch.GetElapsedTime(buildStart).TotalMilliseconds;
             graphics3D.DrawSkybox(view.SkyViewProjection);
             RenderSpritesAndSubTextures(context, graphics2D, textureFactory, view);
-            Render3D(context, graphics3D, textureFactory, modelFactory, view,
-                vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
-            CommitMergeWorldHistory();
-            EvictStaleCombinedMeshes();
+            Render3D(data, view);
+            _state.StaticMeshes.CommitMergeWorldHistory();
+            _state.StaticMeshes.EvictStaleCombinedMeshes();
+            var stats = graphics3D.GetStats();
+            stats.PrepareCpuMs = prepareMs;
+            stats.SceneCpuMs = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
+            stats.SceneAllocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocated;
         }
         finally
         {
-            FrameModels.Clear();
+            _builder.ReleaseFrame();
+            _state.StaticMeshes.AbortFrame();
+            SpriteDrawList.Clear();
+            PointShadowCasterBuffer.Clear();
+            PointShadowLampBuffer.Clear();
         }
     }
-    
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _state.Dispose(); _builder.Release();
+        SpriteDrawList.Clear(); PointShadowCasterBuffer.Clear(); PointShadowLampBuffer.Clear();
+        graphics3D.ReleaseSceneResources();
+    }
     private struct OrderedSprite
     {
         public float Order;
@@ -97,7 +103,7 @@ internal static partial class SceneRenderPipeline
         return order != 0 ? order : a.EntityId.CompareTo(b.EntityId);
     }
 
-    private static void RenderSpritesAndSubTextures(
+    private void RenderSpritesAndSubTextures(
         Context context,
         IGraphics2D graphics2D,
         ITextureFactory? textureFactory,
@@ -127,13 +133,13 @@ internal static partial class SceneRenderPipeline
         graphics2D.EndScene();
     }
 
-    private static void CollectSprites(Context context, ITextureFactory? textureFactory)
+    private void CollectSprites(Context context, ITextureFactory? textureFactory)
     {
         SpriteDrawList.Clear();
         foreach (var (entity, sprite, transformComponent) in
                  context.View<SpriteRendererComponent, TransformComponent>())
         {
-            if (ShouldSkipForEntityVisibility(entity) || sprite.Color.W <= 0f)
+            if (SceneRenderDataBuilder.ShouldSkipForEntityVisibility(entity) || sprite.Color.W <= 0f)
                 continue;
 
             var transform = transformComponent.GetWorldTransform();
@@ -169,7 +175,7 @@ internal static partial class SceneRenderPipeline
         foreach (var (entity, sub, transformComponent) in
                  context.View<SubTextureRendererComponent, TransformComponent>())
         {
-            if (ShouldSkipForEntityVisibility(entity) || sub.Color.W <= 0f)
+            if (SceneRenderDataBuilder.ShouldSkipForEntityVisibility(entity) || sub.Color.W <= 0f)
                 continue;
             if (textureFactory == null || string.IsNullOrWhiteSpace(sub.TexturePath))
                 continue;
@@ -199,31 +205,22 @@ internal static partial class SceneRenderPipeline
         }
     }
     
-    private static void Render3D(
-        Context context,
-        IGraphics3D graphics3D,
-        ITextureFactory textureFactory,
-        IModelFactory? modelFactory,
-        in SceneView view,
-        IVertexArrayFactory? vertexArrayFactory,
-        IVertexBufferFactory? vertexBufferFactory,
-        IIndexBufferFactory? indexBufferFactory)
+    private void Render3D(RenderSceneData data, in SceneView view)
     {
         var perf = new Render3DPerfFrame();
-        PrepareActiveVisibilityZones(context, view.ViewPosition);
 
-        var (ambientColor, ambientStrength) = ResolveAmbient(context);
+        var (ambientColor, ambientStrength) = data.Ambient;
         graphics3D.SetAmbientLight(ambientColor, ambientStrength);
         
-        var (lightDirection, lightColor) = ResolveDirectional(context);
+        var (lightDirection, lightColor) = data.Directional;
         graphics3D.SetDirectionalLight(lightDirection, lightColor);
         
-        var pointCount = ResolvePointLights(context, PointLightBuffer);
-        graphics3D.SetPointLights(PointLightBuffer.AsSpan(0, pointCount));
+        var pointCount = data.PointCount;
+        graphics3D.SetPointLights(data.PointLights.AsSpan(0, pointCount));
         perf.PointLights = pointCount;
         for (var i = 0; i < pointCount; i++)
         {
-            if (PointLightBuffer[i].CastsShadow)
+            if (data.PointLights[i].CastsShadow)
                 perf.PointShadowLights++;
         }
 
@@ -252,12 +249,9 @@ internal static partial class SceneRenderPipeline
             graphics3D.BeginShadowCascade(near, 0);
             try
             {
-                perf.DirectionalShadowPass = DrawOpaque3D(
-                    context, graphics3D, textureFactory, modelFactory, near, view,
-                    shadowCasterMaxSq, shadowCasterView,
-                    vertexArrayFactory: vertexArrayFactory,
-                    vertexBufferFactory: vertexBufferFactory,
-                    indexBufferFactory: indexBufferFactory);
+                perf.DirectionalShadowPass = _meshPass.DrawOpaque3D(
+                    data, near, view,
+                    shadowCasterMaxSq, shadowCasterView);
             }
             finally
             {
@@ -269,12 +263,9 @@ internal static partial class SceneRenderPipeline
                 graphics3D.BeginShadowCascade(lightViewProjection, 1);
                 try
                 {
-                    perf.DirectionalShadowPass = Accumulate(perf.DirectionalShadowPass, DrawOpaque3D(
-                        context, graphics3D, textureFactory, modelFactory, lightViewProjection, view,
-                        shadowCasterMaxSq, shadowCasterView,
-                        vertexArrayFactory: vertexArrayFactory,
-                        vertexBufferFactory: vertexBufferFactory,
-                        indexBufferFactory: indexBufferFactory));
+                    perf.DirectionalShadowPass = Accumulate(perf.DirectionalShadowPass, _meshPass.DrawOpaque3D(
+                        data, lightViewProjection, view,
+                        shadowCasterMaxSq, shadowCasterView));
                 }
                 finally
                 {
@@ -293,16 +284,17 @@ internal static partial class SceneRenderPipeline
 
         if (!view.PointShadows)
         {
-            PointShadowCache.MarkStale();
+            _state.PointShadows.MarkStale();
         }
         else
         {
-            CollectPointShadowCasters(context, modelFactory, PointShadowCasterBuffer);
+            PointShadowCasterBuffer.Clear();
+            PointShadowCasterBuffer.AddRange(data.Casters);
             perf.PointShadowCasters = PointShadowCasterBuffer.Count;
             PointShadowLampBuffer.Clear();
             for (var li = 0; li < pointCount; li++)
             {
-                var resolved = PointLightBuffer[li];
+                var resolved = data.PointLights[li];
                 if (!resolved.CastsShadow)
                     continue;
                 PointShadowLampBuffer.Add((resolved.EntityId, new PointShadowCache.LampPose(resolved.Position, resolved.Range)));
@@ -311,17 +303,17 @@ internal static partial class SceneRenderPipeline
             Span<Matrix4x4> pointFaces = stackalloc Matrix4x4[LightingMath.PointShadowFaceCount];
             for (var i = 0; i < pointCount; i++)
             {
-                var light = PointLightBuffer[i];
+                var light = data.PointLights[i];
                 if (!light.CastsShadow)
                     continue;
 
-                var dirty = PointShadowCache.NeedsRedraw(
+                var dirty = _state.PointShadows.NeedsRedraw(
                     light.EntityId, light.Position, light.Range, PointShadowCasterBuffer);
                 var near = Vector3.Distance(view.ViewPosition, light.Position) <= LightingMath.PointShadowDistance;
                 if (!dirty)
                 {
                     if (near)
-                        PointShadowCache.RememberClean(light.EntityId);
+                        _state.PointShadows.RememberClean(light.EntityId);
                     if (near && !graphics3D.UseCachedPointShadow(i, light.EntityId))
                         dirty = true;
                     else
@@ -331,7 +323,7 @@ internal static partial class SceneRenderPipeline
                     }
                 }
 
-                PointShadowCache.RememberDirty(light.EntityId);
+                _state.PointShadows.RememberDirty(light.EntityId);
                 if (!near)
                 {
                     perf.PointShadowLightsTooFar++;
@@ -363,9 +355,8 @@ internal static partial class SceneRenderPipeline
                         perf.PointShadowFaces++;
                         perf.PointShadowOpaque3D++;
                         perf.PointShadowPass = Accumulate(perf.PointShadowPass,
-                            DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, pointFaces[face], view,
-                                shadowCasterMaxSq, shadowCasterView, light.Position,
-                                vertexArrayFactory, vertexBufferFactory, indexBufferFactory));
+                            _meshPass.DrawOpaque3D(data, pointFaces[face], view,
+                                shadowCasterMaxSq, shadowCasterView, light.Position));
                     }
                     finally
                     {
@@ -374,19 +365,16 @@ internal static partial class SceneRenderPipeline
                 }
 
                 if (drew)
-                    PointShadowCache.RememberClean(light.EntityId);
+                    _state.PointShadows.RememberClean(light.EntityId);
             }
 
-            PointShadowCache.Replace(PointShadowCasterBuffer, PointShadowLampBuffer);
+            _state.PointShadows.Replace(PointShadowCasterBuffer, PointShadowLampBuffer);
         }
 
         graphics3D.BeginScene(view);
         try
         {
-            perf.ColorPass = DrawOpaque3D(context, graphics3D, textureFactory, modelFactory, view.ViewProjection, view,
-                vertexArrayFactory: vertexArrayFactory,
-                vertexBufferFactory: vertexBufferFactory,
-                indexBufferFactory: indexBufferFactory);
+            perf.ColorPass = _meshPass.DrawOpaque3D(data, view.ViewProjection, view);
         }
         finally
         {
@@ -395,9 +383,7 @@ internal static partial class SceneRenderPipeline
 
         perf.GpuDrawCalls = graphics3D.GetStats().DrawCalls;
         ApplyPipelineStats(graphics3D.GetStats(), in perf);
-        //LogRender3DPerfIfDue(in perf);
     }
-
     private static void ApplyPipelineStats(Statistics dest, in Render3DPerfFrame perf)
     {
         var color = perf.ColorPass;
@@ -425,36 +411,12 @@ internal static partial class SceneRenderPipeline
         dest.ShadowCpuMs = perf.DirectionalShadowPass.CpuMs + perf.PointShadowPass.CpuMs;
     }
 
-    private struct PassStats
-    {
-        public int Renderers;
-        public int MeshDraws;
-        public int Instances;
-        public int CubeDraws;
-        public int Culled;
-        public int MissingMeshIndex;
-        public int ShadowCasterCulled;
-        public int ZoneCulled;
-        public int SingleMaterialDraws;
-        public int MultiMaterialDraws;
-        public int MaxBatchInstances;
-        public int MergedGroups;
-        public long MergedVertices;
-        public int MergedRebuilds;
-        public long Vertices;
-        public long Indices;
-        public double CpuMs;
-        public double CollectCpuMs;
-        public double MeshFlushCpuMs;
-        public double MergeFlushCpuMs;
-    }
-
     private struct Render3DPerfFrame
     {
         public bool DirectionalShadow;
-        public PassStats DirectionalShadowPass;
-        public PassStats ColorPass;
-        public PassStats PointShadowPass;
+        public MeshPassStats DirectionalShadowPass;
+        public MeshPassStats ColorPass;
+        public MeshPassStats PointShadowPass;
         public int PointLights;
         public int PointShadowLights;
         public int PointShadowCasters;
@@ -466,7 +428,7 @@ internal static partial class SceneRenderPipeline
         public uint GpuDrawCalls;
     }
 
-    private static PassStats Accumulate(PassStats total, PassStats pass)
+    private static MeshPassStats Accumulate(MeshPassStats total, MeshPassStats pass)
     {
         total.Renderers += pass.Renderers;
         total.MeshDraws += pass.MeshDraws;
@@ -489,578 +451,6 @@ internal static partial class SceneRenderPipeline
         total.MeshFlushCpuMs += pass.MeshFlushCpuMs;
         total.MergeFlushCpuMs += pass.MergeFlushCpuMs;
         return total;
-    }
-
-    private static void LogRender3DPerfIfDue(in Render3DPerfFrame perf)
-    {
-        var now = Environment.TickCount64;
-        if (now < _nextPerfLogTicks)
-            return;
-
-        _nextPerfLogTicks = now + PerfLogIntervalMs;
-
-        var dirRes = LightingMath.ShadowMapResolution;
-        var pointFaceRes = LightingMath.PointShadowFaceResolution;
-        long shadowFillPixels = 0;
-        if (perf.DirectionalShadow)
-            shadowFillPixels += (long)dirRes * dirRes;
-        shadowFillPixels += (long)perf.PointShadowFaces * pointFaceRes * pointFaceRes;
-
-        var color = perf.ColorPass;
-        var dir = perf.DirectionalShadowPass;
-        var point = perf.PointShadowPass;
-        var materialDrawsColor = color.MeshDraws + color.CubeDraws;
-        var opaque3DPasses = (perf.DirectionalShadow ? 1 : 0) + perf.PointShadowOpaque3D + 1;
-
-        Logger.Debug(
-            "3D perf: gpuDrawCalls={GpuDrawCalls} opaque3DPasses={Opaque3DPasses} " +
-            "dirShadow={DirShadow} dirRes={DirRes}x{DirRes} dirMeshDraws={DirMeshDraws} dirCubes={DirCubes} dirCulled={DirCulled} dirShadowCasterCulled={DirShadowCasterCulled} " +
-            "colorMeshDraws={ColorMeshDraws} colorCubes={ColorCubes} colorCulled={ColorCulled} colorZoneCulled={ColorZoneCulled} " +
-            "materialBatches single={SingleBatch} multi={MultiBatch} maxInstBatch={MaxBatch} meshInstances={Instances} " +
-            "merged groups={MergedGroups} vertices={MergedVertices} rebuilds={MergedRebuilds} " +
-            "pointShadow lights={PointShadowLights} casters={Casters} cacheHit={CacheHit} tooFar={TooFar} redrawn={Redrawn} " +
-            "fullSceneFaces={Faces} faceRes={PointRes}x{PointRes} pointMeshDraws={PointMeshDraws} estShadowFillPx={ShadowFillPx} " +
-            "cpuMs dir={DirCpu:F2} color={ColorCpu:F2} collect={CollectCpu:F2} meshFlush={MeshFlushCpu:F2} mergeFlush={MergeFlushCpu:F2} point={PointCpu:F2}",
-            perf.GpuDrawCalls,
-            opaque3DPasses,
-            perf.DirectionalShadow,
-            dirRes,
-            dirRes,
-            dir.MeshDraws + dir.CubeDraws,
-            dir.CubeDraws,
-            dir.Culled,
-            dir.ShadowCasterCulled,
-            materialDrawsColor,
-            color.CubeDraws,
-            color.Culled,
-            color.ZoneCulled,
-            color.SingleMaterialDraws,
-            color.MultiMaterialDraws,
-            color.MaxBatchInstances,
-            color.Instances,
-            color.MergedGroups,
-            color.MergedVertices,
-            color.MergedRebuilds,
-            perf.PointShadowLights,
-            perf.PointShadowCasters,
-            perf.PointShadowLightsCacheHit,
-            perf.PointShadowLightsTooFar,
-            perf.PointShadowLightsRedrawn,
-            perf.PointShadowFaces,
-            pointFaceRes,
-            pointFaceRes,
-            point.MeshDraws + point.CubeDraws,
-            shadowFillPixels,
-            dir.CpuMs,
-            color.CpuMs,
-            color.CollectCpuMs,
-            color.MeshFlushCpuMs,
-            color.MergeFlushCpuMs,
-            point.CpuMs);
-    }
-
-    private enum OpaqueSurfaceKind
-    {
-        UnitCube,
-        SingleSubmesh,
-        AllSubmeshes
-    }
-
-    private static ResolvedFrameModel ResolveFrameModel(string assetPath, IModelFactory modelFactory)
-    {
-        if (FrameModels.TryGetValue(assetPath, out var resolved))
-            return resolved;
-
-        var path = PathBuilder.Resolve(assetPath);
-        resolved = new ResolvedFrameModel(path, modelFactory.Create(path));
-        FrameModels.Add(assetPath, resolved);
-        return resolved;
-    }
-
-    private static bool TryResolveOpaqueSurface(
-        ModelRendererComponent modelRenderer,
-        Matrix4x4 transform,
-        IModelFactory? modelFactory,
-        out PointShadowCache.CasterPose casterPose,
-        out OpaqueSurfaceKind kind,
-        out Model? model,
-        out int submeshIndex)
-    {
-        casterPose = default;
-        kind = default;
-        model = null;
-        submeshIndex = -1;
-
-        if (string.IsNullOrWhiteSpace(modelRenderer.ModelPath))
-        {
-            casterPose = new PointShadowCache.CasterPose(transform, Aabb.UnitCube, true);
-            kind = OpaqueSurfaceKind.UnitCube;
-            return true;
-        }
-
-        if (modelFactory == null)
-            return false;
-
-        model = ResolveFrameModel(modelRenderer.ModelPath, modelFactory).Model;
-        if (model == null)
-        {
-            casterPose = new PointShadowCache.CasterPose(transform, Aabb.UnitCube, true);
-            kind = OpaqueSurfaceKind.UnitCube;
-            return true;
-        }
-
-        if (modelRenderer.MeshIndex is int meshIndex)
-        {
-            if (meshIndex < 0 || meshIndex >= model.Submeshes.Count)
-                return false;
-
-            submeshIndex = meshIndex;
-            var submesh = model.Submeshes[meshIndex];
-            casterPose = submesh.Bounds is { } singleBounds
-                ? new PointShadowCache.CasterPose(transform, singleBounds, true)
-                : new PointShadowCache.CasterPose(transform, default, false);
-            kind = OpaqueSurfaceKind.SingleSubmesh;
-            return true;
-        }
-
-        if (modelRenderer.SuppressDraw)
-            return false;
-
-        var hasBounds = true;
-        var min = new Vector3(float.PositiveInfinity);
-        var max = new Vector3(float.NegativeInfinity);
-        foreach (var submesh in model.Submeshes)
-        {
-            if (submesh.Bounds is not { } bounds)
-            {
-                hasBounds = false;
-                break;
-            }
-
-            min = Vector3.Min(min, bounds.Min);
-            max = Vector3.Max(max, bounds.Max);
-        }
-
-        casterPose = hasBounds
-            ? new PointShadowCache.CasterPose(transform, new Aabb(min, max), true)
-            : new PointShadowCache.CasterPose(transform, default, false);
-        kind = OpaqueSurfaceKind.AllSubmeshes;
-        return true;
-    }
-
-    private static PassStats DrawOpaque3D(
-        Context context,
-        IGraphics3D graphics3D,
-        ITextureFactory textureFactory,
-        IModelFactory? modelFactory,
-        Matrix4x4 cullMatrix,
-        in SceneView lodView,
-        float shadowCasterMaxDistanceSq = 0f,
-        Vector3 shadowCasterViewPosition = default,
-        Vector3? skipCastersContainingLight = null,
-        IVertexArrayFactory? vertexArrayFactory = null,
-        IVertexBufferFactory? vertexBufferFactory = null,
-        IIndexBufferFactory? indexBufferFactory = null)
-    {
-        var stats = new PassStats();
-        var start = Stopwatch.GetTimestamp();
-        var hasFrustum = Frustum.TryFromClip(cullMatrix, out var frustum);
-        var canMerge = vertexArrayFactory is not null && vertexBufferFactory is not null && indexBufferFactory is not null;
-        var collectStart = Stopwatch.GetTimestamp();
-        try
-        {
-            foreach (var (entity, modelRenderer, transformComponent) in
-                     context.View<ModelRendererComponent, TransformComponent>())
-            {
-                stats.Renderers++;
-                if (ShouldSkipForEntityVisibility(entity))
-                    continue;
-
-                if (ShouldSkipForVisibilityZone(modelRenderer.VisibilityZoneEntityId, context, ref stats))
-                    continue;
-
-                var transform = ModelMeshPivot.ToDrawTransform(
-                    transformComponent.GetWorldTransform(),
-                    modelRenderer.Pivot);
-                if (!TryResolveOpaqueSurface(
-                        modelRenderer, transform, modelFactory,
-                        out _, out var kind, out var model, out var submeshIndex))
-                {
-                    if (modelRenderer.MeshIndex is int meshIndex
-                        && !string.IsNullOrWhiteSpace(modelRenderer.ModelPath)
-                        && modelFactory != null)
-                    {
-                        var loaded = ResolveFrameModel(modelRenderer.ModelPath, modelFactory).Model;
-                        if (loaded != null && (meshIndex < 0 || meshIndex >= loaded.Submeshes.Count))
-                            stats.MissingMeshIndex++;
-                    }
-
-                    continue;
-                }
-
-                var mergeCandidate = canMerge && TrackAndClassifyForMerge(entity, transform);
-                var tint = modelRenderer.Color;
-                if (kind == OpaqueSurfaceKind.UnitCube)
-                {
-                    if (!string.IsNullOrWhiteSpace(modelRenderer.ModelPath))
-                    {
-                        var resolvedPath = ResolveFrameModel(modelRenderer.ModelPath, modelFactory!).Path;
-                        if (WarnedFailedModels.Add(resolvedPath))
-                            Logger.Warning(
-                                "Failed to load model assetPath={ModelPath} resolved={ResolvedPath} — drawing unit cube instead",
-                                modelRenderer.ModelPath, resolvedPath);
-                    }
-
-                    var factors = ResolvePbr(modelRenderer);
-                    var emissive = CombineEmissive(Vector3.Zero, modelRenderer);
-                    if (mergeCandidate)
-                    {
-                        if (!TryResolveCubeTexture(textureFactory, modelRenderer, out var cubeTexture))
-                            continue;
-
-                        AppendMergeMember(
-                            MakeMergeKey(tint, cubeTexture, null, factors, emissive),
-                            new MergeMember(
-                                entity.Id, null, transform, cubeTexture, modelRenderer.TilingFactor));
-                        stats.Vertices += UnitCubeVertexCount;
-                        stats.Indices += UnitCubeIndexCount;
-                        continue;
-                    }
-
-                    if (ShouldSkipOpaqueDraw(hasFrustum, frustum, transform, Aabb.UnitCube, shadowCasterMaxDistanceSq,
-                            shadowCasterViewPosition, skipCastersContainingLight, ref stats))
-                        continue;
-
-                    if (!string.IsNullOrWhiteSpace(modelRenderer.TexturePath))
-                        DrawCubeWithTexture(graphics3D, textureFactory, modelRenderer, transform, entity, factors, emissive);
-                    else
-                        graphics3D.DrawCube(transform, modelRenderer.Color, entity.Id,
-                            metallic: factors.Metallic, roughness: factors.Roughness, ao: factors.Ao,
-                            emissive: emissive);
-                    stats.CubeDraws++;
-                    continue;
-                }
-
-                if (kind == OpaqueSurfaceKind.SingleSubmesh)
-                {
-                    var submesh = model!.Submeshes[submeshIndex];
-                    var level = MeshLod.Select(submesh, transform, lodView.ViewPosition, lodView, modelRenderer.LodBias);
-                    if (mergeCandidate && submesh.LodCount <= 1 && submesh.BakeVertices is not null)
-                    {
-                        AppendMergeSubmesh(modelRenderer, transform, tint, entity.Id, submesh, ref stats);
-                        continue;
-                    }
-
-                    if (submesh.Bounds is { } bounds
-                        && ShouldSkipOpaqueDraw(hasFrustum, frustum, transform, bounds, shadowCasterMaxDistanceSq,
-                            shadowCasterViewPosition, skipCastersContainingLight, ref stats))
-                        continue;
-
-                    QueueSubmesh(modelRenderer, transform, tint, entity.Id, submesh, level, ref stats);
-                    continue;
-                }
-
-                foreach (var submesh in model!.Submeshes)
-                {
-                    var level = MeshLod.Select(submesh, transform, lodView.ViewPosition, lodView, modelRenderer.LodBias);
-                    if (mergeCandidate && submesh.LodCount <= 1 && submesh.BakeVertices is not null)
-                    {
-                        AppendMergeSubmesh(modelRenderer, transform, tint, entity.Id, submesh, ref stats);
-                        continue;
-                    }
-
-                    if (submesh.Bounds is { } bounds
-                        && ShouldSkipOpaqueDraw(hasFrustum, frustum, transform, bounds, shadowCasterMaxDistanceSq,
-                            shadowCasterViewPosition, skipCastersContainingLight, ref stats))
-                        continue;
-
-                    QueueSubmesh(modelRenderer, transform, tint, entity.Id, submesh, level, ref stats);
-                }
-            }
-        }
-        finally
-        {
-            // ponytail: three Stopwatches in the hot pass — enough to decide thread targets; drop when threading lands
-            stats.CollectCpuMs = Stopwatch.GetElapsedTime(collectStart).TotalMilliseconds;
-            var meshFlushStart = Stopwatch.GetTimestamp();
-            FlushMeshBatches(graphics3D, ref stats);
-            stats.MeshFlushCpuMs = Stopwatch.GetElapsedTime(meshFlushStart).TotalMilliseconds;
-            var mergeFlushStart = Stopwatch.GetTimestamp();
-            FlushMergeGroups(graphics3D, hasFrustum, in frustum, shadowCasterMaxDistanceSq,
-                shadowCasterViewPosition, skipCastersContainingLight, ref stats,
-                vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
-            stats.MergeFlushCpuMs = Stopwatch.GetElapsedTime(mergeFlushStart).TotalMilliseconds;
-        }
-
-        stats.CpuMs = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
-        return stats;
-    }
-
-    private static bool ShouldSkipOpaqueDraw(
-        bool hasFrustum,
-        in Frustum frustum,
-        Matrix4x4 world,
-        Aabb bounds,
-        float shadowCasterMaxDistanceSq,
-        Vector3 shadowCasterViewPosition,
-        Vector3? skipCastersContainingLight,
-        ref PassStats stats)
-    {
-        if (hasFrustum && frustum.IsOutside(world, bounds))
-        {
-            stats.Culled++;
-            return true;
-        }
-
-        if (shadowCasterMaxDistanceSq > 0f
-            && Aabb.ClosestPointDistanceSquared(shadowCasterViewPosition, world, bounds) > shadowCasterMaxDistanceSq)
-        {
-            stats.ShadowCasterCulled++;
-            return true;
-        }
-
-        // Marker/housing cubes sit on the lamp; casting them fills every cubemap face and kills the light.
-        if (skipCastersContainingLight is { } lamp && Aabb.ContainsPoint(lamp, world, bounds))
-        {
-            stats.ShadowCasterCulled++;
-            return true;
-        }
-
-        return false;
-    }
-
-    private static void PrepareActiveVisibilityZones(Context context, Vector3 cameraPosition)
-    {
-        _visibilityZonesEnabled = false;
-        ActiveVisibilityZoneEntityIds.Clear();
-        foreach (var (entity, zone, transform) in context.View<VisibilityZoneComponent, TransformComponent>())
-        {
-            _visibilityZonesEnabled = true;
-            var bounds = new Aabb(zone.Min, zone.Max);
-            if (Aabb.ContainsPoint(cameraPosition, transform.GetWorldTransform(), bounds))
-                ActiveVisibilityZoneEntityIds.Add(entity.Id);
-        }
-    }
-
-    private static bool ShouldSkipForEntityVisibility(Entity entity) =>
-        entity.TryGetComponent<TransformComponent>(out var transform)
-        && !transform.EffectiveVisible;
-
-    private static bool ShouldSkipForVisibilityZone(int visibilityZoneEntityId, Context context, ref PassStats stats)
-    {
-        if (!_visibilityZonesEnabled || visibilityZoneEntityId < 0)
-            return false;
-
-        if (ActiveVisibilityZoneEntityIds.Contains(visibilityZoneEntityId))
-            return false;
-
-        if (!context.Contains(visibilityZoneEntityId)
-            && WarnedMissingVisibilityZoneEntityIds.Add(visibilityZoneEntityId))
-        {
-            Logger.Warning(
-                "Model references missing visibility zone entity {ZoneEntityId}",
-                visibilityZoneEntityId);
-        }
-
-        stats.ZoneCulled++;
-        return true;
-    }
-
-    private readonly record struct MeshBatchKey(
-        Mesh Mesh, Vector4 Tint, float Metallic, float Roughness, float Ao, Vector3 Emissive, int Level);
-
-    private static readonly Dictionary<MeshBatchKey, List<MeshDrawInstance>> MeshBatches = new();
-    private static readonly Stack<List<MeshDrawInstance>> BatchLists = new();
-
-    private static void QueueSubmesh(
-        ModelRendererComponent modelRenderer,
-        Matrix4x4 transform,
-        Vector4 tint,
-        int entityId,
-        Mesh submesh,
-        int level,
-        ref PassStats stats)
-    {
-        stats.Instances++;
-        stats.Vertices += submesh.VertexCount;
-        stats.Indices += submesh.IndexCountAt(level);
-
-        AdoptSubmeshFactors(modelRenderer, submesh);
-        var pbr = ResolvePbr(modelRenderer);
-        var emissive = CombineEmissive(submesh.EmissiveFactor, modelRenderer);
-        var key = new MeshBatchKey(submesh, tint, pbr.Metallic, pbr.Roughness, pbr.Ao, emissive, level);
-        if (!MeshBatches.TryGetValue(key, out var batch))
-        {
-            batch = BatchLists.Count > 0 ? BatchLists.Pop() : [];
-            MeshBatches[key] = batch;
-        }
-
-        batch.Add(new MeshDrawInstance
-        {
-            Transform = transform,
-            EntityId = entityId,
-            Tint = tint,
-            Metallic = pbr.Metallic,
-            Roughness = pbr.Roughness,
-            Ao = pbr.Ao,
-            Emissive = emissive
-        });
-    }
-
-    private static void FlushMeshBatches(IGraphics3D graphics3D, ref PassStats stats)
-    {
-        try
-        {
-            foreach (var (key, batch) in MeshBatches)
-            {
-                var count = batch.Count;
-                if (count >= 2)
-                {
-                    stats.MultiMaterialDraws++;
-                    stats.MaxBatchInstances = System.Math.Max(stats.MaxBatchInstances, count);
-                }
-                else
-                    stats.SingleMaterialDraws++;
-
-                graphics3D.DrawMeshInstances(key.Mesh, CollectionsMarshal.AsSpan(batch), key.Level);
-                stats.MeshDraws++;
-            }
-        }
-        finally
-        {
-            foreach (var batch in MeshBatches.Values)
-            {
-                batch.Clear();
-                BatchLists.Push(batch);
-            }
-
-            MeshBatches.Clear();
-        }
-    }
-
-    private static void DrawCubeWithTexture(IGraphics3D graphics3D, ITextureFactory textureFactory,
-        ModelRendererComponent modelRenderer, Matrix4x4 transform, Entity entity, PbrFactors factors,
-        Vector3 emissive)
-    {
-        try
-        {
-            var texture = textureFactory.Create(
-                PathBuilder.Resolve(modelRenderer.TexturePath!), sRgb: true);
-            graphics3D.DrawCube(
-                transform,
-                modelRenderer.Color,
-                entity.Id,
-                texture,
-                modelRenderer.TilingFactor,
-                factors.Metallic,
-                factors.Roughness,
-                factors.Ao,
-                emissive);
-        }
-        catch (Exception ex)
-        {
-            Logger.Warning(
-                ex,
-                "Failed to load cube texture '{TexturePath}' — drawing solid color instead",
-                modelRenderer.TexturePath);
-        }
-    }
-
-    internal static (Vector3 Color, float Strength) ResolveAmbient(Context context)
-    {
-        foreach (var (_, alc) in context.View<AmbientLightComponent>())
-            return (new Vector3(alc.Color.X, alc.Color.Y, alc.Color.Z), alc.Strength);
-
-        return (Vector3.One, 0.1f);
-    }
-
-    internal static (Vector3 Direction, Vector3 Color) ResolveDirectional(Context context)
-    {
-        foreach (var (_, dlc) in context.View<DirectionalLightComponent>())
-            return (
-                LightingMath.NormalizeDirection(dlc.Direction),
-                new Vector3(dlc.Color.X, dlc.Color.Y, dlc.Color.Z) * MathF.Max(0f, dlc.Intensity));
-
-        return (LightingMath.DefaultDirection, Vector3.Zero);
-    }
-
-    internal readonly record struct PbrFactors(float Metallic, float Roughness, float Ao);
-
-    internal static PbrFactors ResolvePbr(ModelRendererComponent renderer) =>
-        new(Finite01(renderer.Metallic), Finite01(renderer.Roughness), Finite01(renderer.Ao));
-
-    internal static Vector3 CombineEmissive(Vector3 fileFactor, ModelRendererComponent renderer)
-    {
-        var sum = fileFactor + renderer.Emissive * renderer.EmissiveStrength;
-        return new Vector3(
-            LightingMath.ClampEmissive(sum.X),
-            LightingMath.ClampEmissive(sum.Y),
-            LightingMath.ClampEmissive(sum.Z));
-    }
-
-    /// <summary>
-    /// Unpacked children are new components, so they miss the factors stored on the mesh.
-    /// Copy once while the component is still at its defaults.
-    /// </summary>
-    internal static void AdoptSubmeshFactors(ModelRendererComponent renderer, Mesh submesh)
-    {
-        if (renderer.MeshIndex is not int || renderer.FactorsSeeded)
-            return;
-
-        renderer.FactorsSeeded = true;
-        if (renderer.Metallic != 0f || renderer.Roughness != 0.5f || renderer.Ao != 1f)
-            return;
-
-        renderer.Metallic = submesh.MetallicFactor;
-        renderer.Roughness = submesh.RoughnessFactor;
-    }
-
-    private static float Finite01(float value) =>
-        float.IsFinite(value) ? System.Math.Clamp(value, 0f, 1f) : 0f;
-    
-    internal static int ResolvePointLights(Context context, Span<PointLightData> destination)
-    {
-        var limit = System.Math.Min(destination.Length, LightingMath.MaxPointLights);
-        var count = 0;
-        foreach (var (entity, light, transform) in context.View<PointLightComponent, TransformComponent>())
-        {
-            if (light.Range <= 0f)
-                continue;
-            if (count == limit)
-                break;
-
-            destination[count++] = new PointLightData(
-                transform.GetWorldTransform().Translation + (light.ApplyOffset ? light.Offset : default),
-                new Vector3(light.Color.X, light.Color.Y, light.Color.Z),
-                MathF.Max(0f, light.Intensity),
-                light.Range,
-                light.CastsShadow,
-                entity.Id);
-        }
-
-        return count;
-    }
-
-    private static void CollectPointShadowCasters(
-        Context context,
-        IModelFactory? modelFactory,
-        List<(int Id, PointShadowCache.CasterPose Pose)> destination)
-    {
-        destination.Clear();
-        foreach (var (entity, modelRenderer, transformComponent) in
-                 context.View<ModelRendererComponent, TransformComponent>())
-        {
-            if (ShouldSkipForEntityVisibility(entity))
-                continue;
-
-            var transform = ModelMeshPivot.ToDrawTransform(
-                transformComponent.GetWorldTransform(),
-                modelRenderer.Pivot);
-            if (TryResolveOpaqueSurface(
-                    modelRenderer, transform, modelFactory,
-                    out var pose, out _, out _, out _))
-                destination.Add((entity.Id, pose));
-        }
     }
 
     internal static Vector2[] GetSubTextureTexCoords(SubTextureRendererComponent component, Texture2D texture)
