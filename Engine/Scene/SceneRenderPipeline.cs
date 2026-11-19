@@ -24,6 +24,10 @@ internal static partial class SceneRenderPipeline
 
     private static readonly HashSet<string> WarnedFailedModels = new(StringComparer.OrdinalIgnoreCase);
     private static readonly HashSet<string> WarnedFailedSprites = new(StringComparer.OrdinalIgnoreCase);
+    // Shared by color and shadow passes, but never retained across RenderScene calls:
+    // the factory can clear/dispose its models or the active project can change.
+    private static readonly Dictionary<string, ResolvedFrameModel> FrameModels = new(StringComparer.Ordinal);
+    private readonly record struct ResolvedFrameModel(string Path, Model? Model);
     private static readonly List<OrderedSprite> SpriteDrawList = new(256);
     private static readonly Comparison<OrderedSprite> SpriteDrawOrder = CompareSprites;
 
@@ -57,14 +61,22 @@ internal static partial class SceneRenderPipeline
         IVertexBufferFactory? vertexBufferFactory = null,
         IIndexBufferFactory? indexBufferFactory = null)
     {
-        EnsureMergeState(context);
-        MergeFrameWorld.Clear();
-        graphics3D.DrawSkybox(view.SkyViewProjection);
-        RenderSpritesAndSubTextures(context, graphics2D, textureFactory, view);
-        Render3D(context, graphics3D, textureFactory, modelFactory, view,
-            vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
-        CommitMergeWorldHistory();
-        EvictStaleCombinedMeshes();
+        FrameModels.Clear();
+        try
+        {
+            EnsureMergeState(context);
+            MergeFrameWorld.Clear();
+            graphics3D.DrawSkybox(view.SkyViewProjection);
+            RenderSpritesAndSubTextures(context, graphics2D, textureFactory, view);
+            Render3D(context, graphics3D, textureFactory, modelFactory, view,
+                vertexArrayFactory, vertexBufferFactory, indexBufferFactory);
+            CommitMergeWorldHistory();
+            EvictStaleCombinedMeshes();
+        }
+        finally
+        {
+            FrameModels.Clear();
+        }
     }
     
     private struct OrderedSprite
@@ -554,6 +566,17 @@ internal static partial class SceneRenderPipeline
         AllSubmeshes
     }
 
+    private static ResolvedFrameModel ResolveFrameModel(string assetPath, IModelFactory modelFactory)
+    {
+        if (FrameModels.TryGetValue(assetPath, out var resolved))
+            return resolved;
+
+        var path = PathBuilder.Resolve(assetPath);
+        resolved = new ResolvedFrameModel(path, modelFactory.Create(path));
+        FrameModels.Add(assetPath, resolved);
+        return resolved;
+    }
+
     private static bool TryResolveOpaqueSurface(
         ModelRendererComponent modelRenderer,
         Matrix4x4 transform,
@@ -578,8 +601,7 @@ internal static partial class SceneRenderPipeline
         if (modelFactory == null)
             return false;
 
-        var resolvedPath = PathBuilder.Resolve(modelRenderer.ModelPath);
-        model = modelFactory.Create(resolvedPath);
+        model = ResolveFrameModel(modelRenderer.ModelPath, modelFactory).Model;
         if (model == null)
         {
             casterPose = new PointShadowCache.CasterPose(transform, Aabb.UnitCube, true);
@@ -668,7 +690,7 @@ internal static partial class SceneRenderPipeline
                         && !string.IsNullOrWhiteSpace(modelRenderer.ModelPath)
                         && modelFactory != null)
                     {
-                        var loaded = modelFactory.Create(PathBuilder.Resolve(modelRenderer.ModelPath));
+                        var loaded = ResolveFrameModel(modelRenderer.ModelPath, modelFactory).Model;
                         if (loaded != null && (meshIndex < 0 || meshIndex >= loaded.Submeshes.Count))
                             stats.MissingMeshIndex++;
                     }
@@ -682,7 +704,7 @@ internal static partial class SceneRenderPipeline
                 {
                     if (!string.IsNullOrWhiteSpace(modelRenderer.ModelPath))
                     {
-                        var resolvedPath = PathBuilder.Resolve(modelRenderer.ModelPath);
+                        var resolvedPath = ResolveFrameModel(modelRenderer.ModelPath, modelFactory!).Path;
                         if (WarnedFailedModels.Add(resolvedPath))
                             Logger.Warning(
                                 "Failed to load model assetPath={ModelPath} resolved={ResolvedPath} — drawing unit cube instead",
