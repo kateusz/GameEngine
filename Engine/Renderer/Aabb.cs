@@ -49,6 +49,15 @@ internal readonly record struct Aabb(Vector3 Min, Vector3 Max)
     internal static bool ContainsPoint(Vector3 point, Matrix4x4 world, Aabb local) =>
         ClosestPointDistanceSquared(point, world, local) <= 0f;
 
+    internal static bool ContainsPoint(Vector3 point, Aabb worldBounds) =>
+        ClosestPointDistanceSquared(point, worldBounds) <= 0f;
+
+    internal static float ClosestPointDistanceSquared(Vector3 point, Aabb worldBounds)
+    {
+        var closest = Vector3.Clamp(point, worldBounds.Min, worldBounds.Max);
+        return Vector3.DistanceSquared(point, closest);
+    }
+
     internal static float ClosestPointDistanceSquared(Vector3 point, Matrix4x4 world, Aabb local)
     {
         WorldMinMax(world, local, out var min, out var max);
@@ -61,19 +70,19 @@ internal readonly record struct Aabb(Vector3 Min, Vector3 Max)
 
     internal static void WorldMinMax(Matrix4x4 world, Aabb local, out Vector3 min, out Vector3 max)
     {
-        min = new Vector3(float.PositiveInfinity);
-        max = new Vector3(float.NegativeInfinity);
-        for (var z = 0; z < 2; z++)
-        for (var y = 0; y < 2; y++)
-        for (var x = 0; x < 2; x++)
-        {
-            var corner = new Vector3(
-                x == 0 ? local.Min.X : local.Max.X,
-                y == 0 ? local.Min.Y : local.Max.Y,
-                z == 0 ? local.Min.Z : local.Max.Z);
-            var transformed = Vector3.Transform(corner, world);
-            min = Vector3.Min(min, transformed);
-            max = Vector3.Max(max, transformed);
-        }
+        // Affine box transform without 8 corner transforms: world extent = |M| * local half-extent.
+        // Abs also normalizes inverted input boxes (zone bounds are authored in any corner order).
+        var center = (local.Min + local.Max) * 0.5f;
+        var extent = new Vector3(
+            MathF.Abs(local.Max.X - local.Min.X),
+            MathF.Abs(local.Max.Y - local.Min.Y),
+            MathF.Abs(local.Max.Z - local.Min.Z)) * 0.5f;
+        var worldCenter = Vector3.Transform(center, world);
+        var worldExtent = new Vector3(
+            MathF.Abs(world.M11) * extent.X + MathF.Abs(world.M21) * extent.Y + MathF.Abs(world.M31) * extent.Z,
+            MathF.Abs(world.M12) * extent.X + MathF.Abs(world.M22) * extent.Y + MathF.Abs(world.M32) * extent.Z,
+            MathF.Abs(world.M13) * extent.X + MathF.Abs(world.M23) * extent.Y + MathF.Abs(world.M33) * extent.Z);
+        min = worldCenter - worldExtent;
+        max = worldCenter + worldExtent;
     }
 }

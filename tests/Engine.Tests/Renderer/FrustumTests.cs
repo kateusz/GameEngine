@@ -73,6 +73,48 @@ public class FrustumTests
         Frustum.TryFromClip(default, out _).ShouldBeFalse();
     }
 
+    [Fact]
+    public void IsOutside_WorldBounds_MatchesMatrixOverloadForAxisAligned()
+    {
+        Frustum.TryFromClip(Ortho(), out var frustum).ShouldBeTrue();
+        var world = Matrix4x4.CreateTranslation(3f, 0f, 0f);
+        Aabb.WorldMinMax(world, Aabb.UnitCube, out var min, out var max);
+        var worldBounds = new Aabb(min, max);
+
+        frustum.IsOutside(worldBounds).ShouldBe(frustum.IsOutside(world, Aabb.UnitCube));
+        frustum.IsOutside(worldBounds).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsOutside_WorldBounds_NonFiniteIsFalse()
+    {
+        Frustum.TryFromClip(Perspective(), out var frustum).ShouldBeTrue();
+        var broken = new Aabb(new Vector3(float.NaN, -1f, -1f), Vector3.One);
+        frustum.IsOutside(broken).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void WorldMinMax_InvertedLocalBox_StaysOrdered()
+    {
+        var inverted = new Aabb(new Vector3(300f, 1f, 1f), new Vector3(-10f, -1f, -1f));
+
+        Aabb.WorldMinMax(Matrix4x4.Identity, inverted, out var min, out var max);
+
+        (min.X < max.X && min.Y < max.Y && min.Z < max.Z).ShouldBeTrue();
+        Aabb.ClosestPointDistanceSquared(Vector3.Zero, Matrix4x4.Identity, inverted).ShouldBe(0f);
+    }
+
+    [Fact]
+    public void ClosestPointDistanceSquared_WorldBounds_ClampsToBox()
+    {
+        var box = new Aabb(new Vector3(-1f), new Vector3(1f));
+
+        Aabb.ClosestPointDistanceSquared(new Vector3(3f, 0f, 0f), box).ShouldBe(4f);
+        Aabb.ClosestPointDistanceSquared(new Vector3(0.5f, 0f, 0f), box).ShouldBe(0f);
+        Aabb.ContainsPoint(Vector3.Zero, box).ShouldBeTrue();
+        Aabb.ContainsPoint(new Vector3(3f, 0f, 0f), box).ShouldBeFalse();
+    }
+
     private static readonly Aabb Rod = new(new Vector3(-5f, -0.02f, -0.02f), new Vector3(5f, 0.02f, 0.02f));
 
     private static Matrix4x4 Perspective()

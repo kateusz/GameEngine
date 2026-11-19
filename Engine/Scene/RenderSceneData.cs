@@ -25,4 +25,4 @@ internal readonly record struct RenderObjectData(
     float LodBias, Texture2D? Texture, bool TextureFailed, float Tiling, int SurfaceStart, int SurfaceCount);
 
 internal readonly record struct SurfaceDrawData(
-    Mesh Mesh, SceneRenderDataBuilder.PbrFactors Pbr, Vector3 Emissive);
+    Mesh Mesh, SceneRenderDataBuilder.PbrFactors Pbr, Vector3 Emissive, Aabb? WorldBounds);

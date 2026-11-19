@@ -127,7 +127,11 @@ public class EditorSelectionTests
         var e2 = new Entity(2, "b");
         var sceneContext = Substitute.For<ISceneContext>();
         var scene = Substitute.For<IScene>();
+        var context = new Context();
+        context.Register(e1);
+        context.Register(e2);
         sceneContext.ActiveScene.Returns(scene);
+        scene.Context.Returns(context);
         scene.Entities.Returns(new[] { e1, e2 });
 
         var selection = new EditorSelection(sceneContext, Substitute.For<IEditorCameraFraming>());
@@ -135,8 +139,25 @@ public class EditorSelectionTests
         selection.Toggle(e2);
         selection.SelectedEntities.Select(e => e.Id).ShouldBe([1, 2]);
 
+        context.Remove(2);
         scene.Entities.Returns(new[] { e1 });
         selection.SelectedEntities.Select(e => e.Id).ShouldBe([1]);
+    }
+
+    [Fact]
+    public void IsSelected_TracksSelectionWithoutWalkingSceneEntities()
+    {
+        var e1 = new Entity(1, "a");
+        var e2 = new Entity(2, "b");
+        var (selection, _, _) = CreateSelection(e1, e2);
+
+        selection.Select(e1, SelectionSource.Hierarchy);
+        selection.IsSelected(1).ShouldBeTrue();
+        selection.IsSelected(2).ShouldBeFalse();
+        selection.IsSelected(99).ShouldBeFalse();
+
+        selection.Toggle(e2);
+        selection.IsSelected(2).ShouldBeTrue();
     }
 
     [Fact]
@@ -172,6 +193,10 @@ public class EditorSelectionTests
         var sceneContext = Substitute.For<ISceneContext>();
         var cameraFraming = Substitute.For<IEditorCameraFraming>();
         var scene = Substitute.For<IScene>();
+        var context = new Context();
+        foreach (var entity in entities)
+            context.Register(entity);
+        scene.Context.Returns(context);
         scene.Entities.Returns(entities);
         sceneContext.ActiveScene.Returns(scene);
         return (new EditorSelection(sceneContext, cameraFraming), sceneContext, cameraFraming);

@@ -31,6 +31,32 @@ internal readonly struct Frustum
     {
         Span<Vector3> corners = stackalloc Vector3[8];
         Aabb.TransformCorners(world, bounds, corners);
+        return IsOutsideCorners(corners);
+    }
+
+    public bool IsOutside(Aabb worldBounds)
+    {
+        if (!float.IsFinite(worldBounds.Min.X) || !float.IsFinite(worldBounds.Min.Y) || !float.IsFinite(worldBounds.Min.Z)
+            || !float.IsFinite(worldBounds.Max.X) || !float.IsFinite(worldBounds.Max.Y) || !float.IsFinite(worldBounds.Max.Z))
+            return false;
+
+        // Plane p-vertex test: box is outside when its farthest corner is behind the plane.
+        foreach (var plane in _planes)
+        {
+            var normal = plane.Normal;
+            var farthest = new Vector3(
+                normal.X >= 0f ? worldBounds.Max.X : worldBounds.Min.X,
+                normal.Y >= 0f ? worldBounds.Max.Y : worldBounds.Min.Y,
+                normal.Z >= 0f ? worldBounds.Max.Z : worldBounds.Min.Z);
+            if (Plane.DotCoordinate(plane, farthest) < -OutsideEpsilon)
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool IsOutsideCorners(ReadOnlySpan<Vector3> corners)
+    {
         foreach (var transformed in corners)
         {
             if (!float.IsFinite(transformed.X) || !float.IsFinite(transformed.Y) || !float.IsFinite(transformed.Z))

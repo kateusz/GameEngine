@@ -49,8 +49,8 @@ internal sealed class SceneRenderDataBuilder(ITextureFactory textureFactory, IMo
                 var start = _data.Surfaces.Count;
                 if (valid && kind != OpaqueSurfaceKind.UnitCube)
                 {
-                    if (kind == OpaqueSurfaceKind.SingleSubmesh) AddSurface(model!.Submeshes[submeshIndex], renderer);
-                    else foreach (var mesh in model!.Submeshes) AddSurface(mesh, renderer);
+                    if (kind == OpaqueSurfaceKind.SingleSubmesh) AddSurface(model!.Submeshes[submeshIndex], renderer, world);
+                    else foreach (var mesh in model!.Submeshes) AddSurface(mesh, renderer, world);
                 }
                 Texture2D? texture = null; var textureFailed = false;
                 if (valid && kind == OpaqueSurfaceKind.UnitCube)
@@ -77,11 +77,21 @@ internal sealed class SceneRenderDataBuilder(ITextureFactory textureFactory, IMo
         finally { FrameModels.Clear(); }
     }
 
-    private void AddSurface(Mesh mesh, ModelRendererComponent renderer)
+    private void AddSurface(Mesh mesh, ModelRendererComponent renderer, Matrix4x4 world)
     {
         var pbr = ResolveEffectivePbr(renderer, mesh);
-        _data.Surfaces.Add(new(mesh, pbr, CombineEmissive(mesh.EmissiveFactor, renderer)));
+        Aabb? worldBounds = null;
+        if (mesh.Bounds is { } local)
+        {
+            Aabb.WorldMinMax(world, local, out var min, out var max);
+            if (IsFinite(min) && IsFinite(max))
+                worldBounds = new Aabb(min, max);
+        }
+        _data.Surfaces.Add(new(mesh, pbr, CombineEmissive(mesh.EmissiveFactor, renderer), worldBounds));
     }
+
+    private static bool IsFinite(Vector3 v) =>
+        float.IsFinite(v.X) && float.IsFinite(v.Y) && float.IsFinite(v.Z);
 
     internal static PbrFactors ResolveEffectivePbr(ModelRendererComponent renderer, Mesh mesh)
     {

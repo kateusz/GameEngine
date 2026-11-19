@@ -100,6 +100,14 @@ public sealed class EditorSelection(ISceneContext sceneContext, IEditorCameraFra
             _anchorId = null;
     }
 
+    public bool IsSelected(int entityId)
+    {
+        foreach (var entity in _selected)
+            if (entity.Id == entityId)
+                return true;
+        return false;
+    }
+
     private bool IsInActiveScene(int id) =>
-        sceneContext.ActiveScene?.Entities.Any(e => e.Id == id) == true;
+        sceneContext.ActiveScene?.Context.Contains(id) == true;
 }

@@ -15,6 +15,20 @@ internal static class MeshLod
             return 0;
         if (mesh.Bounds is not Aabb box)
             return 0;
+
+        float distanceSq = view.Orthographic
+            ? 1f
+            : Aabb.ClosestPointDistanceSquared(camera, world, box);
+        return Select(mesh, world, distanceSq, view, bias);
+    }
+
+    /// <summary>LOD with a caller-supplied distance so culling and LOD share one world AABB query.</summary>
+    internal static int Select(
+        Mesh mesh, Matrix4x4 world, float distanceSq, in SceneView view, float bias)
+    {
+        int count = mesh.LodCount;
+        if (count <= 1 || mesh.Bounds is null)
+            return 0;
         if (view.ViewportHeight <= 0f || !float.IsFinite(view.FrustumHeightAtUnit) || view.FrustumHeightAtUnit <= 0f)
             return 0;
 
@@ -22,9 +36,8 @@ internal static class MeshLod
         if (!float.IsFinite(scale) || scale <= 0f)
             return 0;
 
-        float distanceSq = view.Orthographic
-            ? 1f
-            : Aabb.ClosestPointDistanceSquared(camera, world, box);
+        if (view.Orthographic)
+            distanceSq = 1f;
         if (!float.IsFinite(distanceSq))
             return 0;
 

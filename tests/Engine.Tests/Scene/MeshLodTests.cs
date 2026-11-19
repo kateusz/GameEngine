@@ -1,4 +1,5 @@
 using System.Numerics;
+using Engine.Renderer;
 using Engine.Renderer.Buffers;
 using Engine.Renderer.Buffers.VertexArray;
 using Engine.Renderer.Meshes;
@@ -76,6 +77,18 @@ public class MeshLodTests
         var view = View(height: 25f, ortho: true);
 
         MeshLod.Select(mesh, world, Vector3.Zero, view, 1f).ShouldBe(0);
+    }
+
+    [Fact]
+    public void Select_PrecomputedDistance_MatchesCameraOverload()
+    {
+        var mesh = MeshWithErrors();
+        var camera = new Vector3(0f, 0f, 2f);
+        var view = View();
+        var distanceSq = Aabb.ClosestPointDistanceSquared(camera, Matrix4x4.Identity, mesh.Bounds!.Value);
+
+        MeshLod.Select(mesh, Matrix4x4.Identity, distanceSq, view, 1f)
+            .ShouldBe(MeshLod.Select(mesh, Matrix4x4.Identity, camera, view, 1f));
     }
 
     private static SceneView View(float height = 100f, bool ortho = false) =>

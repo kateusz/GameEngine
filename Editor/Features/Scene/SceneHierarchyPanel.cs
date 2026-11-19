@@ -247,7 +247,7 @@ public class SceneHierarchyPanel(
         if (!_scene.Context.Contains(entity.Id))
             return;
 
-        var isSelected = selection.SelectedEntities.Any(e => e.Id == entity.Id);
+        var isSelected = selection.IsSelected(entity.Id);
         var isMatch = _isFilterActive && _filterMatchIds.Contains(entity.Id);
         entity.TryGetComponent<TransformComponent>(out var transform);
         var effectivelyHidden = transform is not null && !transform.EffectiveVisible;

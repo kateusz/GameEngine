@@ -60,7 +60,6 @@ internal sealed class MeshPassRenderer(IGraphics3D graphics3D, StaticMeshCache c
                 {
                     var surface = data.Surfaces[i];
                     var submesh = surface.Mesh;
-                    var level = MeshLod.Select(submesh, transform, lodView.ViewPosition, lodView, item.LodBias);
                     if (mergeCandidate && submesh.LodCount <= 1 && submesh.BakeVertices is not null)
                     {
                         cache.AppendMergeMember(cache.MakeMergeKey(item.Tint, submesh.DiffuseTexture, submesh, surface.Pbr, surface.Emissive),
@@ -68,8 +67,25 @@ internal sealed class MeshPassRenderer(IGraphics3D graphics3D, StaticMeshCache c
                         stats.Vertices += submesh.VertexCount; stats.Indices += submesh.GetIndexCount();
                         continue;
                     }
-                    if (submesh.Bounds is { } bounds && ShouldSkipOpaqueDraw(hasFrustum, frustum, transform, bounds,
-                            shadowCasterMaxDistanceSq, shadowCasterViewPosition, skipCastersContainingLight, ref stats)) continue;
+
+                    // Cull first: LOD costs a world-bounds query per surface and per shadow pass.
+                    int level;
+                    if (surface.WorldBounds is { } worldBounds)
+                    {
+                        var distanceSq = lodView.Orthographic
+                            ? 1f
+                            : Aabb.ClosestPointDistanceSquared(lodView.ViewPosition, worldBounds);
+                        if (ShouldSkipOpaqueDraw(hasFrustum, frustum, worldBounds,
+                                shadowCasterMaxDistanceSq, shadowCasterViewPosition, skipCastersContainingLight, ref stats)) continue;
+                        level = MeshLod.Select(submesh, transform, distanceSq, lodView, item.LodBias);
+                    }
+                    else
+                    {
+                        if (submesh.Bounds is { } bounds && ShouldSkipOpaqueDraw(hasFrustum, frustum, transform, bounds,
+                                shadowCasterMaxDistanceSq, shadowCasterViewPosition, skipCastersContainingLight, ref stats)) continue;
+                        level = MeshLod.Select(submesh, transform, lodView.ViewPosition, lodView, item.LodBias);
+                    }
+
                     QueueSubmesh(surface, transform, item.Tint, item.EntityId, submesh, level, ref stats);
                 }
             }
@@ -93,6 +109,37 @@ internal sealed class MeshPassRenderer(IGraphics3D graphics3D, StaticMeshCache c
     private bool ShouldSkipOpaqueDraw(
         bool hasFrustum,
         in Frustum frustum,
+        Aabb worldBounds,
+        float shadowCasterMaxDistanceSq,
+        Vector3 shadowCasterViewPosition,
+        Vector3? skipCastersContainingLight,
+        ref MeshPassStats stats)
+    {
+        if (hasFrustum && frustum.IsOutside(worldBounds))
+        {
+            stats.Culled++;
+            return true;
+        }
+
+        if (shadowCasterMaxDistanceSq > 0f
+            && Aabb.ClosestPointDistanceSquared(shadowCasterViewPosition, worldBounds) > shadowCasterMaxDistanceSq)
+        {
+            stats.ShadowCasterCulled++;
+            return true;
+        }
+
+        if (skipCastersContainingLight is { } lamp && Aabb.ContainsPoint(lamp, worldBounds))
+        {
+            stats.ShadowCasterCulled++;
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool ShouldSkipOpaqueDraw(
+        bool hasFrustum,
+        in Frustum frustum,
         Matrix4x4 world,
         Aabb bounds,
         float shadowCasterMaxDistanceSq,
@@ -100,6 +147,10 @@ internal sealed class MeshPassRenderer(IGraphics3D graphics3D, StaticMeshCache c
         Vector3? skipCastersContainingLight,
         ref MeshPassStats stats)
     {
+        if (world == Matrix4x4.Identity)
+            return ShouldSkipOpaqueDraw(hasFrustum, frustum, bounds,
+                shadowCasterMaxDistanceSq, shadowCasterViewPosition, skipCastersContainingLight, ref stats);
+
         if (hasFrustum && frustum.IsOutside(world, bounds))
         {
             stats.Culled++;
