@@ -22,7 +22,8 @@ internal sealed class RenderSceneData
 internal readonly record struct RenderObjectData(
     int EntityId, Matrix4x4 World, bool Visible, bool ZoneCulled, bool Valid, bool MissingMeshIndex,
     bool MovingBody, bool IsCube, Vector4 Tint, SceneRenderDataBuilder.PbrFactors Pbr, Vector3 Emissive,
-    float LodBias, Texture2D? Texture, bool TextureFailed, float Tiling, int SurfaceStart, int SurfaceCount);
+    float LodBias, Texture2D? Texture, bool TextureFailed, float Tiling, int SurfaceStart, int SurfaceCount,
+    Aabb? WorldBounds);
 
 internal readonly record struct SurfaceDrawData(
     Mesh Mesh, SceneRenderDataBuilder.PbrFactors Pbr, Vector3 Emissive, Aabb? WorldBounds);

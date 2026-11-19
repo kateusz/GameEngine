@@ -68,7 +68,8 @@ internal sealed class SceneRenderDataBuilder(ITextureFactory textureFactory, IMo
                 }
                 _data.Objects.Add(new(entity.Id, world, visible, zoneCulled, valid, missingIndex, moving,
                     kind == OpaqueSurfaceKind.UnitCube, renderer.Color, ResolvePbr(renderer), CombineEmissive(Vector3.Zero, renderer),
-                    renderer.LodBias, texture, textureFailed, renderer.TilingFactor, start, _data.Surfaces.Count - start));
+                    renderer.LodBias, texture, textureFailed, renderer.TilingFactor, start, _data.Surfaces.Count - start,
+                    ObjectBounds(start, _data.Surfaces.Count)));
                 if (visible && valid) _data.Casters.Add((entity.Id, pose));
             }
             return _data;
@@ -92,6 +93,28 @@ internal sealed class SceneRenderDataBuilder(ITextureFactory textureFactory, IMo
 
     private static bool IsFinite(Vector3 v) =>
         float.IsFinite(v.X) && float.IsFinite(v.Y) && float.IsFinite(v.Z);
+
+    /// <summary>
+    /// Union of the object's surface bounds, so one plane test rejects the whole model before
+    /// walking its submeshes (a plant model is 187 of them, twice per frame with shadows).
+    /// </summary>
+    private Aabb? ObjectBounds(int start, int end)
+    {
+        if (end <= start)
+            return null;
+
+        var min = new Vector3(float.PositiveInfinity);
+        var max = new Vector3(float.NegativeInfinity);
+        for (var i = start; i < end; i++)
+        {
+            if (_data.Surfaces[i].WorldBounds is not { } bounds)
+                return null;
+            min = Vector3.Min(min, bounds.Min);
+            max = Vector3.Max(max, bounds.Max);
+        }
+
+        return IsFinite(min) && IsFinite(max) ? new Aabb(min, max) : null;
+    }
 
     internal static PbrFactors ResolveEffectivePbr(ModelRendererComponent renderer, Mesh mesh)
     {

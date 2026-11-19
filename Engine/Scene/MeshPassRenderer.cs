@@ -56,6 +56,15 @@ internal sealed class MeshPassRenderer(IGraphics3D graphics3D, StaticMeshCache c
                     stats.CubeDraws++;
                     continue;
                 }
+                // One test for the whole model: a plant is ~187 submeshes, and culling them
+                // individually costs the same plane test 187 times per pass. Merge candidates
+                // are excluded — they must bake even when outside so the batch stays stable.
+                if (!mergeCandidate
+                    && item.WorldBounds is { } objectBounds
+                    && ShouldSkipOpaqueDraw(hasFrustum, frustum, objectBounds,
+                        shadowCasterMaxDistanceSq, shadowCasterViewPosition, skipCastersContainingLight, ref stats))
+                    continue;
+
                 for (var i = item.SurfaceStart; i < item.SurfaceStart + item.SurfaceCount; i++)
                 {
                     var surface = data.Surfaces[i];
