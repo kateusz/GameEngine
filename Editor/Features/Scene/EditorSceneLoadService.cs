@@ -30,19 +30,30 @@ public sealed class EditorSceneLoadService(
 
     public string? LoadingName { get; private set; }
 
-    /// <summary>Null while reading JSON or before first work unit is registered.</summary>
-    public float? LoadProgress =>
-        _warmingModels ? _work.Progress : null;
+    /// <summary>0 while reading JSON; Done/Total while warming. Null when not loading.</summary>
+    public float? LoadProgress
+    {
+        get
+        {
+            if (!IsLoading)
+                return null;
+            if (!_warmingModels || _work.Total <= 0)
+                return 0f;
+            return _work.Progress ?? 0f;
+        }
+    }
 
     public string LoadingStatusText
     {
         get
         {
             var scene = string.IsNullOrEmpty(LoadingName) ? "scene" : LoadingName;
-            if (!_warmingModels || _work.Total == 0)
+            if (!_warmingModels)
                 return $"Loading scene {scene}...";
 
-            var text = $"Loading scene {scene}... ({_work.Done}/{_work.Total})";
+            var text = _work.Total > 0
+                ? $"Loading scene {scene}... ({_work.Done}/{_work.Total})"
+                : $"Loading scene {scene}...";
             var busy = modelLoadService.BusyName;
             return string.IsNullOrEmpty(busy) ? text : $"{text} — {busy}";
         }
@@ -144,6 +155,8 @@ public sealed class EditorSceneLoadService(
 
         _warmingModels = true;
         Volatile.Write(ref _modelsRemaining, paths.Count);
+        // One provisional unit per model so the bar appears before workers finish the first TryRead.
+        _work.Expect(paths.Count);
         foreach (var path in paths)
             modelLoadService.Request(path, _ => Interlocked.Decrement(ref _modelsRemaining), _work);
     }

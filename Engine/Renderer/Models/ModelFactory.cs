@@ -69,6 +69,14 @@ internal class ModelFactory : IModelFactory
         return model;
     }
 
+    public bool IsCached(string path)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var normalizedPath = Path.GetFullPath(path);
+        lock (_cacheLock)
+            return _cache.TryGetValue(normalizedPath, out var cached) && cached != null;
+    }
+
     private Model? TryLoadModel(string normalizedPath, byte[]? runtimeMeshBytes)
     {
         try

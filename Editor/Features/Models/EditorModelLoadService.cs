@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Engine.Renderer.Models;
 using Engine.Renderer.Models.RuntimeMesh;
 using Engine.Renderer.Textures;
+using Engine.Renderer.Textures.Compression;
 using Serilog;
 
 namespace Editor.Features.Models;
@@ -12,16 +13,25 @@ public sealed class EditorModelLoadService(IModelFactory modelFactory, ITextureF
     private readonly ConcurrentQueue<Prepared> _ready = new();
     private int _inFlight;
     private Prepared? _active;
-    private int _textureUploadIndex;
-    private int _advancedForActive;
+    private int _textureIndex;
+    private int _advanceCount;
 
     public bool IsBusy => _inFlight > 0 || _active != null || !_ready.IsEmpty;
     public string? BusyName { get; private set; }
 
     public void Request(string resolvedPath, Action<Model?> onReady, EditorLoadWorkMeter? meter = null)
     {
-        Interlocked.Increment(ref _inFlight);
         var normalized = Path.GetFullPath(resolvedPath);
+
+        // Same-session re-open: model already GPU-ready — skip Assimp/stamp/read entirely.
+        if (modelFactory.IsCached(normalized))
+        {
+            meter?.Advance();
+            onReady(SafeCreate(normalized, null));
+            return;
+        }
+
+        Interlocked.Increment(ref _inFlight);
         BusyName = Path.GetFileName(normalized);
         Task.Run(() =>
         {
@@ -41,36 +51,40 @@ public sealed class EditorModelLoadService(IModelFactory modelFactory, ITextureF
         if (_active == null && _ready.TryDequeue(out var prepared))
         {
             _active = prepared;
-            _textureUploadIndex = 0;
-            _advancedForActive = prepared.AdvancedOnPrepare;
+            _textureIndex = 0;
+            _advanceCount = prepared.PreparedUnits;
         }
 
         if (_active is not { } active)
             return;
 
-        if (active.Textures.Count > 0 && _textureUploadIndex < active.Textures.Count)
+        // One texture per frame. Cooked ones upload their BC sidecar; the rest arrive decoded
+        // from the worker so no raster decode runs on the render thread.
+        if (_textureIndex < active.Textures.Count)
         {
-            var tex = active.Textures[_textureUploadIndex++];
-            textureFactory.CreateFromRgba(tex.Rgba, tex.Width, tex.Height, tex.SRgb, tex.Path);
+            var texture = active.Textures[_textureIndex++];
+            try
+            {
+                if (texture.Rgba != null)
+                    textureFactory.CreateFromRgba(texture.Rgba, texture.Width, texture.Height, texture.SRgb,
+                        texture.Path);
+                else
+                    textureFactory.Create(texture.Path, texture.SRgb);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(ex, "Failed to load texture {Path}", texture.Path);
+            }
+
             active.Meter?.Advance();
-            _advancedForActive++;
-            BusyName = Path.GetFileName(tex.Path);
-            if (_textureUploadIndex < active.Textures.Count)
+            _advanceCount++;
+            BusyName = Path.GetFileName(texture.Path);
+            if (_textureIndex < active.Textures.Count)
                 return;
         }
 
-        Model? model = null;
-        try
-        {
-            if (active.MeshBytes != null)
-                model = modelFactory.Create(active.Path, active.MeshBytes);
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Failed to load model {Path}", active.Path);
-        }
-
-        active.Meter?.FillJob(active.ExpectedUnits, _advancedForActive);
+        var model = active.Path.Length == 0 ? null : SafeCreate(active.Path, active.MeshBytes);
+        active.Meter?.FillJob(active.Units, _advanceCount);
 
         try
         {
@@ -79,9 +93,21 @@ public sealed class EditorModelLoadService(IModelFactory modelFactory, ITextureF
         finally
         {
             _active = null;
-            _advancedForActive = 0;
             if (!IsBusy)
                 BusyName = null;
+        }
+    }
+
+    private Model? SafeCreate(string path, byte[]? meshBytes)
+    {
+        try
+        {
+            return modelFactory.Create(path, meshBytes);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to load model {Path}", path);
+            return null;
         }
     }
 
@@ -100,26 +126,22 @@ public sealed class EditorModelLoadService(IModelFactory modelFactory, ITextureF
             if (!RuntimeMeshReader.TryRead(bytes, out var source) || source == null)
                 return FailPrepared(onReady, meter);
 
-            var textures = DecodeTextures(source, normalizedPath);
+            var textures = CollectTextures(source, normalizedPath);
             var submeshes = source.Submeshes.Count;
-            var units = submeshes + textures.Count;
-            if (units == 0)
-                units = 1;
+            var units = System.Math.Max(submeshes + textures.Count, 1);
 
-            meter?.Expect(units);
-            var advanced = 0;
+            // Scene already Expect(1) provisional per model — add the rest.
+            if (units > 1)
+                meter?.Expect(units - 1);
+
+            var prepared = 0;
             if (submeshes > 0)
             {
                 meter?.Advance(submeshes);
-                advanced = submeshes;
-            }
-            else if (textures.Count == 0)
-            {
-                meter?.Advance();
-                advanced = 1;
+                prepared = submeshes;
             }
 
-            return new Prepared(normalizedPath, bytes, textures, onReady, meter, units, advanced);
+            return new Prepared(normalizedPath, bytes, textures, onReady, meter, units, prepared);
         }
         catch (Exception ex)
         {
@@ -128,62 +150,82 @@ public sealed class EditorModelLoadService(IModelFactory modelFactory, ITextureF
         }
     }
 
-    private static Prepared FailPrepared(Action<Model?> onReady, EditorLoadWorkMeter? meter)
-    {
-        meter?.Expect(1);
-        meter?.Advance();
-        return new Prepared("", null, [], onReady, null, 0, 0);
-    }
-
-    private List<DecodedTexture> DecodeTextures(SourceModel source, string sourcePath)
+    private List<PendingTexture> CollectTextures(SourceModel source, string sourcePath)
     {
         var sourceDirectory = Path.GetDirectoryName(sourcePath) ?? string.Empty;
-        var jobs = new List<(string Absolute, bool SRgb)>();
         var seen = new HashSet<(string Path, bool SRgb)>();
+        var pending = new List<PendingTexture>();
+        var uncooked = new List<(string Path, bool SRgb)>();
 
         foreach (var (relative, sRgb) in RuntimeMeshTextureRefs.Enumerate(source))
         {
             var absolute = RuntimeMeshPaths.ResolveFromSourceDirectory(sourceDirectory, relative);
-            if (!File.Exists(absolute))
+            if (!File.Exists(absolute) || !seen.Add((absolute, sRgb)))
                 continue;
 
-            var key = (absolute, sRgb);
-            if (!seen.Add(key))
-                continue;
-
-            jobs.Add((absolute, sRgb));
+            if (HasCookedSidecar(absolute, sRgb))
+                pending.Add(new PendingTexture(absolute, sRgb, null, 0, 0));
+            else
+                uncooked.Add((absolute, sRgb));
         }
 
-        if (jobs.Count == 0)
-            return [];
+        if (uncooked.Count == 0)
+            return pending;
 
-        var decoded = new DecodedTexture[jobs.Count];
-        Parallel.For(0, jobs.Count, i =>
+        var decoded = new PendingTexture[uncooked.Count];
+        Parallel.For(0, uncooked.Count, i =>
         {
-            var (absolute, sRgb) = jobs[i];
+            var (path, sRgb) = uncooked[i];
             try
             {
-                var (data, width, height) = textureFactory.Decode(absolute, sRgb);
-                decoded[i] = new DecodedTexture(absolute, sRgb, data, width, height);
+                var (rgba, width, height) = textureFactory.Decode(path, sRgb);
+                decoded[i] = new PendingTexture(path, sRgb, rgba, width, height);
             }
             catch (Exception ex)
             {
-                Logger.Warning(ex, "Failed to decode texture {Path}", absolute);
-                decoded[i] = default;
+                Logger.Warning(ex, "Failed to decode texture {Path}", path);
+                decoded[i] = new PendingTexture(path, sRgb, null, 0, 0);
             }
         });
 
-        return decoded.Where(t => t.Rgba != null).ToList();
+        pending.AddRange(decoded);
+        return pending;
     }
 
-    private readonly record struct DecodedTexture(string Path, bool SRgb, byte[] Rgba, int Width, int Height);
+    // Same freshness rule as TextureBcSidecar.TryReadUsableSidecar, without reading the DDS bytes:
+    // a corrupt-but-fresh sidecar just falls back to a decode inside Create (rare).
+    private static bool HasCookedSidecar(string path, bool sRgb)
+    {
+        var sidecar = BcDdsSidecarPath.ForSource(path, sRgb);
+        return File.Exists(sidecar)
+               && File.GetLastWriteTimeUtc(sidecar) >= File.GetLastWriteTimeUtc(path);
+    }
+
+    private static Prepared FailPrepared(Action<Model?> onReady, EditorLoadWorkMeter? meter)
+    {
+        if (meter != null)
+        {
+            if (meter.Total == 0)
+                meter.Expect(1);
+            meter.Advance();
+        }
+
+        return new Prepared("", null, [], onReady, null, 0, 0);
+    }
+
+    private readonly record struct PendingTexture(
+        string Path,
+        bool SRgb,
+        byte[]? Rgba,
+        int Width,
+        int Height);
 
     private readonly record struct Prepared(
         string Path,
         byte[]? MeshBytes,
-        List<DecodedTexture> Textures,
+        List<PendingTexture> Textures,
         Action<Model?> OnReady,
         EditorLoadWorkMeter? Meter,
-        int ExpectedUnits,
-        int AdvancedOnPrepare);
+        int Units,
+        int PreparedUnits);
 }

@@ -47,14 +47,20 @@ public static class LoadingOverlayDrawer
         if (progress is not { } fraction)
             return;
 
+        // DrawList bar — ImGui.ProgressBar is unreliable in a zero-padding overlay window.
         var barWidth = MathF.Min(400f, size.X * 0.4f);
-        var barHeight = ImGui.GetFrameHeight();
-        var barPos = new Vector2(center.X - barWidth * 0.5f, textY + textSize.Y + 16f);
-        ImGui.SetCursorScreenPos(barPos);
-        ImGui.PushStyleColor(ImGuiCol.PlotHistogram, new Vector4(0.2f, 0.6f, 1.0f, 1.0f));
+        var barHeight = 18f;
+        var barMin = new Vector2(center.X - barWidth * 0.5f, textY + textSize.Y + 16f);
+        var barMax = new Vector2(barMin.X + barWidth, barMin.Y + barHeight);
+        drawList.AddRectFilled(barMin, barMax, ImGui.GetColorU32(new Vector4(0.15f, 0.15f, 0.15f, 0.9f)), 4f);
         var clamped = fraction < 0f ? 0f : fraction > 1f ? 1f : fraction;
-        ImGui.ProgressBar(clamped, new Vector2(barWidth, barHeight));
-        ImGui.PopStyleColor();
+        if (clamped > 0f)
+        {
+            var fillMax = new Vector2(barMin.X + barWidth * clamped, barMax.Y);
+            drawList.AddRectFilled(barMin, fillMax, ImGui.GetColorU32(new Vector4(0.2f, 0.6f, 1.0f, 1.0f)), 4f);
+        }
+
+        drawList.AddRect(barMin, barMax, ImGui.GetColorU32(new Vector4(1f, 1f, 1f, 0.25f)), 4f);
     }
 
     public static void DrawSpinner(

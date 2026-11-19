@@ -11,6 +11,27 @@ namespace Engine.Tests.Renderer;
 public class ModelFactoryDisposeTests
 {
     [Fact]
+    public void IsCached_ReflectsCreateAndClear()
+    {
+        var path = Path.GetTempFileName();
+        try
+        {
+            var vao = Substitute.For<IVertexArray>();
+            var factory = CreateFactory(path, vao);
+
+            factory.IsCached(path).ShouldBeFalse();
+            factory.Create(path).ShouldNotBeNull();
+            factory.IsCached(path).ShouldBeTrue();
+            factory.Clear();
+            factory.IsCached(path).ShouldBeFalse();
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void Clear_DisposesCachedModelMeshes_AndAllowsCreateAgain()
     {
         var path = Path.GetTempFileName();

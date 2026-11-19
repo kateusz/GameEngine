@@ -229,6 +229,33 @@ public class RuntimeMeshTests
         }
     }
 
+    [Fact]
+    public void TryEnsureUpToDate_MatchingSiblingStamp_SkipsImport()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "mesh-fresh-" + Guid.NewGuid());
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var source = Path.Combine(dir, "model.glb");
+            File.WriteAllBytes(source, new byte[64]);
+            var sibling = RuntimeMeshPaths.SiblingPath(source);
+            var stamp = new RuntimeMeshStamp(64, new byte[32], RuntimeMeshFormat.ImporterVersion,
+                RuntimeMeshFormat.AssimpPostProcessFlags);
+            RuntimeMeshWriter.TryWrite(sibling, SampleModel(), stamp).ShouldBeTrue();
+            File.SetLastWriteTimeUtc(sibling, File.GetLastWriteTimeUtc(source).AddSeconds(1));
+
+            // Source bytes are not a real GLB: reaching Assimp would fail, so success proves the fast path.
+            RuntimeMeshBuilder.TryEnsureUpToDate(source).ShouldBeTrue();
+
+            File.SetLastWriteTimeUtc(source, DateTime.UtcNow.AddMinutes(1));
+            RuntimeMeshBuilder.TryEnsureUpToDate(source).ShouldBeFalse();
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
     private static Mesh ToMesh(SourceSubmesh submesh)
     {
         var mesh = new Mesh(submesh.Name);

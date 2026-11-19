@@ -86,13 +86,15 @@ public class EditorDockspace(
         commandPalette.Render();
         assetBrowserDialog.Render();
 
+        // Pump before overlay so Open/warmup/progress are current for this frame's bar.
+        sceneLoadService.Pump();
+
         if (sceneLoadService.IsLoading && !recentProjectsPanel.IsLoading)
             LoadingOverlayDrawer.DrawFullscreen(
                 sceneLoadService.LoadingStatusText,
                 ref _sceneLoadingSpinnerRotation,
                 sceneLoadService.LoadProgress);
 
-        sceneLoadService.Pump();
         sceneLoadService.Render();
     }
 

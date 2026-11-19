@@ -22,12 +22,10 @@ internal static class RuntimeMeshBuilder
         }
 
         var siblingPath = RuntimeMeshPaths.SiblingPath(normalizedPath);
-        var stamp = RuntimeMeshStamp.FromFile(normalizedPath);
-        if (File.Exists(siblingPath)
-            && RuntimeMeshReader.TryReadStamp(File.ReadAllBytes(siblingPath), out var fileStamp)
-            && fileStamp.Matches(stamp))
+        if (File.Exists(siblingPath) && SiblingStampMatchesSource(normalizedPath, siblingPath))
             return true;
 
+        var stamp = RuntimeMeshStamp.FromFile(normalizedPath);
         using var importer = new AssimpModelImporter();
         var imported = importer.ImportSource(normalizedPath);
         if (imported == null || imported.Submeshes.Count == 0)
@@ -47,5 +45,33 @@ internal static class RuntimeMeshBuilder
         }
 
         return RuntimeMeshWriter.TryWrite(siblingPath, imported, stamp);
+    }
+
+    // ponytail: mtime + size + importer version only, no SHA256 of the source GLB.
+    // Ceiling: a same-size edit that also moves the source mtime backwards is missed — re-cook manually.
+    private static bool SiblingStampMatchesSource(string sourcePath, string siblingPath)
+    {
+        var sourceInfo = new FileInfo(sourcePath);
+        if (new FileInfo(siblingPath).LastWriteTimeUtc < sourceInfo.LastWriteTimeUtc)
+            return false;
+
+        Span<byte> header = stackalloc byte[RuntimeMeshFormat.HeaderSize];
+        try
+        {
+            using var stream = File.OpenRead(siblingPath);
+            if (stream.Read(header) < header.Length)
+                return false;
+        }
+        catch
+        {
+            return false;
+        }
+
+        if (!RuntimeMeshReader.TryReadStamp(header, out var fileStamp))
+            return false;
+
+        return fileStamp.SourceSize == (ulong)sourceInfo.Length
+               && fileStamp.ImporterVersion == RuntimeMeshFormat.ImporterVersion
+               && fileStamp.PostProcessFlags == RuntimeMeshFormat.AssimpPostProcessFlags;
     }
 }
