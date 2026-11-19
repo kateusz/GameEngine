@@ -52,15 +52,8 @@ public sealed class FxaaPass(
         if (width == 0 || height == 0 || !Ensure(ref _scene, width, height, depth: true))
             return null;
 
-        _scene!.Bind();
-        try
-        {
-            draw();
-        }
-        finally
-        {
-            _scene.Unbind();
-        }
+        using var binding = _scene!.BindScoped();
+        draw();
 
         return _scene;
     }

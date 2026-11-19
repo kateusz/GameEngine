@@ -15,7 +15,6 @@ internal sealed class OpenGLRendererApi : IRendererAPI
 {
     private static readonly ILogger Logger = Log.ForContext<OpenGLRendererApi>();
     private static bool _brdfLutWarned;
-    private readonly HashSet<uint> _meshInstanceLayoutVaos = [];
     public void SetClearColor(Vector4 color)
     {
         SilkNetContext.GL.ClearColor(color.X, color.Y, color.Z, color.W);
@@ -230,16 +229,18 @@ internal sealed class OpenGLRendererApi : IRendererAPI
 
         OpenGLDebug.CheckError(gl, "BufferData(mesh instances)");
 
-        if (vertexArray is not OpenGLVertexArray oglVao || _meshInstanceLayoutVaos.Contains(oglVao.RendererId))
+        vertexArray.Bind();
+        if (vertexArray is not OpenGLVertexArray oglVao)
+            throw new ArgumentException("OpenGL instancing requires an OpenGL vertex array.", nameof(vertexArray));
+        if (oglVao.InstanceBufferBinding == _meshInstanceBuffer)
             return;
 
-        vertexArray.Bind();
         var stride = (uint)sizeof(MeshInstanceData);
         // Locations 0–5 are the mesh. Instance layout is stored once per VAO.
         EnableMat4(gl, startLocation: 6, byteOffset: 0, stride);
         EnableMat4(gl, startLocation: 10, byteOffset: MeshInstanceData.NormalByteOffset, stride);
         EnableInt(gl, location: 14, byteOffset: MeshInstanceData.EntityIdByteOffset, stride);
-        _meshInstanceLayoutVaos.Add(oglVao.RendererId);
+        oglVao.InstanceBufferBinding = _meshInstanceBuffer;
     }
 
     private static unsafe void EnableMat4(GL gl, uint startLocation, int byteOffset, uint stride)
@@ -320,7 +321,6 @@ internal sealed class OpenGLRendererApi : IRendererAPI
         if (enabled)
         {
             SilkNetContext.GL.Enable(EnableCap.CullFace);
-            SilkNetContext.GL.CullFace(TriangleFace.Back);
         }
         else
             SilkNetContext.GL.Disable(EnableCap.CullFace);
@@ -329,7 +329,6 @@ internal sealed class OpenGLRendererApi : IRendererAPI
 
     public void SetCullFrontFaces(bool cullFront)
     {
-        SilkNetContext.GL.Enable(EnableCap.CullFace);
         SilkNetContext.GL.CullFace(cullFront ? TriangleFace.Front : TriangleFace.Back);
         OpenGLDebug.CheckError(SilkNetContext.GL, "CullFace");
     }

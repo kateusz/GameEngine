@@ -32,8 +32,10 @@ public class ShaderFactoryCacheTests(HeadlessGraphicsContextFixture fixture)
     {
         _ = fixture;
         var vert = Path.Combine(Path.GetTempPath(), $"bad-{Guid.NewGuid():N}.vert");
-        var frag = Path.Combine(AppContext.BaseDirectory, "assets", "shaders", "OpenGL", "cube.frag");
-        File.WriteAllText(vert, "not a shader");
+        var frag = Path.ChangeExtension(vert, ".frag");
+        // Keep this test independent of the shipped shader include tree: it must reach compilation.
+        File.WriteAllText(vert, "#version 410 core\nnot a shader");
+        File.WriteAllText(frag, "#version 410 core\nlayout(location=0) out vec4 color; void main(){color=vec4(1.0);}");
         var factory = new ShaderFactory();
         try
         {
@@ -43,6 +45,7 @@ public class ShaderFactoryCacheTests(HeadlessGraphicsContextFixture fixture)
         {
             factory.Dispose();
             File.Delete(vert);
+            File.Delete(frag);
         }
     }
 

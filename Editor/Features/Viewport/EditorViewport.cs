@@ -348,7 +348,7 @@ public sealed class EditorViewport(
             editorPreferences.PointShadowPcf,
             editorPreferences.ShadowCascades));
         graphics3D.SetSkybox(sceneContext.ActiveScene?.Skybox);
-        _frameBuffer.Bind();
+        using var binding = _frameBuffer.BindScoped();
 
         var clearColor = sceneContext.ActiveScene?.BackgroundColor ?? Vector4.One;
         graphics2D.SetClearColor(clearColor);
@@ -396,7 +396,6 @@ public sealed class EditorViewport(
                 break;
         }
 
-        _frameBuffer.Unbind();
     }
 
     private void RenderEditor2DOverlays(Context context, in SceneView view)

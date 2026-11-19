@@ -210,6 +210,7 @@ internal sealed class Graphics3D(
         rendererApi.SetDepthTest(true);
         rendererApi.SetDepthWrite(true);
         var res = (uint)_quality.DirectionalResolution;
+        rendererApi.SetCullFrontFaces(false);
         if (cascade == 0)
         {
             rendererApi.SetViewport(0, 0, res * (uint)_quality.Cascades, res);
@@ -285,8 +286,8 @@ internal sealed class Graphics3D(
         _pointDepthShader.Unbind();
         _activePointMap?.Unbind();
         _activePointMap = null;
-        if (_drawCulling != true)
-            rendererApi.SetCullFrontFaces(false);
+        rendererApi.SetCullFrontFaces(false);
+        rendererApi.SetFaceCulling(true);
         _drawCulling = null;
         _pointShadowPass = false;
         _shadowPass = false;
@@ -442,6 +443,7 @@ internal sealed class Graphics3D(
         _viewPosition = view.ViewPosition;
         UploadFrame();
         rendererApi.SetDepthTest(true);
+        rendererApi.SetCullFrontFaces(false);
         _colorPass = true;
     }
 

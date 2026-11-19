@@ -12,9 +12,11 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
     private uint _rendererId;
     private bool _disposed;
     private readonly int[] _previousViewport = new int[4];
-    private int _previousFbo;
+    private int _previousDrawFbo;
+    private int _previousReadFbo;
+    private bool _bound;
     private readonly List<FrameBufferTextureSpecification> _colorAttachmentSpecs = [];
-    private uint[] _colorAttachments;
+    private uint[] _colorAttachments = [];
     private uint _depthAttachment;
     private readonly FrameBufferTextureSpecification _depthAttachmentSpec;
     private readonly FrameBufferSpecification _specification;
@@ -56,10 +58,19 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
             return;
         }
 
+        var previousWidth = _specification.Width;
+        var previousHeight = _specification.Height;
         _specification.Width = width;
         _specification.Height = height;
-
-        Invalidate();
+        try { Invalidate(); }
+        catch
+        {
+            _specification.Width = previousWidth;
+            _specification.Height = previousHeight;
+            throw;
+        }
+        if (_bound)
+            SilkNetContext.GL.Viewport(0, 0, width, height);
     }
 
     public override int ReadPixel(int attachmentIndex, int x, int y)
@@ -130,59 +141,92 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
     
     public override void Bind()
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_bound)
+            throw new InvalidOperationException("Framebuffer is already bound; nested binding of the same target is unsupported.");
         SilkNetContext.GL.GetInteger(GLEnum.Viewport, _previousViewport);
-        _previousFbo = SilkNetContext.GL.GetInteger(GLEnum.FramebufferBinding);
+        _previousDrawFbo = SilkNetContext.GL.GetInteger(GLEnum.DrawFramebufferBinding);
+        _previousReadFbo = SilkNetContext.GL.GetInteger(GLEnum.ReadFramebufferBinding);
         SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, _rendererId);
         SilkNetContext.GL.Viewport(0, 0, _specification.Width, _specification.Height);
         OpenGLDebug.CheckError(SilkNetContext.GL, "BindFramebuffer");
+        _bound = true;
     }
 
     public override void Unbind()
     {
-        SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, (uint)_previousFbo);
+        if (!_bound)
+            throw new InvalidOperationException("Framebuffer is not bound.");
+        SilkNetContext.GL.BindFramebuffer(FramebufferTarget.DrawFramebuffer, (uint)_previousDrawFbo);
+        SilkNetContext.GL.BindFramebuffer(FramebufferTarget.ReadFramebuffer, (uint)_previousReadFbo);
         SilkNetContext.GL.Viewport(_previousViewport[0], _previousViewport[1], (uint)_previousViewport[2], (uint)_previousViewport[3]);
         OpenGLDebug.CheckError(SilkNetContext.GL, "BindFramebuffer (unbind)");
+        _bound = false;
     }
 
     private void Invalidate()
     {
-        var attachmentCountChanged = _colorAttachments == null ||
-                                     _colorAttachments.Length != _colorAttachmentSpecs.Count;
-
-        // Delete attachments first, then the framebuffer
-        if (_colorAttachments != null && _colorAttachments.Length > 0)
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var gl = SilkNetContext.GL;
+        var draw = (uint)gl.GetInteger(GLEnum.DrawFramebufferBinding);
+        var read = (uint)gl.GetInteger(GLEnum.ReadFramebufferBinding);
+        var texture2D = (uint)gl.GetInteger(GLEnum.TextureBinding2D);
+        var textureCube = (uint)gl.GetInteger(GLEnum.TextureBindingCubeMap);
+        var oldId = _rendererId;
+        var oldColors = _colorAttachments;
+        var oldDepth = _depthAttachment;
+        _rendererId = 0;
+        _colorAttachments = [];
+        _depthAttachment = 0;
+        try
         {
-            foreach (var attachment in _colorAttachments)
-            {
-                if (attachment != 0)
-                    SilkNetContext.GL.DeleteTexture(attachment);
-            }
-            OpenGLDebug.CheckError(SilkNetContext.GL, "DeleteTextures (color attachments)");
+            Allocate();
         }
-
-        if (_depthAttachment != 0)
+        catch
         {
-            SilkNetContext.GL.DeleteTexture(_depthAttachment);
-            OpenGLDebug.CheckError(SilkNetContext.GL, "DeleteTexture (depth attachment)");
-            _depthAttachment = 0;
+            DeleteResources(_rendererId, _colorAttachments, _depthAttachment);
+            _rendererId = oldId;
+            _colorAttachments = oldColors;
+            _depthAttachment = oldDepth;
+            throw;
         }
-
-        if (_rendererId != 0)
+        finally
         {
-            SilkNetContext.GL.DeleteFramebuffer(_rendererId);
-            OpenGLDebug.CheckError(SilkNetContext.GL, "DeleteFramebuffer");
-            _rendererId = 0;
+            // A bound target may itself have been resized; restore its new incarnation.
+            gl.BindFramebuffer(FramebufferTarget.DrawFramebuffer, draw != 0 && draw == oldId ? _rendererId : draw);
+            gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, read != 0 && read == oldId ? _rendererId : read);
+            gl.BindTexture(TextureTarget.Texture2D, Replacement(texture2D));
+            gl.BindTexture(TextureTarget.TextureCubeMap, Replacement(textureCube));
         }
+        DeleteResources(oldId, oldColors, oldDepth);
 
+        uint Replacement(uint texture)
+        {
+            if (texture == 0) return 0;
+            if (texture == oldDepth) return _depthAttachment;
+            var index = Array.IndexOf(oldColors, texture);
+            return index >= 0 ? _colorAttachments[index] : texture;
+        }
+    }
+
+    private static void DeleteResources(uint framebuffer, uint[] colors, uint depth)
+    {
+        var gl = SilkNetContext.GL;
+        foreach (var color in colors)
+            if (color != 0) gl.DeleteTexture(color);
+        if (depth != 0) gl.DeleteTexture(depth);
+        if (framebuffer != 0) gl.DeleteFramebuffer(framebuffer);
+    }
+
+    private void Allocate()
+    {
         _rendererId = SilkNetContext.GL.GenFramebuffer();
         OpenGLDebug.CheckError(SilkNetContext.GL, "GenFramebuffer");
         
         SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, _rendererId);
         OpenGLDebug.CheckError(SilkNetContext.GL, "BindFramebuffer");
 
-        // Only allocate if attachment count changed
-        if (attachmentCountChanged)
-            _colorAttachments = new uint[_colorAttachmentSpecs.Count];
+        _colorAttachments = new uint[_colorAttachmentSpecs.Count];
 
         SilkNetContext.GL.GenTextures(_colorAttachments);
         OpenGLDebug.CheckError(SilkNetContext.GL, "GenTextures");
@@ -220,8 +264,6 @@ internal sealed class OpenGLFrameBuffer : FrameBuffer
 
         DrawBuffers();
 
-        SilkNetContext.GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
-        OpenGLDebug.CheckError(SilkNetContext.GL, "BindFramebuffer (unbind after invalidate)");
     }
 
     private void DrawBuffers()

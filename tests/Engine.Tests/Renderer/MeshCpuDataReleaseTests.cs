@@ -67,7 +67,7 @@ public class MeshCpuDataReleaseTests
     }
 
     [Fact]
-    public void Dispose_DisposesVertexArray_NotBuffersDirectly()
+    public void Dispose_ReleasesAllLodIndexBuffersAndVertexArray_OnlyOnce()
     {
         var vao = Substitute.For<IVertexArray>();
         var vbo = Substitute.For<IVertexBuffer>();
@@ -80,17 +80,24 @@ public class MeshCpuDataReleaseTests
         var vboFactory = Substitute.For<IVertexBufferFactory>();
         vboFactory.Create(Arg.Any<List<Mesh.Vertex>>()).Returns(vbo);
         var iboFactory = Substitute.For<IIndexBufferFactory>();
-        iboFactory.Create(Arg.Any<uint[]>(), Arg.Any<int>()).Returns(ibo);
+        var lod = Substitute.For<IIndexBuffer>();
+        lod.Count.Returns(3);
+        iboFactory.Create(Arg.Any<uint[]>(), Arg.Any<int>()).Returns(ibo, lod);
 
         var mesh = new Mesh("test");
         mesh.Vertices.Add(default);
         mesh.Indices.AddRange([0u, 1u, 2u]);
+        mesh.LodIndices.Add([0u, 1u, 2u]);
+        mesh.LodErrors.Add(0.1f);
         mesh.Initialize(vaoFactory, vboFactory, iboFactory);
+        mesh.Dispose();
         mesh.Dispose();
 
         vao.Received(1).Dispose();
         vbo.DidNotReceive().Dispose();
-        ibo.DidNotReceive().Dispose();
+        // Mesh owns every LOD index buffer; the VAO only knows its currently bound level.
+        ibo.Received(1).Dispose();
+        lod.Received(1).Dispose();
     }
 
     private static IVertexArrayFactory VertexArrayFactory()

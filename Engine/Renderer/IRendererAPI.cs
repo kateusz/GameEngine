@@ -32,8 +32,9 @@ public interface IRendererAPI
     void SetAdditiveBlend(bool enabled);
     /// <summary>When false, depth buffer is not written (transparent pass).</summary>
     void SetDepthWrite(bool enabled);
-    /// <summary>When enabled, back faces are culled. Disable for double-sided materials.</summary>
+    /// <summary>Enables culling without changing its selected face. Disable for double-sided materials.</summary>
     void SetFaceCulling(bool enabled);
+    /// <summary>Selects front or back faces without enabling or disabling culling.</summary>
     void SetCullFrontFaces(bool cullFront);
     void SetPolygonMode(PolygonMode mode);
     void SetViewport(int x, int y, uint width, uint height);

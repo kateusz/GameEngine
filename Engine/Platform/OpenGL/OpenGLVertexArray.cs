@@ -11,6 +11,8 @@ internal sealed class OpenGLVertexArray : IVertexArray
     private bool _disposed;
 
     internal uint RendererId { get; private set; }
+    // Layout belongs to this VAO incarnation, not its recyclable OpenGL name.
+    internal uint InstanceBufferBinding { get; set; }
 
     public OpenGLVertexArray()
     {
